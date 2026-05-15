@@ -58,26 +58,20 @@ export function UpdaterPanel() {
     <section>
       <h2>Updater</h2>
       <p className="muted">
-        State: <strong>{formatEvent(event)}</strong>. The mock buttons below
-        walk the state machine through every variant — the real updater
-        flow wires in with the packaging follow-up (EMD-22). See ADR-0008
-        for the design.
+        State: <strong>{formatEvent(event)}</strong>. The mock buttons below walk the state machine
+        through every variant — the real updater flow wires in with the packaging follow-up
+        (EMD-22). See ADR-0008 for the design.
       </p>
       <div className="row" style={{ flexWrap: 'wrap', gap: '8px' }}>
         <button type="button" onClick={runCheck}>
           Check for updates
         </button>
-        <button
-          type="button"
-          onClick={() => void simulate({ kind: 'up_to_date' })}
-        >
+        <button type="button" onClick={() => void simulate({ kind: 'up_to_date' })}>
           → up_to_date
         </button>
         <button
           type="button"
-          onClick={() =>
-            void simulate({ kind: 'available', version: '0.2.0', notes: 'Bug fixes' })
-          }
+          onClick={() => void simulate({ kind: 'available', version: '0.2.0', notes: 'Bug fixes' })}
         >
           → available
         </button>
@@ -89,9 +83,7 @@ export function UpdaterPanel() {
         </button>
         <button
           type="button"
-          onClick={() =>
-            void simulate({ kind: 'ready_to_install', version: '0.2.0' })
-          }
+          onClick={() => void simulate({ kind: 'ready_to_install', version: '0.2.0' })}
         >
           → ready_to_install
         </button>

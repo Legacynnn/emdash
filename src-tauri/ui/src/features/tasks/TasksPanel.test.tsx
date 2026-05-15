@@ -4,8 +4,8 @@
  * `@tauri-apps/api/core` returns fixture data so the store→bindings
  * loop runs without a host.
  */
-import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type InvokeMock = ReturnType<typeof vi.fn>;
 

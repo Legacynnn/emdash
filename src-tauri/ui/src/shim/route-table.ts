@@ -81,7 +81,6 @@ const ROUTES: Record<string, Route> = {
       try {
         return JSON.parse(raw);
       } catch {
-        // eslint-disable-next-line no-console
         console.warn('[tauri-shim] viewState.get: malformed JSON, returning raw string', { key });
         return raw;
       }

@@ -96,20 +96,19 @@ function translateUiMutation(event: UiMutationEvent): void {
       emit('task.updated', event);
       emit('task.changed', event);
       if (typeof event.id === 'string') emit(`task.updated.${event.id}`, event);
-      if (typeof event.project_id === 'string')
-        emit(`task.changed.${event.project_id}`, event);
+      if (typeof event.project_id === 'string') emit(`task.changed.${event.project_id}`, event);
       break;
     case 'task_deleted':
       emit('task.deleted', event);
       emit('task.changed', event);
       if (typeof event.id === 'string') emit(`task.deleted.${event.id}`, event);
-      if (typeof event.project_id === 'string')
-        emit(`task.changed.${event.project_id}`, event);
+      if (typeof event.project_id === 'string') emit(`task.changed.${event.project_id}`, event);
       break;
 
     case 'agent_hook_event':
       emit('agent.event', event.event ?? event);
-      if (typeof event.task_id === 'string') emit(`agent.event.${event.task_id}`, event.event ?? event);
+      if (typeof event.task_id === 'string')
+        emit(`agent.event.${event.task_id}`, event.event ?? event);
       break;
     case 'agent_started':
       emit('agent.started', event);

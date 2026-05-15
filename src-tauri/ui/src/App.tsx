@@ -3,8 +3,8 @@ import { useMemo, useState } from 'react';
 import { commands, type SecretsCommandError } from './bindings';
 import { DebugShell } from './components/DebugShell';
 import { ProjectsPanel } from './features/projects/ProjectsPanel';
-import { TasksPanel } from './features/tasks/TasksPanel';
 import { TelemetryToggle } from './features/settings/TelemetryToggle';
+import { TasksPanel } from './features/tasks/TasksPanel';
 import { UpdaterPanel } from './features/updater/UpdaterPanel';
 import { createStores } from './stores';
 import { asReady } from './stores/projectStore';
@@ -33,7 +33,7 @@ export const App = observer(function App() {
   const ready = asReady(stores.projects);
   const selectedProject =
     ready && selectedProjectId
-      ? ready.projects.find((p) => p.id === selectedProjectId) ?? null
+      ? (ready.projects.find((p) => p.id === selectedProjectId) ?? null)
       : null;
   const taskStore = selectedProject ? stores.getOrCreateTaskStore(selectedProject.id) : null;
 
@@ -180,9 +180,7 @@ export const App = observer(function App() {
         onSelect={setSelectedProjectId}
       />
 
-      {selectedProject && taskStore && (
-        <TasksPanel project={selectedProject} store={taskStore} />
-      )}
+      {selectedProject && taskStore && <TasksPanel project={selectedProject} store={taskStore} />}
 
       <TelemetryToggle />
 

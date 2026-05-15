@@ -19,7 +19,6 @@
 // missing surface explicitly instead of hanging silently.
 
 import { invoke as tauriInvoke } from '@tauri-apps/api/core';
-
 import { installEventBridge, registerEventListener } from './event-bridge';
 import { resolveRoute } from './route-table';
 
