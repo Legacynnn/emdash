@@ -45,4 +45,17 @@ pub enum UiMutationEvent {
     GithubDataChanged {
         repo: String,
     },
+    /// EMD-10: an SSH connection was saved (insert or update).
+    SshConnectionSaved {
+        id: String,
+    },
+    /// EMD-10: an SSH connection was deleted.
+    SshConnectionDeleted {
+        id: String,
+    },
+    /// EMD-10: an SSH connection's live state changed
+    /// (`Disconnected` ↔ `Connected` ↔ `Failed`).
+    SshConnectionStateChanged {
+        id: String,
+    },
 }

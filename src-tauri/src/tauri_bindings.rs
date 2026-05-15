@@ -53,6 +53,15 @@ pub fn build_specta() -> Builder<tauri::Wry> {
         commands::github::github_list_pulls,
         commands::github::github_get_pull,
         commands::github::github_get_pull_diff,
+        commands::ssh::ssh_list_connections,
+        commands::ssh::ssh_save_connection,
+        commands::ssh::ssh_rename_connection,
+        commands::ssh::ssh_delete_connection,
+        commands::ssh::ssh_test_connection,
+        commands::ssh::ssh_connect,
+        commands::ssh::ssh_disconnect,
+        commands::ssh::ssh_get_state,
+        commands::ssh::ssh_exec,
     ])
 }
 
