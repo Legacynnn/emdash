@@ -4,6 +4,7 @@
 )]
 
 mod app;
+mod app_menu;
 
 fn main() {
     // `--export-bindings`: headless regen for CI / pre-commit.

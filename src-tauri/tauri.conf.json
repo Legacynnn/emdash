@@ -16,8 +16,13 @@
         "title": "emdash - dev",
         "width": 1024,
         "height": 720,
+        "minWidth": 640,
+        "minHeight": 400,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "titleBarStyle": "Overlay",
+        "trafficLightPosition": { "x": 18, "y": 18 },
+        "dragDropEnabled": false
       }
     ],
     "security": {
