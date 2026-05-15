@@ -44,6 +44,15 @@ pub fn build_specta() -> Builder<tauri::Wry> {
         commands::view_state::view_state_get_all,
         commands::view_state::view_state_delete,
         commands::view_state::view_state_reset,
+        commands::github::github_sign_in_device_flow_start,
+        commands::github::github_sign_in_device_flow_poll,
+        commands::github::github_sign_in_via_gh_cli,
+        commands::github::github_sign_out,
+        commands::github::github_me,
+        commands::github::github_list_repos,
+        commands::github::github_list_pulls,
+        commands::github::github_get_pull,
+        commands::github::github_get_pull_diff,
     ])
 }
 

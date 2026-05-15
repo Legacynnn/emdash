@@ -32,6 +32,15 @@
     "view_state_get",
     "view_state_get_all",
     "view_state_delete",
-    "view_state_reset"
+    "view_state_reset",
+    "github_sign_in_device_flow_start",
+    "github_sign_in_device_flow_poll",
+    "github_sign_in_via_gh_cli",
+    "github_sign_out",
+    "github_me",
+    "github_list_repos",
+    "github_list_pulls",
+    "github_get_pull",
+    "github_get_pull_diff"
   ]
 }

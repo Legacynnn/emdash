@@ -38,4 +38,11 @@ pub enum UiMutationEvent {
         task_id: Option<String>,
         event: crate::agent_hooks::AgentEvent,
     },
+    /// EMD-13: GitHub identity changed (sign-in / sign-out / refresh).
+    GithubIdentityChanged,
+    /// EMD-13: GitHub repo-scoped data changed (PRs, comments, reviews
+    /// of the named `owner/name`).
+    GithubDataChanged {
+        repo: String,
+    },
 }
