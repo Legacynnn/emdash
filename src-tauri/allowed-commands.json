@@ -8,6 +8,11 @@
     "pty_spawn",
     "pty_write",
     "pty_resize",
-    "pty_kill"
+    "pty_kill",
+    "subscribe_ui_mutations",
+    "unsubscribe_ui_mutations",
+    "projects_list",
+    "projects_add",
+    "projects_remove"
   ]
 }

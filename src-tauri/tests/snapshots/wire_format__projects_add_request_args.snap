@@ -1,0 +1,8 @@
+---
+source: tests/wire_format.rs
+assertion_line: 202
+expression: request_args
+---
+{
+  "path": "/Users/example/code/repo"
+}
