@@ -77,3 +77,13 @@ What becomes easier and what becomes harder as a result.
   position/size persistence, Rust-built menu with predefined roles,
   explicit window-close teardown, documented gaps for Services /
   Speech submenus + dock badge.
+- [0010-account-subsystem](./0010-account-subsystem.md) — Defer.
+- [0011-dependencies-subsystem](./0011-dependencies-subsystem.md) — Port v1 (M).
+- [0012-editor-buffers-subsystem](./0012-editor-buffers-subsystem.md) — Port (S, this PR).
+- [0013-featurebase-subsystem](./0013-featurebase-subsystem.md) — Defer.
+- [0014-resource-monitor-subsystem](./0014-resource-monitor-subsystem.md) — Port v1 (M).
+- [0015-search-subsystem](./0015-search-subsystem.md) — Port v1 (L, depends on EMD-11).
+- [0016-skills-subsystem](./0016-skills-subsystem.md) — Defer.
+- [0017-settings-subsystem](./0017-settings-subsystem.md) — Port v1 (M).
+- [0018-view-state-subsystem](./0018-view-state-subsystem.md) — Port (S, this PR).
+- [0019-workspaces-subsystem](./0019-workspaces-subsystem.md) — Port core; defer BYOI.

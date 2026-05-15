@@ -1,0 +1,9 @@
+---
+source: tests/wire_format.rs
+assertion_line: 256
+expression: request_args
+---
+{
+  "projectId": "p1",
+  "workspaceId": "ws1"
+}

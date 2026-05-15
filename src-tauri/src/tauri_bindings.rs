@@ -34,6 +34,14 @@ pub fn build_specta() -> Builder<tauri::Wry> {
         commands::updater::subscribe_updater_events,
         commands::updater::updater_check,
         commands::updater::updater_simulate_event,
+        commands::editor_buffers::editor_buffer_save,
+        commands::editor_buffers::editor_buffer_clear,
+        commands::editor_buffers::editor_buffer_list,
+        commands::view_state::view_state_save,
+        commands::view_state::view_state_get,
+        commands::view_state::view_state_get_all,
+        commands::view_state::view_state_delete,
+        commands::view_state::view_state_reset,
     ])
 }
 

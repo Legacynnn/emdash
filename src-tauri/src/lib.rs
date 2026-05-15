@@ -7,6 +7,7 @@
 pub mod bindings_parser;
 pub mod commands;
 pub mod db;
+pub mod editor_buffers;
 pub mod git;
 pub mod greeting;
 pub mod projects;
@@ -18,3 +19,4 @@ pub mod tauri_bindings;
 pub mod telemetry;
 pub mod ui_sync;
 pub mod updater;
+pub mod view_state;

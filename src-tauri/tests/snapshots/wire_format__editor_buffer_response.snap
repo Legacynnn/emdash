@@ -1,0 +1,13 @@
+---
+source: tests/wire_format.rs
+assertion_line: 270
+expression: "serde_json::to_value(&buffer).unwrap()"
+---
+{
+  "content": "fn main() {}\n",
+  "file_path": "src/main.rs",
+  "id": "p1|ws1|src/main.rs",
+  "project_id": "p1",
+  "updated_at_ms": "1763216400000",
+  "workspace_id": "ws1"
+}
