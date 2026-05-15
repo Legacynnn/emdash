@@ -56,3 +56,8 @@ What becomes easier and what becomes harder as a result.
 - [0004-ui-mutation-event-bridge](./0004-ui-mutation-event-bridge.md) —
   Single `Channel<UiMutationEvent>` for renderer cache invalidation,
   enforced by `eslint-plugin-emdash`'s `no-tauri-event-bus` rule.
+- [0009-window-menu-management](./0009-window-menu-management.md) —
+  Inset traffic-lights + overlay title bar, window-state plugin for
+  position/size persistence, Rust-built menu with predefined roles,
+  explicit window-close teardown, documented gaps for Services /
+  Speech submenus + dock badge.
