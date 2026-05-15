@@ -6,9 +6,9 @@ use std::env;
 use std::process::ExitCode;
 
 use emdash_dev::{
-    bindings_parser, db, greeting, projects,
+    bindings_parser, db, editor_buffers, greeting, projects,
     secrets::{aead, master_key},
-    shell_env, ui_sync,
+    shell_env, ui_sync, view_state,
 };
 
 const NAME: &str = env!("CARGO_PKG_NAME");
@@ -60,6 +60,13 @@ fn link_domain_modules() {
     // projects: CRUD service reference. `ProjectsService::new` requires a Db,
     // which we already pull above; referencing the type keeps the symbol live.
     let _: Option<projects::ProjectsService> = None;
+
+    // editor_buffers + view_state: tiny KV-shaped domain modules ported from
+    // Electron (ADR-0012 / ADR-0018). Referencing one function each keeps
+    // the symbol live for the linker.
+    let _: Option<editor_buffers::EditorBuffer> = None;
+    let _: Option<serde_json::Value> = None;
+    let _ = view_state::ViewStateError::MalformedJson(String::new());
 }
 
 fn print_help() {

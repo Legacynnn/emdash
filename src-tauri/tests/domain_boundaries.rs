@@ -7,12 +7,14 @@ use std::path::{Path, PathBuf};
 const DOMAIN_MODULES: &[&str] = &[
     "bindings_parser",
     "db",
+    "editor_buffers",
     "greeting",
     "projects",
     "pty",
     "secrets",
     "shell_env",
     "ui_sync",
+    "view_state",
 ];
 const TAURI_GLUE_MODULES: &[&str] = &["commands", "tauri_bindings"];
 

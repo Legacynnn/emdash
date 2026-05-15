@@ -1,0 +1,8 @@
+---
+source: tests/wire_format.rs
+assertion_line: 288
+expression: request_args
+---
+{
+  "key": "layout.tabs"
+}

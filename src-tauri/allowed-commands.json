@@ -13,6 +13,14 @@
     "unsubscribe_ui_mutations",
     "projects_list",
     "projects_add",
-    "projects_remove"
+    "projects_remove",
+    "editor_buffer_save",
+    "editor_buffer_clear",
+    "editor_buffer_list",
+    "view_state_save",
+    "view_state_get",
+    "view_state_get_all",
+    "view_state_delete",
+    "view_state_reset"
   ]
 }

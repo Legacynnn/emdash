@@ -1,0 +1,11 @@
+---
+source: tests/wire_format.rs
+assertion_line: 247
+expression: request_args
+---
+{
+  "content": "fn main() {}\n",
+  "filePath": "src/main.rs",
+  "projectId": "p1",
+  "workspaceId": "ws1"
+}

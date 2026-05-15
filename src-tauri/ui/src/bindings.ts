@@ -18,9 +18,38 @@ export const commands = {
 	projectsList: () => typedError<Project[], ProjectsCommandError>(__TAURI_INVOKE("projects_list")),
 	projectsAdd: (path: string) => typedError<Project, ProjectsCommandError>(__TAURI_INVOKE("projects_add", { path })),
 	projectsRemove: (id: string) => typedError<null, ProjectsCommandError>(__TAURI_INVOKE("projects_remove", { id })),
+	editorBufferSave: (projectId: string, workspaceId: string, filePath: string, content: string) => typedError<EditorBuffer, EditorBuffersCommandError>(__TAURI_INVOKE("editor_buffer_save", { projectId, workspaceId, filePath, content })),
+	editorBufferClear: (projectId: string, workspaceId: string, filePath: string) => typedError<null, EditorBuffersCommandError>(__TAURI_INVOKE("editor_buffer_clear", { projectId, workspaceId, filePath })),
+	editorBufferList: (projectId: string, workspaceId: string) => typedError<EditorBuffer[], EditorBuffersCommandError>(__TAURI_INVOKE("editor_buffer_list", { projectId, workspaceId })),
+	viewStateSave: (key: string, valueJson: string) => typedError<null, ViewStateCommandError>(__TAURI_INVOKE("view_state_save", { key, valueJson })),
+	viewStateGet: (key: string) => typedError<string | null, ViewStateCommandError>(__TAURI_INVOKE("view_state_get", { key })),
+	viewStateGetAll: () => typedError<{ [key in string]: string }, ViewStateCommandError>(__TAURI_INVOKE("view_state_get_all")),
+	viewStateDelete: (key: string) => typedError<null, ViewStateCommandError>(__TAURI_INVOKE("view_state_delete", { key })),
+	viewStateReset: () => typedError<null, ViewStateCommandError>(__TAURI_INVOKE("view_state_reset")),
 };
 
 /* Types */
+export type EditorBuffer = {
+	id: string,
+	project_id: string,
+	workspace_id: string,
+	file_path: string,
+	content: string,
+	/**
+	 *  Milliseconds-since-epoch when the row was last written, serialized
+	 *  as a string at the wire boundary because specta refuses to emit
+	 *  i64 (BigInt-style types lose precision through `JSON.parse`).
+	 */
+	updated_at_ms: string,
+};
+
+export type EditorBuffersCommandError = {
+	code: EditorBuffersErrorCode,
+	message: string,
+};
+
+export type EditorBuffersErrorCode = "storage";
+
 /**
  *  Projection of one row from the `projects` table that the renderer
  *  actually consumes. Mirror of the columns used in the v1 CRUD surface.
@@ -72,6 +101,13 @@ export type SpawnOptions = {
 };
 
 export type UiMutationEvent = { kind: "project_created"; id: string } | { kind: "project_updated"; id: string } | { kind: "project_deleted"; id: string };
+
+export type ViewStateCommandError = {
+	code: ViewStateErrorCode,
+	message: string,
+};
+
+export type ViewStateErrorCode = "storage" | "malformed";
 
 /* Tauri Specta runtime */
 async function typedError<T, E>(result: Promise<T>): Promise<{ status: "ok"; data: T } | { status: "error"; error: E }> {
