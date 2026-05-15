@@ -16,4 +16,5 @@ pub mod secrets;
 pub mod shell_env;
 pub mod tasks;
 pub mod tauri_bindings;
+pub mod telemetry;
 pub mod ui_sync;

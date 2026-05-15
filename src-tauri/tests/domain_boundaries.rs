@@ -15,6 +15,7 @@ const DOMAIN_MODULES: &[&str] = &[
     "secrets",
     "shell_env",
     "tasks",
+    "telemetry",
     "ui_sync",
 ];
 const TAURI_GLUE_MODULES: &[&str] = &["commands", "tauri_bindings"];

@@ -1,0 +1,11 @@
+---
+source: tests/wire_format.rs
+assertion_line: 264
+expression: request_args
+---
+{
+  "email": "octocat@example.com",
+  "event": "user_identify",
+  "ghAccountId": "583231",
+  "ghUsername": "octocat"
+}

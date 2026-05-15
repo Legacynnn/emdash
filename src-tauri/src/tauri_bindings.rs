@@ -30,6 +30,9 @@ pub fn build_specta() -> Builder<tauri::Wry> {
         commands::tasks::tasks_list,
         commands::tasks::tasks_create,
         commands::tasks::tasks_delete,
+        commands::telemetry::telemetry_get_enabled,
+        commands::telemetry::telemetry_set_enabled,
+        commands::telemetry::telemetry_record,
     ])
 }
 

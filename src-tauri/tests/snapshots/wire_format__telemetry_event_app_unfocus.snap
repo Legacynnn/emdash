@@ -1,0 +1,6 @@
+---
+source: tests/wire_format.rs
+assertion_line: 282
+expression: "serde_json::to_value(TelemetryEvent::AppUnfocus).unwrap()"
+---
+"app_unfocus"

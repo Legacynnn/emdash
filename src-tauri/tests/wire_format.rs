@@ -411,3 +411,85 @@ fn task_source_branch_remote_wire_format() {
         serde_json::to_value(&s).unwrap()
     );
 }
+
+// --- telemetry -------------------------------------------------------------
+
+#[test]
+fn telemetry_set_enabled_wire_format() {
+    let request_args = serde_json::json!({ "enabled": true });
+    insta::assert_json_snapshot!("telemetry_set_enabled_request_args", request_args);
+}
+
+#[test]
+fn telemetry_record_focus_wire_format() {
+    let request_args = serde_json::json!({
+        "event": "app_focus",
+        "ghUsername": null,
+        "ghAccountId": null,
+        "email": null,
+    });
+    insta::assert_json_snapshot!("telemetry_record_focus_request_args", request_args);
+}
+
+#[test]
+fn telemetry_record_identify_wire_format() {
+    let request_args = serde_json::json!({
+        "event": "user_identify",
+        "ghUsername": "octocat",
+        "ghAccountId": "583231",
+        "email": "octocat@example.com",
+    });
+    insta::assert_json_snapshot!("telemetry_record_identify_request_args", request_args);
+}
+
+// One assertion per test: insta stops on the first failure, so a
+// multi-variant loop would mask sibling drift after the first fail.
+
+#[test]
+fn telemetry_event_app_focus() {
+    use emdash_dev::telemetry::TelemetryEvent;
+    insta::assert_json_snapshot!(
+        "telemetry_event_app_focus",
+        serde_json::to_value(TelemetryEvent::AppFocus).unwrap()
+    );
+}
+
+#[test]
+fn telemetry_event_app_unfocus() {
+    use emdash_dev::telemetry::TelemetryEvent;
+    insta::assert_json_snapshot!(
+        "telemetry_event_app_unfocus",
+        serde_json::to_value(TelemetryEvent::AppUnfocus).unwrap()
+    );
+}
+
+#[test]
+fn telemetry_event_app_dau_ping() {
+    use emdash_dev::telemetry::TelemetryEvent;
+    insta::assert_json_snapshot!(
+        "telemetry_event_app_dau_ping",
+        serde_json::to_value(TelemetryEvent::AppDauPing).unwrap()
+    );
+}
+
+#[test]
+fn telemetry_event_user_identify() {
+    use emdash_dev::telemetry::TelemetryEvent;
+    insta::assert_json_snapshot!(
+        "telemetry_event_user_identify",
+        serde_json::to_value(TelemetryEvent::UserIdentify).unwrap()
+    );
+}
+
+#[test]
+fn telemetry_error_envelope_shape() {
+    use emdash_dev::commands::telemetry::{TelemetryCommandError, TelemetryErrorCode};
+    let err = TelemetryCommandError {
+        code: TelemetryErrorCode::Storage,
+        message: "db error: pool error".to_string(),
+    };
+    insta::assert_json_snapshot!(
+        "telemetry_error_envelope",
+        serde_json::to_value(&err).unwrap()
+    );
+}

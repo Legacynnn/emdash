@@ -4,6 +4,7 @@ import { commands, type SecretsCommandError } from './bindings';
 import { DebugShell } from './components/DebugShell';
 import { ProjectsPanel } from './features/projects/ProjectsPanel';
 import { TasksPanel } from './features/tasks/TasksPanel';
+import { TelemetryToggle } from './features/settings/TelemetryToggle';
 import { createStores } from './stores';
 import { asReady } from './stores/projectStore';
 import { useUiMutations } from './ui-sync/useUiMutations';
@@ -181,6 +182,8 @@ export const App = observer(function App() {
       {selectedProject && taskStore && (
         <TasksPanel project={selectedProject} store={taskStore} />
       )}
+
+      <TelemetryToggle />
 
       {import.meta.env.DEV && <DebugShell />}
 

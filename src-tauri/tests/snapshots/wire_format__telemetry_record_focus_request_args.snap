@@ -1,0 +1,11 @@
+---
+source: tests/wire_format.rs
+assertion_line: 253
+expression: request_args
+---
+{
+  "email": null,
+  "event": "app_focus",
+  "ghAccountId": null,
+  "ghUsername": null
+}

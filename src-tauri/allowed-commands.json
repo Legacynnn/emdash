@@ -18,6 +18,9 @@
     "fs_watcher_unsubscribe",
     "tasks_list",
     "tasks_create",
-    "tasks_delete"
+    "tasks_delete",
+    "telemetry_get_enabled",
+    "telemetry_set_enabled",
+    "telemetry_record"
   ]
 }
