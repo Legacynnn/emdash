@@ -282,3 +282,88 @@ fn watcher_fallback_inotify_enospc_wire_format() {
         serde_json::to_value(WatcherFallback::InotifyEnospcDepthOne).unwrap()
     );
 }
+
+// --- github provider (EMD-13 / ADR-0022) -----------------------------------
+
+#[test]
+fn github_sign_in_device_flow_start_response_shape() {
+    use emdash_dev::providers::github::DeviceFlowStart;
+    let start = DeviceFlowStart {
+        user_code: "WDJB-MJHT".into(),
+        verification_uri: "https://github.com/login/device".into(),
+        device_code: "abc-device".into(),
+        polling_interval_seconds: 5,
+        expires_in_seconds: 900,
+    };
+    insta::assert_json_snapshot!(
+        "github_device_flow_start",
+        serde_json::to_value(&start).unwrap()
+    );
+}
+
+#[test]
+fn github_identity_response_shape() {
+    use emdash_dev::providers::github::IdentityRecord;
+    let id = IdentityRecord {
+        login: "octocat".into(),
+        id: "1".into(),
+        name: Some("Octo Cat".into()),
+        email: Some("octo@example.com".into()),
+        avatar_url: Some("https://avatars.githubusercontent.com/u/1?v=4".into()),
+    };
+    insta::assert_json_snapshot!("github_identity", serde_json::to_value(&id).unwrap());
+}
+
+#[test]
+fn github_pull_request_summary_shape() {
+    use emdash_dev::providers::github::PullRequestSummary;
+    let pr = PullRequestSummary {
+        number: 42,
+        title: "Tidy README".into(),
+        state: "open".into(),
+        draft: false,
+        html_url: "https://github.com/example/repo/pull/42".into(),
+        author: Some("octocat".into()),
+        base_ref: "main".into(),
+        head_ref: "feature/tidy-readme".into(),
+        created_at: "2026-05-15T17:00:00+00:00".into(),
+        updated_at: "2026-05-15T17:30:00+00:00".into(),
+    };
+    insta::assert_json_snapshot!(
+        "github_pull_request_summary",
+        serde_json::to_value(&pr).unwrap()
+    );
+}
+
+#[test]
+fn github_list_pulls_request_args() {
+    let args = serde_json::json!({ "owner": "example", "repo": "repo" });
+    insta::assert_json_snapshot!("github_list_pulls_request_args", args);
+}
+
+#[test]
+fn github_get_pull_request_args() {
+    let args = serde_json::json!({ "owner": "example", "repo": "repo", "number": 42 });
+    insta::assert_json_snapshot!("github_get_pull_request_args", args);
+}
+
+#[test]
+fn ui_mutation_github_identity_changed_wire_format() {
+    use emdash_dev::ui_sync::UiMutationEvent;
+    insta::assert_json_snapshot!(
+        "ui_mutation_github_identity_changed",
+        serde_json::to_value(UiMutationEvent::GithubIdentityChanged).unwrap()
+    );
+}
+
+#[test]
+fn ui_mutation_github_data_changed_wire_format() {
+    use emdash_dev::ui_sync::UiMutationEvent;
+    let event = UiMutationEvent::GithubDataChanged {
+        repo: "octocat/Hello-World".into(),
+    };
+    insta::assert_json_snapshot!(
+        "ui_mutation_github_data_changed",
+        serde_json::to_value(&event).unwrap()
+    );
+}

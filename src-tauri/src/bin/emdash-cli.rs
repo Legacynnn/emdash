@@ -6,7 +6,7 @@ use std::env;
 use std::process::ExitCode;
 
 use emdash_dev::{
-    bindings_parser, db, fs_watcher, greeting, projects,
+    bindings_parser, db, fs_watcher, greeting, projects, providers,
     secrets::{aead, master_key},
     shell_env, ui_sync,
 };
@@ -65,6 +65,11 @@ fn link_domain_modules() {
     // lives in commands::fs_watcher).
     let _registry = fs_watcher::WatcherRegistry::new();
     let _: Option<fs_watcher::WatchEvent> = None;
+
+    // providers::github: scope enum + identity record are domain-only; the
+    // async oauth + client paths come along but never run from this bin.
+    let _: Option<providers::github::IdentityRecord> = None;
+    let _: &[providers::github::OauthScope] = providers::github::auth::DEFAULT_SCOPES;
 }
 
 fn print_help() {

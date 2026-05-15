@@ -1,0 +1,9 @@
+---
+source: tests/wire_format.rs
+assertion_line: 362
+expression: "serde_json::to_value(&event).unwrap()"
+---
+{
+  "kind": "github_data_changed",
+  "repo": "octocat/Hello-World"
+}

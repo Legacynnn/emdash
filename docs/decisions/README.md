@@ -60,3 +60,7 @@ What becomes easier and what becomes harder as a result.
   debounce, Linux inotify ENOSPC degrades to depth-1 watching with a
   user-facing toast (never polls). MCP orchestration deferred to a
   follow-up issue.
+- [0022-github-provider](./0022-github-provider.md) — octocrab +
+  hand-rolled device flow (oauth2 0.x is awkward for two-step
+  start/poll), AEAD token storage, gh CLI fallback, identity split
+  from token, locked OAuth scopes.

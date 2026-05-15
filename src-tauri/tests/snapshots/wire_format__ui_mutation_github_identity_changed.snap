@@ -1,0 +1,8 @@
+---
+source: tests/wire_format.rs
+assertion_line: 350
+expression: "serde_json::to_value(UiMutationEvent::GithubIdentityChanged).unwrap()"
+---
+{
+  "kind": "github_identity_changed"
+}

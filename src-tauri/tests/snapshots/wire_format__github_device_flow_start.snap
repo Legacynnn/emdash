@@ -1,0 +1,12 @@
+---
+source: tests/wire_format.rs
+assertion_line: 298
+expression: "serde_json::to_value(&start).unwrap()"
+---
+{
+  "device_code": "abc-device",
+  "expires_in_seconds": 900,
+  "polling_interval_seconds": 5,
+  "user_code": "WDJB-MJHT",
+  "verification_uri": "https://github.com/login/device"
+}

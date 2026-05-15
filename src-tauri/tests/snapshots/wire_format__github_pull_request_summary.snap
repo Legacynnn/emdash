@@ -1,0 +1,17 @@
+---
+source: tests/wire_format.rs
+assertion_line: 332
+expression: "serde_json::to_value(&pr).unwrap()"
+---
+{
+  "author": "octocat",
+  "base_ref": "main",
+  "created_at": "2026-05-15T17:00:00+00:00",
+  "draft": false,
+  "head_ref": "feature/tidy-readme",
+  "html_url": "https://github.com/example/repo/pull/42",
+  "number": 42,
+  "state": "open",
+  "title": "Tidy README",
+  "updated_at": "2026-05-15T17:30:00+00:00"
+}
