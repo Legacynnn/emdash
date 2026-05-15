@@ -9,7 +9,8 @@ use emdash_dev::pty::registry::Registry;
 use emdash_dev::secrets::{master_key::OsKeyringMasterKey, Secrets};
 use emdash_dev::tauri_bindings;
 use emdash_dev::ui_sync::UiSyncManager;
-use tauri::Manager;
+use emdash_dev::updater::UpdateManager;
+use tauri::{Manager, RunEvent};
 
 pub fn export_bindings_default() -> Result<(), Box<dyn std::error::Error>> {
     let path = format!(
@@ -38,7 +39,8 @@ pub fn run() {
         }
     }
 
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(specta_builder.invoke_handler())
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { .. } = event {
@@ -59,17 +61,30 @@ pub fn run() {
             let secrets = Arc::new(Secrets::new(master, db.clone()));
             let projects = Arc::new(ProjectsService::new(db.clone()));
             let ui_sync: Arc<UiSyncManager> = Arc::new(UiSyncManager::new());
+            let updater: Arc<UpdateManager> = Arc::new(UpdateManager::default());
 
             app.manage(db);
             app.manage(secrets);
             app.manage(projects);
             app.manage(ui_sync);
+            app.manage(updater);
             let pty_registry: Arc<Registry> = Arc::new(Registry::new());
             app.manage(pty_registry);
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running emdash-dev");
+        .build(tauri::generate_context!())
+        .expect("error while building emdash-dev");
+
+    app.run(|_handle, event| {
+        if let RunEvent::Exit = event {
+            // EMD-15: install-on-exit hook. If `UpdateManager` is in
+            // ReadyToInstall, the bundled `tauri-plugin-updater` will
+            // apply the staged update before the process actually
+            // terminates. Wiring the call into the plugin's install
+            // path lands with EMD-22's packaging pipeline; the hook
+            // itself is in place so that follow-up is one-line.
+        }
+    });
 }
 
 /// `EMDASH_DEV_DB_FILE` env var overrides everything (set in dev shells, tests,

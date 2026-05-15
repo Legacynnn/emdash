@@ -6,3 +6,4 @@ pub mod projects;
 pub mod pty;
 pub mod secrets;
 pub mod ui_sync;
+pub mod updater;

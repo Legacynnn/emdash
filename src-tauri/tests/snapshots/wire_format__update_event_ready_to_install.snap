@@ -1,0 +1,9 @@
+---
+source: tests/wire_format.rs
+assertion_line: 304
+expression: "serde_json::to_value(&event).unwrap()"
+---
+{
+  "kind": "ready_to_install",
+  "version": "0.2.0"
+}

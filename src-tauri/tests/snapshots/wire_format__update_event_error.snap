@@ -1,0 +1,11 @@
+---
+source: tests/wire_format.rs
+assertion_line: 318
+expression: "serde_json::to_value(&event).unwrap()"
+---
+{
+  "code": "network",
+  "kind": "error",
+  "message": "connection refused",
+  "will_retry": true
+}

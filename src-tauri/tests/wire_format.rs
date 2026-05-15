@@ -233,3 +233,110 @@ fn projects_error_envelope_shape() {
         serde_json::to_value(&err).unwrap()
     );
 }
+
+// --- updater ---------------------------------------------------------------
+
+#[test]
+fn updater_check_wire_format() {
+    let request_args = serde_json::json!({ "reason": "manual" });
+    insta::assert_json_snapshot!("updater_check_request_args", request_args);
+}
+
+#[test]
+fn updater_check_reason_startup_wire_format() {
+    use emdash_dev::updater::CheckReason;
+    insta::assert_json_snapshot!(
+        "updater_check_reason_startup",
+        serde_json::to_value(CheckReason::Startup).unwrap()
+    );
+}
+
+#[test]
+fn update_event_checking_wire_format() {
+    use emdash_dev::updater::{CheckReason, UpdateEvent};
+    let event = UpdateEvent::Checking {
+        reason: CheckReason::Manual,
+    };
+    insta::assert_json_snapshot!(
+        "update_event_checking",
+        serde_json::to_value(&event).unwrap()
+    );
+}
+
+#[test]
+fn update_event_up_to_date_wire_format() {
+    use emdash_dev::updater::UpdateEvent;
+    insta::assert_json_snapshot!(
+        "update_event_up_to_date",
+        serde_json::to_value(UpdateEvent::UpToDate).unwrap()
+    );
+}
+
+#[test]
+fn update_event_available_wire_format() {
+    use emdash_dev::updater::UpdateEvent;
+    let event = UpdateEvent::Available {
+        version: "0.2.0".into(),
+        notes: Some("Bug fixes".into()),
+    };
+    insta::assert_json_snapshot!(
+        "update_event_available",
+        serde_json::to_value(&event).unwrap()
+    );
+}
+
+#[test]
+fn update_event_downloading_wire_format() {
+    use emdash_dev::updater::UpdateEvent;
+    let event = UpdateEvent::Downloading { progress: 0.42 };
+    insta::assert_json_snapshot!(
+        "update_event_downloading",
+        serde_json::to_value(&event).unwrap()
+    );
+}
+
+#[test]
+fn update_event_ready_to_install_wire_format() {
+    use emdash_dev::updater::UpdateEvent;
+    let event = UpdateEvent::ReadyToInstall {
+        version: "0.2.0".into(),
+    };
+    insta::assert_json_snapshot!(
+        "update_event_ready_to_install",
+        serde_json::to_value(&event).unwrap()
+    );
+}
+
+#[test]
+fn update_event_error_wire_format() {
+    use emdash_dev::updater::{UpdateError, UpdateEvent};
+    let event = UpdateEvent::Error {
+        code: UpdateError::Network,
+        message: "connection refused".into(),
+        will_retry: true,
+    };
+    insta::assert_json_snapshot!("update_event_error", serde_json::to_value(&event).unwrap());
+}
+
+#[test]
+fn update_manifest_canonical_shape() {
+    use emdash_dev::updater::{ManifestPlatform, UpdateManifest};
+    let mut platforms = std::collections::BTreeMap::new();
+    platforms.insert(
+        "darwin-aarch64".to_string(),
+        ManifestPlatform {
+            signature: "untrusted comment: minisign signature ...\n<base64>".into(),
+            url: "https://updates.emdash.dev/emdash-dev-0.2.0-darwin-aarch64.tar.gz".into(),
+        },
+    );
+    let m = UpdateManifest {
+        version: "0.2.0".into(),
+        notes: Some("Initial pre-release.".into()),
+        pub_date: "2026-05-15T17:00:00Z".into(),
+        platforms,
+    };
+    insta::assert_json_snapshot!(
+        "update_manifest_canonical",
+        serde_json::to_value(&m).unwrap()
+    );
+}
