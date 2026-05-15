@@ -10,8 +10,36 @@ mod bindings_parser;
 
 fn main() {
     tauri_build::build();
+    inject_telemetry_env();
     if let Err(err) = check_capability_allowlist() {
         panic!("\n\nemdash-dev capability allowlist check failed:\n\n{err}\n");
+    }
+}
+
+/// Load build-time telemetry env via `dotenvy` from `src-tauri/.env`,
+/// then emit `cargo:rustc-env` directives so the runtime can read them
+/// via `env!`. Unset variables become empty strings — the runtime
+/// treats an empty `EMDASH_TELEMETRY_HOST` as "telemetry disabled at
+/// compile time" (e.g. dev builds and CI runs where no host is wired).
+///
+/// Helmor pattern. Lives at the build boundary so secrets never get
+/// committed alongside source: developers drop a local `.env` file or
+/// the release pipeline injects the variables through CI secrets.
+fn inject_telemetry_env() {
+    // `.env` lookup. Best-effort — a missing file is normal in dev /
+    // CI; the resulting empty env vars disable telemetry at runtime.
+    let manifest_dir =
+        std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR set by cargo");
+    let env_path = PathBuf::from(&manifest_dir).join(".env");
+    println!("cargo:rerun-if-changed={}", env_path.display());
+    if env_path.is_file() {
+        let _ = dotenvy::from_path(&env_path);
+    }
+
+    for var in ["EMDASH_TELEMETRY_HOST", "EMDASH_TELEMETRY_API_KEY"] {
+        println!("cargo:rerun-if-env-changed={var}");
+        let val = std::env::var(var).unwrap_or_default();
+        println!("cargo:rustc-env={var}={val}");
     }
 }
 

@@ -3,3 +3,7 @@
 
 # tauri-build codegen (capabilities schema, etc.)
 /gen
+
+# Build-time telemetry config (EMD-19 / ADR-0007). `.env` carries the
+# host + API key for the telemetry endpoint and must never be committed.
+.env
