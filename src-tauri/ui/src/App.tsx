@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { commands, type SecretsCommandError } from './bindings';
 import { DebugShell } from './components/DebugShell';
+import { ProjectsPanel } from './features/projects/ProjectsPanel';
+import { createStores } from './stores';
+import { useUiMutations } from './ui-sync/useUiMutations';
 
 function formatThrown(e: unknown): string {
   if (e instanceof Error) return e.message;
@@ -17,6 +20,9 @@ function formatSecretsError(err: SecretsCommandError): string {
 }
 
 export function App() {
+  const stores = useMemo(() => createStores(), []);
+  useUiMutations(stores);
+
   const [name, setName] = useState('');
   const [greeting, setGreeting] = useState<string | null>(null);
   const [path, setPath] = useState<string | null>(null);
@@ -153,6 +159,8 @@ export function App() {
         </div>
         {readBack !== null && <pre className="output">stored and re-read: {readBack}</pre>}
       </section>
+
+      <ProjectsPanel store={stores.projects} />
 
       {import.meta.env.DEV && <DebugShell />}
 

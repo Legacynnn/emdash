@@ -131,3 +131,33 @@ button:active {
   font-size: 12px;
   white-space: pre-wrap;
 }
+
+.project-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.project-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border: 1px solid #e6e6e9;
+  border-radius: 6px;
+  background: #fafafa;
+  gap: 12px;
+}
+
+.project-list li button {
+  background: transparent;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.project-list li button:hover {
+  background: #fef2f2;
+}
