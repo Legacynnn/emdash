@@ -41,6 +41,18 @@ export function dispatchUiMutation(stores: Stores, event: UiMutationEvent): void
       taskStore?.applyDeleted(event.id);
       return;
     }
+    case 'agent_hook_event':
+      // EMD-9: classified agent-hook event. Renderer surface lands in a
+      // follow-up; the dispatch arm exists today to keep the
+      // exhaustiveness check honest.
+      return;
+    case 'github_identity_changed':
+    case 'github_data_changed':
+      // EMD-13: GitHub provider events. Cache-invalidation hooks for
+      // identity / repo-scoped data are landed by the consumers (PR
+      // list view, identity badge) as those views ship. For now the
+      // arm exists to satisfy the exhaustiveness check.
+      return;
   }
   // Exhaustiveness check: a new variant added to UiMutationEvent without a
   // case here makes this a compile error.
