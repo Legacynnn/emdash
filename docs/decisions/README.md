@@ -56,3 +56,7 @@ What becomes easier and what becomes harder as a result.
 - [0004-ui-mutation-event-bridge](./0004-ui-mutation-event-bridge.md) —
   Single `Channel<UiMutationEvent>` for renderer cache invalidation,
   enforced by `eslint-plugin-emdash`'s `no-tauri-event-bus` rule.
+- [0020-file-watching](./0020-file-watching.md) — `notify` 6.x + 50 ms
+  debounce, Linux inotify ENOSPC degrades to depth-1 watching with a
+  user-facing toast (never polls). MCP orchestration deferred to a
+  follow-up issue.

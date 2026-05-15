@@ -1,0 +1,13 @@
+---
+source: tests/wire_format.rs
+assertion_line: 277
+expression: "serde_json::to_value(&event).unwrap()"
+---
+{
+  "event": {
+    "from": "/Users/example/code/repo/a.rs",
+    "kind": "renamed",
+    "to": "/Users/example/code/repo/b.rs"
+  },
+  "paths": []
+}

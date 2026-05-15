@@ -233,3 +233,52 @@ fn projects_error_envelope_shape() {
         serde_json::to_value(&err).unwrap()
     );
 }
+
+// --- fs_watcher (EMD-11 / ADR-0020) ----------------------------------------
+
+#[test]
+fn fs_watcher_subscribe_wire_format() {
+    let request_args = serde_json::json!({
+        "id": "project-1",
+        "path": "/Users/example/code/repo"
+    });
+    insta::assert_json_snapshot!("fs_watcher_subscribe_request_args", request_args);
+}
+
+#[test]
+fn fs_watcher_unsubscribe_wire_format() {
+    let request_args = serde_json::json!({ "id": "project-1" });
+    insta::assert_json_snapshot!("fs_watcher_unsubscribe_request_args", request_args);
+}
+
+#[test]
+fn watch_event_created_wire_format() {
+    use emdash_dev::fs_watcher::{WatchEvent, WatchEventKind};
+    let event = WatchEvent {
+        paths: vec!["/Users/example/code/repo/src/main.rs".into()],
+        event: WatchEventKind::Created,
+    };
+    insta::assert_json_snapshot!("watch_event_created", serde_json::to_value(&event).unwrap());
+}
+
+#[test]
+fn watch_event_renamed_wire_format() {
+    use emdash_dev::fs_watcher::{WatchEvent, WatchEventKind};
+    let event = WatchEvent {
+        paths: vec![],
+        event: WatchEventKind::Renamed {
+            from: "/Users/example/code/repo/a.rs".into(),
+            to: "/Users/example/code/repo/b.rs".into(),
+        },
+    };
+    insta::assert_json_snapshot!("watch_event_renamed", serde_json::to_value(&event).unwrap());
+}
+
+#[test]
+fn watcher_fallback_inotify_enospc_wire_format() {
+    use emdash_dev::fs_watcher::WatcherFallback;
+    insta::assert_json_snapshot!(
+        "watcher_fallback_inotify_enospc",
+        serde_json::to_value(WatcherFallback::InotifyEnospcDepthOne).unwrap()
+    );
+}

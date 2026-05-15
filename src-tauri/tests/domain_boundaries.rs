@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 const DOMAIN_MODULES: &[&str] = &[
     "bindings_parser",
     "db",
+    "fs_watcher",
     "greeting",
     "projects",
     "pty",

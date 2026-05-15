@@ -1,0 +1,8 @@
+---
+source: tests/wire_format.rs
+assertion_line: 251
+expression: request_args
+---
+{
+  "id": "project-1"
+}
