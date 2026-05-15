@@ -68,11 +68,19 @@ CREATE TABLE app_settings (
 CREATE UNIQUE INDEX idx_app_settings_key ON app_settings (key);
 
 -- tasks --------------------------------------------------------------------
+-- `path` and `pty_id` are emdash-dev additions (EMD-17 / EMD-27) that the
+-- Electron schema doesn't carry. `source_branch` is treated as a JSON
+-- discriminator from day one: `{"type":"local","branch":"..."}` or
+-- `{"type":"remote","host":"...","branch":"..."}`. We keep `text` storage
+-- because rusqlite has no first-class JSON column type; the domain layer
+-- decodes/encodes on read/write.
 CREATE TABLE tasks (
     id text PRIMARY KEY NOT NULL,
     project_id text NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     name text NOT NULL,
     status text NOT NULL,
+    path text NOT NULL,
+    pty_id text,
     source_branch text,
     task_branch text,
     linked_issue text,
@@ -87,6 +95,7 @@ CREATE TABLE tasks (
     workspace_provider_data text
 );
 CREATE INDEX idx_tasks_project_id ON tasks (project_id);
+CREATE INDEX idx_tasks_pty_id ON tasks (pty_id) WHERE pty_id IS NOT NULL;
 
 -- workspaces ---------------------------------------------------------------
 CREATE TABLE workspaces (

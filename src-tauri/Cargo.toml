@@ -61,6 +61,12 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"
 # IDs.
 uuid = { version = "1", features = ["v4"] }
 
+# Git. `vendored-libgit2` so we don't depend on the host's libgit2 version
+# (matches the `bundled` rusqlite stance). Read-heavy ops only; worktree
+# create/remove shells out to the `git` CLI for parity with the user's
+# environment (see EMD-17 / ADR-0005).
+git2 = { version = "0.19", default-features = false, features = ["vendored-libgit2"] }
+
 [dev-dependencies]
 insta = { version = "1.47", features = ["json"] }
 tempfile = "3"

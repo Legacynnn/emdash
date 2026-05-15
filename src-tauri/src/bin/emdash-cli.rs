@@ -6,9 +6,9 @@ use std::env;
 use std::process::ExitCode;
 
 use emdash_dev::{
-    bindings_parser, db, greeting, projects,
+    bindings_parser, db, git, greeting, projects,
     secrets::{aead, master_key},
-    shell_env, ui_sync,
+    shell_env, tasks, ui_sync,
 };
 
 const NAME: &str = env!("CARGO_PKG_NAME");
@@ -60,6 +60,11 @@ fn link_domain_modules() {
     // projects: CRUD service reference. `ProjectsService::new` requires a Db,
     // which we already pull above; referencing the type keeps the symbol live.
     let _: Option<projects::ProjectsService> = None;
+
+    // tasks + git: type references so the symbols link.
+    let _ = tasks::WorkspaceFsMutationLock::new();
+    let _: Option<tasks::TasksService> = None;
+    let _: Result<Option<String>, git::GitError> = Ok(None);
 }
 
 fn print_help() {
