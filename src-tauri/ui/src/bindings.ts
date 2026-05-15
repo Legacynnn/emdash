@@ -18,6 +18,14 @@ export const commands = {
 	projectsList: () => typedError<Project[], ProjectsCommandError>(__TAURI_INVOKE("projects_list")),
 	projectsAdd: (path: string) => typedError<Project, ProjectsCommandError>(__TAURI_INVOKE("projects_add", { path })),
 	projectsRemove: (id: string) => typedError<null, ProjectsCommandError>(__TAURI_INVOKE("projects_remove", { id })),
+	telemetryGetEnabled: () => typedError<boolean, TelemetryCommandError>(__TAURI_INVOKE("telemetry_get_enabled")),
+	telemetrySetEnabled: (enabled: boolean) => typedError<null, TelemetryCommandError>(__TAURI_INVOKE("telemetry_set_enabled", { enabled })),
+	/**
+	 *  Record one of the standard app events. `user_identify` carries
+	 *  optional GitHub profile fields; the rest take no payload. All
+	 *  gates (compile-time host, user toggle) live in the runtime.
+	 */
+	telemetryRecord: (event: TelemetryEvent, ghUsername: string | null, ghAccountId: string | null, email: string | null) => typedError<null, TelemetryCommandError>(__TAURI_INVOKE("telemetry_record", { event, ghUsername, ghAccountId, email })),
 };
 
 /* Types */
@@ -70,6 +78,19 @@ export type SpawnOptions = {
 	env: { [key in string]: string },
 	size: PtySize,
 };
+
+export type TelemetryCommandError = {
+	code: TelemetryErrorCode,
+	message: string,
+};
+
+export type TelemetryErrorCode = "storage" | "invalid";
+
+/**
+ *  Top-level event identifier. New variants are additive — receivers
+ *  ignore unknown names so a stale collector won't drop a release.
+ */
+export type TelemetryEvent = "app_focus" | "app_unfocus" | "app_dau_ping" | "user_identify";
 
 export type UiMutationEvent = { kind: "project_created"; id: string } | { kind: "project_updated"; id: string } | { kind: "project_deleted"; id: string };
 

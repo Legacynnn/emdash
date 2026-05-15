@@ -5,4 +5,5 @@ pub mod path;
 pub mod projects;
 pub mod pty;
 pub mod secrets;
+pub mod telemetry;
 pub mod ui_sync;
