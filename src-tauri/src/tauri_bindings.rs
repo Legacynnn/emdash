@@ -25,6 +25,9 @@ pub fn build_specta() -> Builder<tauri::Wry> {
         commands::projects::projects_list,
         commands::projects::projects_add,
         commands::projects::projects_remove,
+        commands::tasks::tasks_list,
+        commands::tasks::tasks_create,
+        commands::tasks::tasks_delete,
     ])
 }
 

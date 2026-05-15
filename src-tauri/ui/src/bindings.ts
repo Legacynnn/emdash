@@ -18,6 +18,9 @@ export const commands = {
 	projectsList: () => typedError<Project[], ProjectsCommandError>(__TAURI_INVOKE("projects_list")),
 	projectsAdd: (path: string) => typedError<Project, ProjectsCommandError>(__TAURI_INVOKE("projects_add", { path })),
 	projectsRemove: (id: string) => typedError<null, ProjectsCommandError>(__TAURI_INVOKE("projects_remove", { id })),
+	tasksList: (projectId: string) => typedError<Task[], TasksCommandError>(__TAURI_INVOKE("tasks_list", { projectId })),
+	tasksCreate: (projectId: string, name: string, sourceBranch: TaskSourceBranch) => typedError<Task, TasksCommandError>(__TAURI_INVOKE("tasks_create", { projectId, name, sourceBranch })),
+	tasksDelete: (id: string) => typedError<null, TasksCommandError>(__TAURI_INVOKE("tasks_delete", { id })),
 };
 
 /* Types */
@@ -71,7 +74,42 @@ export type SpawnOptions = {
 	size: PtySize,
 };
 
-export type UiMutationEvent = { kind: "project_created"; id: string } | { kind: "project_updated"; id: string } | { kind: "project_deleted"; id: string };
+/**
+ *  Renderer-facing task projection. Fields beyond v1 (`task_branch`,
+ *  `linked_issue`, etc.) live in the DB schema but stay out of this
+ *  struct until a feature needs them.
+ */
+export type Task = {
+	id: string,
+	project_id: string,
+	name: string,
+	status: TaskStatus,
+	path: string,
+	source_branch: TaskSourceBranch,
+	pty_id: string | null,
+	created_at: string,
+	updated_at: string,
+};
+
+/**
+ *  Where the task's worktree branches from. JSON-encoded in the
+ *  `source_branch` column; the domain layer is the only thing that
+ *  touches the wire format. Schema migration 0002/0003 from Drizzle
+ *  history was about turning a plain string into this discriminator —
+ *  in emdash-dev's collapsed bootstrap it ships tagged from day one.
+ */
+export type TaskSourceBranch = { type: "local"; branch: string } | { type: "remote"; host: string; branch: string };
+
+export type TaskStatus = "active" | "archived";
+
+export type TasksCommandError = {
+	code: TasksErrorCode,
+	message: string,
+};
+
+export type TasksErrorCode = "empty_name" | "project_not_found" | "project_path_invalid" | "not_found" | "worktree_path_exists" | "worktree_failed" | "git" | "storage" | "malformed";
+
+export type UiMutationEvent = { kind: "project_created"; id: string } | { kind: "project_updated"; id: string } | { kind: "project_deleted"; id: string } | { kind: "task_created"; id: string; project_id: string } | { kind: "task_updated"; id: string; project_id: string } | { kind: "task_deleted"; id: string; project_id: string };
 
 /* Tauri Specta runtime */
 async function typedError<T, E>(result: Promise<T>): Promise<{ status: "ok"; data: T } | { status: "error"; error: E }> {

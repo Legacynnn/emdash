@@ -233,3 +233,132 @@ fn projects_error_envelope_shape() {
         serde_json::to_value(&err).unwrap()
     );
 }
+
+// --- tasks -----------------------------------------------------------------
+
+#[test]
+fn tasks_list_wire_format() {
+    let request_args = serde_json::json!({ "projectId": "00000000-0000-0000-0000-000000000001" });
+    insta::assert_json_snapshot!("tasks_list_request_args", request_args);
+}
+
+#[test]
+fn tasks_create_wire_format() {
+    let request_args = serde_json::json!({
+        "projectId": "00000000-0000-0000-0000-000000000001",
+        "name": "Feature X",
+        "sourceBranch": { "type": "local", "branch": "main" }
+    });
+    insta::assert_json_snapshot!("tasks_create_request_args", request_args);
+}
+
+#[test]
+fn tasks_create_wire_format_remote_source() {
+    let request_args = serde_json::json!({
+        "projectId": "00000000-0000-0000-0000-000000000001",
+        "name": "Feature X",
+        "sourceBranch": { "type": "remote", "host": "origin", "branch": "main" }
+    });
+    insta::assert_json_snapshot!("tasks_create_request_args_remote", request_args);
+}
+
+#[test]
+fn tasks_delete_wire_format() {
+    let request_args = serde_json::json!({ "id": "00000000-0000-0000-0000-000000000001" });
+    insta::assert_json_snapshot!("tasks_delete_request_args", request_args);
+}
+
+#[test]
+fn task_response_shape() {
+    use emdash_dev::tasks::model::TaskStatus;
+    use emdash_dev::tasks::{Task, TaskSourceBranch};
+    let task = Task {
+        id: "00000000-0000-0000-0000-000000000001".into(),
+        project_id: "00000000-0000-0000-0000-000000000002".into(),
+        name: "Feature X".into(),
+        status: TaskStatus::Active,
+        path: "/Users/example/code/repo/.emdash-worktrees/00000000-0000-0000-0000-000000000001"
+            .into(),
+        source_branch: TaskSourceBranch::Local {
+            branch: "main".into(),
+        },
+        pty_id: None,
+        created_at: "2026-05-15 00:00:00".into(),
+        updated_at: "2026-05-15 00:00:00".into(),
+    };
+    insta::assert_json_snapshot!("task_response", serde_json::to_value(&task).unwrap());
+}
+
+#[test]
+fn tasks_error_envelope_shape() {
+    use emdash_dev::commands::tasks::{TasksCommandError, TasksErrorCode};
+    let err = TasksCommandError {
+        code: TasksErrorCode::WorktreeFailed,
+        message: "git worktree add failed: fatal: ...".to_string(),
+    };
+    insta::assert_json_snapshot!("tasks_error_envelope", serde_json::to_value(&err).unwrap());
+}
+
+#[test]
+fn ui_mutation_event_task_created_wire_format() {
+    use emdash_dev::ui_sync::UiMutationEvent;
+    let event = UiMutationEvent::TaskCreated {
+        id: "t1".into(),
+        project_id: "p1".into(),
+    };
+    insta::assert_json_snapshot!(
+        "ui_mutation_event_task_created",
+        serde_json::to_value(&event).unwrap()
+    );
+}
+
+#[test]
+fn ui_mutation_event_task_updated_wire_format() {
+    use emdash_dev::ui_sync::UiMutationEvent;
+    let event = UiMutationEvent::TaskUpdated {
+        id: "t1".into(),
+        project_id: "p1".into(),
+    };
+    insta::assert_json_snapshot!(
+        "ui_mutation_event_task_updated",
+        serde_json::to_value(&event).unwrap()
+    );
+}
+
+#[test]
+fn ui_mutation_event_task_deleted_wire_format() {
+    use emdash_dev::ui_sync::UiMutationEvent;
+    let event = UiMutationEvent::TaskDeleted {
+        id: "t1".into(),
+        project_id: "p1".into(),
+    };
+    insta::assert_json_snapshot!(
+        "ui_mutation_event_task_deleted",
+        serde_json::to_value(&event).unwrap()
+    );
+}
+
+#[test]
+fn task_source_branch_local_wire_format() {
+    use emdash_dev::tasks::TaskSourceBranch;
+    let s = TaskSourceBranch::Local {
+        branch: "main".into(),
+    };
+    insta::assert_json_snapshot!(
+        "task_source_branch_local",
+        serde_json::to_value(&s).unwrap()
+    );
+}
+
+#[test]
+fn task_source_branch_remote_wire_format() {
+    use emdash_dev::tasks::TaskSourceBranch;
+    let s = TaskSourceBranch::Remote {
+        host: "origin".into(),
+        branch: "main".into(),
+    };
+    insta::assert_json_snapshot!(
+        "task_source_branch_remote",
+        serde_json::to_value(&s).unwrap()
+    );
+}
