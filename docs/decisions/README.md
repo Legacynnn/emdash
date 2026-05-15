@@ -91,3 +91,7 @@ What becomes easier and what becomes harder as a result.
   debounce, Linux inotify ENOSPC degrades to depth-1 watching with a
   user-facing toast (never polls). MCP orchestration deferred to a
   follow-up issue.
+- [0021-agent-hooks-foundation](./0021-agent-hooks-foundation.md) —
+  axum hook server on 127.0.0.1:0, constant-time token validation,
+  Classifier trait + ClassifierRegistry, claude reference impl,
+  Drop-based shutdown.

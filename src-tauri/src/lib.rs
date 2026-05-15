@@ -4,6 +4,7 @@
 //! `TAURI_GLUE_MODULES` (intentionally tauri-aware), enforced by
 //! `tests/domain_boundaries.rs`. See ADR-0001 for the rationale.
 
+pub mod agent_hooks;
 pub mod bindings_parser;
 pub mod commands;
 pub mod db;
