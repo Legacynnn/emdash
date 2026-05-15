@@ -10,6 +10,7 @@ use emdash_dev::fs_watcher::WatcherRegistry;
 use emdash_dev::projects::ProjectsService;
 use emdash_dev::pty::registry::Registry;
 use emdash_dev::secrets::{master_key::OsKeyringMasterKey, Secrets};
+use emdash_dev::ssh::{SshConnectionManager, SshConnectionStore, SshCredentials};
 use emdash_dev::tasks::{TasksService, WorkspaceFsMutationLock};
 use emdash_dev::tauri_bindings;
 use emdash_dev::telemetry::{Telemetry, TelemetryConfig};
@@ -131,6 +132,11 @@ pub fn run() {
             ))?;
             let hook_handle: Arc<HookServerHandle> = Arc::new(hook_handle);
 
+            // SSH stack (EMD-10): credentials → store → manager.
+            let ssh_credentials = Arc::new(SshCredentials::new(secrets.clone()));
+            let ssh_store = Arc::new(SshConnectionStore::new(db.clone(), ssh_credentials.clone()));
+            let ssh_manager = Arc::new(SshConnectionManager::new());
+
             app.manage(db);
             app.manage(secrets);
             app.manage(projects);
@@ -142,6 +148,9 @@ pub fn run() {
             app.manage(updater);
             app.manage(classifier_registry);
             app.manage(hook_handle);
+            app.manage(ssh_credentials);
+            app.manage(ssh_store);
+            app.manage(ssh_manager);
             let pty_registry: Arc<Registry> = Arc::new(Registry::new());
             app.manage(pty_registry);
             Ok(())

@@ -6,10 +6,10 @@ use std::env;
 use std::process::ExitCode;
 
 use emdash_dev::{
-    agent_hooks, bindings_parser, db, editor_buffers, fs_watcher, git, greeting, projects,
-    providers,
+    agent_hooks, bindings_parser, claude_trust, db, editor_buffers, fs_watcher, git, greeting,
+    hook_config, projects, providers,
     secrets::{aead, master_key},
-    shell_env, tasks,
+    shell_env, ssh, tasks,
     telemetry::{
         config as telemetry_config, event as telemetry_event, settings as telemetry_settings,
     },
@@ -101,6 +101,18 @@ fn link_domain_modules() {
     // async oauth + client paths come along but never run from this bin.
     let _: Option<providers::github::IdentityRecord> = None;
     let _: &[providers::github::OauthScope] = providers::github::auth::DEFAULT_SCOPES;
+
+    // claude_trust + hook_config (EMD-26): both domain-only.
+    let _ = claude_trust::CLAUDE_CONFIG_NAME;
+    let _: Option<claude_trust::ClaudeTrustService> = None;
+    let _ = hook_config::CLAUDE_SETTINGS_PATH;
+    let _: Option<hook_config::Provider> = None;
+
+    // ssh (EMD-10): domain types + error envelope; the async client work
+    // (openssh sessions) never runs from this bin.
+    let _: Option<ssh::SshConnection> = None;
+    let _: Option<ssh::SshConnectionManager> = None;
+    let _: Option<ssh::SshError> = None;
 }
 
 fn print_help() {

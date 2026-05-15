@@ -69,6 +69,15 @@ export const commands = {
 	githubListPulls: (owner: string, repo: string) => typedError<PullRequestSummary[], GithubCommandError>(__TAURI_INVOKE("github_list_pulls", { owner, repo })),
 	githubGetPull: (owner: string, repo: string, number: number) => typedError<PullRequestSummary, GithubCommandError>(__TAURI_INVOKE("github_get_pull", { owner, repo, number })),
 	githubGetPullDiff: (owner: string, repo: string, number: number) => typedError<string, GithubCommandError>(__TAURI_INVOKE("github_get_pull_diff", { owner, repo, number })),
+	sshListConnections: () => typedError<SshConnection[], SshCommandError>(__TAURI_INVOKE("ssh_list_connections")),
+	sshSaveConnection: (payload: NewSshConnection) => typedError<SshConnection, SshCommandError>(__TAURI_INVOKE("ssh_save_connection", { payload })),
+	sshRenameConnection: (id: string, name: string) => typedError<null, SshCommandError>(__TAURI_INVOKE("ssh_rename_connection", { id, name })),
+	sshDeleteConnection: (id: string) => typedError<null, SshCommandError>(__TAURI_INVOKE("ssh_delete_connection", { id })),
+	sshTestConnection: (payload: NewSshConnection) => typedError<ConnectionTestResult, SshCommandError>(__TAURI_INVOKE("ssh_test_connection", { payload })),
+	sshConnect: (id: string) => typedError<ConnectionState, SshCommandError>(__TAURI_INVOKE("ssh_connect", { id })),
+	sshDisconnect: (id: string) => typedError<null, SshCommandError>(__TAURI_INVOKE("ssh_disconnect", { id })),
+	sshGetState: (id: string) => typedError<ConnectionState, SshCommandError>(__TAURI_INVOKE("ssh_get_state", { id })),
+	sshExec: (id: string, command: string) => typedError<string, SshCommandError>(__TAURI_INVOKE("ssh_exec", { id, command })),
 };
 
 /* Types */
@@ -111,6 +120,17 @@ export type AgentEventKind =
  */
 { kind: "unknown" };
 
+export type AuthType = 
+/**  User stores a password in the keychain. */
+"password" | 
+/**
+ *  User points at a key file on disk; passphrase may be in the
+ *  keychain.
+ */
+"key" | 
+/**  Delegate to ssh-agent. */
+"agent";
+
 /**
  *  Why the manager kicked off a check. Used both for backoff bucket
  *  selection (a `Manual` check should retry faster than a passive
@@ -118,6 +138,25 @@ export type AgentEventKind =
  *  surfaces a louder error message).
  */
 export type CheckReason = "startup" | "resume" | "focus" | "interval" | "manual";
+
+export type ConnectionState = 
+/**  No live session; user explicitly disconnected or never connected. */
+{ kind: "disconnected" } | 
+/**  Currently negotiating. */
+{ kind: "connecting" } | 
+/**  Live session held in `SshConnectionManager`. */
+{ kind: "connected"; 
+/**  Connection latency from the last successful test, in ms. */
+latency_ms: number | null } | 
+/**  Last connect attempt failed; not retrying automatically. */
+{ kind: "failed"; error: string };
+
+export type ConnectionTestResult = {
+	success: boolean,
+	/**  Round-trip time to first ssh-ready, in ms. `None` on failure. */
+	latency_ms: number | null,
+	error: string | null,
+};
 
 /**
  *  Opaque handle for the renderer to pass back to
@@ -183,6 +222,32 @@ export type IdentityRecord = {
 	name: string | null,
 	email: string | null,
 	avatar_url: string | null,
+};
+
+/**
+ *  Payload for `save_connection`. The two secret fields are
+ *  **never** persisted in the DB row — they go through
+ *  `SshCredentials::store_*` and are dropped from the model
+ *  immediately after.
+ */
+export type NewSshConnection = {
+	/**
+	 *  If present, the call updates the existing row; otherwise the
+	 *  store mints a fresh UUID.
+	 */
+	id: string | null,
+	name: string,
+	host: string,
+	port: number,
+	username: string,
+	auth_type: AuthType,
+	private_key_path: string | null,
+	use_agent: boolean,
+	worktrees_dir: string | null,
+	/**  Optional. Stored encrypted via `SshCredentials::store_password`. */
+	password: string | null,
+	/**  Optional. Stored encrypted via `SshCredentials::store_passphrase`. */
+	passphrase: string | null,
 };
 
 export type NotificationKind = "general" | "permission_prompt" | "tool_use" | "status" | 
@@ -269,6 +334,44 @@ export type SpawnOptions = {
 	size: PtySize,
 };
 
+export type SshCommandError = {
+	code: SshErrorCode,
+	message: string,
+};
+
+export type SshConnection = {
+	id: string,
+	name: string,
+	host: string,
+	port: number,
+	username: string,
+	auth_type: AuthType,
+	/**
+	 *  Path to the private key file. Tilde is *not* expanded here;
+	 *  the renderer shows what the user typed.
+	 */
+	private_key_path: string | null,
+	/**
+	 *  True when the user opted into ssh-agent (mutually exclusive
+	 *  with `auth_type == AuthType::Agent` only in older configs;
+	 *  kept for backward compat with the Electron schema).
+	 */
+	use_agent: boolean,
+	/**
+	 *  Default worktrees directory on the remote host (e.g.
+	 *  `/home/me/emdash-worktrees`). Stored in `metadata` JSON.
+	 */
+	worktrees_dir: string | null,
+	/**
+	 *  ISO-8601 timestamp. String at the wire boundary because
+	 *  specta is finicky about chrono crossings without an extra
+	 *  feature flag.
+	 */
+	updated_at: string,
+};
+
+export type SshErrorCode = "not_found" | "in_use" | "client" | "unsupported" | "storage";
+
 /**
  *  Renderer-facing task projection. Fields beyond v1 (`task_branch`,
  *  `linked_issue`, etc.) live in the DB schema but stay out of this
@@ -329,7 +432,16 @@ export type UiMutationEvent = { kind: "project_created"; id: string } | { kind: 
  *  EMD-13: GitHub repo-scoped data changed (PRs, comments, reviews
  *  of the named `owner/name`).
  */
-{ kind: "github_data_changed"; repo: string };
+{ kind: "github_data_changed"; repo: string } | 
+/**  EMD-10: an SSH connection was saved (insert or update). */
+{ kind: "ssh_connection_saved"; id: string } | 
+/**  EMD-10: an SSH connection was deleted. */
+{ kind: "ssh_connection_deleted"; id: string } | 
+/**
+ *  EMD-10: an SSH connection's live state changed
+ *  (`Disconnected` ↔ `Connected` ↔ `Failed`).
+ */
+{ kind: "ssh_connection_state_changed"; id: string };
 
 /**
  *  Stable machine-readable error code. The renderer matches on this

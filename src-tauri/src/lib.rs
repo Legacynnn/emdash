@@ -19,6 +19,7 @@ pub mod providers;
 pub mod pty;
 pub mod secrets;
 pub mod shell_env;
+pub mod ssh;
 pub mod tasks;
 pub mod tauri_bindings;
 pub mod telemetry;

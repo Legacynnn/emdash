@@ -116,6 +116,13 @@ regex = "1"
 # user formatting + comments through round-trips.
 toml_edit = "0.22"
 
+# SSH (EMD-10). `openssh` wraps the system `ssh` binary + ssh-agent
+# via control sockets — no in-process SSH client, no need to store
+# user passwords ourselves. Matches Helmor's approach. Linux/macOS
+# only at the wire level; Windows users get a graceful "not
+# supported on Windows" error.
+openssh = { version = "0.10", default-features = false, features = ["native-mux"] }
+
 
 [dev-dependencies]
 insta = { version = "1.47", features = ["json"] }
