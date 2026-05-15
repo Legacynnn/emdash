@@ -6,12 +6,14 @@
 
 pub mod agent_hooks;
 pub mod bindings_parser;
+pub mod claude_trust;
 pub mod commands;
 pub mod db;
 pub mod editor_buffers;
 pub mod fs_watcher;
 pub mod git;
 pub mod greeting;
+pub mod hook_config;
 pub mod projects;
 pub mod providers;
 pub mod pty;

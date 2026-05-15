@@ -111,6 +111,11 @@ url = "2"
 # idle-prompt / permission / error patterns in PTY output.
 regex = "1"
 
+# TOML — used by hook_config (EMD-26) to merge into the user's
+# `.codex/config.toml`. `toml_edit` rather than `toml` preserves
+# user formatting + comments through round-trips.
+toml_edit = "0.22"
+
 
 [dev-dependencies]
 insta = { version = "1.47", features = ["json"] }

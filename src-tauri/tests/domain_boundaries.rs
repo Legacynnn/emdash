@@ -7,11 +7,13 @@ use std::path::{Path, PathBuf};
 const DOMAIN_MODULES: &[&str] = &[
     "agent_hooks",
     "bindings_parser",
+    "claude_trust",
     "db",
     "editor_buffers",
     "fs_watcher",
     "git",
     "greeting",
+    "hook_config",
     "projects",
     "providers",
     "pty",
