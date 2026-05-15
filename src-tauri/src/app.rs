@@ -42,10 +42,16 @@ pub fn run() {
     }
 
     let app = tauri::Builder::default()
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(specta_builder.invoke_handler())
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { .. } = event {
+                // EMD-20 memory hygiene: explicitly tear down owned
+                // resources on window close. PTY today; SSH /
+                // watchers / agent-hook listeners as they land.
+                // Mitigates the multi-window leak tracked in
+                // tauri-apps/tauri#5397.
                 if let Some(registry) = window.app_handle().try_state::<Arc<Registry>>() {
                     registry.drain();
                 }
@@ -53,6 +59,9 @@ pub fn run() {
         })
         .setup(move |app| {
             specta_builder.mount_events(app);
+
+            let menu = crate::app_menu::build(app.handle())?;
+            app.set_menu(menu)?;
 
             let db_path = resolve_db_path(app.handle())?;
             if let Some(parent) = db_path.parent() {

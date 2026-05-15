@@ -84,6 +84,11 @@ chrono = { version = "0.4", default-features = false, features = ["clock", "serd
 # throttling, and install-on-exit hook.
 tauri-plugin-updater = "2"
 
+# Window-state persistence (EMD-20 / ADR-0009). Persists size +
+# position across launches; restore happens automatically when the
+# plugin is built into the App.
+tauri-plugin-window-state = "2"
+
 [dev-dependencies]
 insta = { version = "1.47", features = ["json"] }
 tempfile = "3"

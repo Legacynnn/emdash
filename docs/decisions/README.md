@@ -72,3 +72,8 @@ What becomes easier and what becomes harder as a result.
   Helmor-style `UpdateManager` over `tauri-plugin-updater`, exponential
   backoff, 200 ms progress throttle, install-on-exit hook, minisign
   key custody plan, and per-platform recovery procedure.
+- [0009-window-menu-management](./0009-window-menu-management.md) —
+  Inset traffic-lights + overlay title bar, window-state plugin for
+  position/size persistence, Rust-built menu with predefined roles,
+  explicit window-close teardown, documented gaps for Services /
+  Speech submenus + dock badge.
