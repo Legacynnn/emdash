@@ -56,3 +56,7 @@ What becomes easier and what becomes harder as a result.
 - [0004-ui-mutation-event-bridge](./0004-ui-mutation-event-bridge.md) —
   Single `Channel<UiMutationEvent>` for renderer cache invalidation,
   enforced by `eslint-plugin-emdash`'s `no-tauri-event-bus` rule.
+- [0008-auto-updater](./0008-auto-updater.md) —
+  Helmor-style `UpdateManager` over `tauri-plugin-updater`, exponential
+  backoff, 200 ms progress throttle, install-on-exit hook, minisign
+  key custody plan, and per-platform recovery procedure.
