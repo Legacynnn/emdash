@@ -4,6 +4,7 @@ pub mod editor_buffers;
 pub mod fs_watcher;
 pub mod github;
 pub mod greet;
+pub mod linear;
 pub mod path;
 pub mod projects;
 pub mod pty;

@@ -41,6 +41,20 @@
     "github_list_repos",
     "github_list_pulls",
     "github_get_pull",
-    "github_get_pull_diff"
+    "github_get_pull_diff",
+    "linear_sign_in",
+    "linear_sign_out",
+    "linear_me",
+    "linear_list_teams",
+    "linear_list_projects",
+    "linear_list_cycles",
+    "linear_list_labels",
+    "linear_list_states",
+    "linear_list_issues",
+    "linear_get_issue",
+    "linear_create_issue",
+    "linear_update_issue",
+    "linear_list_comments",
+    "linear_create_comment"
   ]
 }

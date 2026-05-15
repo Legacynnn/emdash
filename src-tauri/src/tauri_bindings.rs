@@ -53,6 +53,20 @@ pub fn build_specta() -> Builder<tauri::Wry> {
         commands::github::github_list_pulls,
         commands::github::github_get_pull,
         commands::github::github_get_pull_diff,
+        commands::linear::linear_sign_in,
+        commands::linear::linear_sign_out,
+        commands::linear::linear_me,
+        commands::linear::linear_list_teams,
+        commands::linear::linear_list_projects,
+        commands::linear::linear_list_cycles,
+        commands::linear::linear_list_labels,
+        commands::linear::linear_list_states,
+        commands::linear::linear_list_issues,
+        commands::linear::linear_get_issue,
+        commands::linear::linear_create_issue,
+        commands::linear::linear_update_issue,
+        commands::linear::linear_list_comments,
+        commands::linear::linear_create_comment,
     ])
 }
 

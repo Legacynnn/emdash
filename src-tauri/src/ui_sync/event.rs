@@ -45,4 +45,10 @@ pub enum UiMutationEvent {
     GithubDataChanged {
         repo: String,
     },
+    /// EMD-14: Linear identity changed (sign-in / sign-out / refresh).
+    LinearIdentityChanged,
+    /// EMD-14: Linear team-scoped data changed (issues, comments).
+    LinearDataChanged {
+        team: String,
+    },
 }
