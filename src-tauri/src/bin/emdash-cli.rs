@@ -8,7 +8,7 @@ use std::process::ExitCode;
 use emdash_dev::{
     bindings_parser, db, greeting, projects,
     secrets::{aead, master_key},
-    shell_env, ui_sync,
+    shell_env, ui_sync, updater,
 };
 
 const NAME: &str = env!("CARGO_PKG_NAME");
@@ -60,6 +60,12 @@ fn link_domain_modules() {
     // projects: CRUD service reference. `ProjectsService::new` requires a Db,
     // which we already pull above; referencing the type keeps the symbol live.
     let _: Option<projects::ProjectsService> = None;
+
+    // updater: state machine + backoff are Tauri-runtime-free. Plugin glue
+    // (the actual tauri-plugin-updater hookup) lives in commands::updater
+    // and app.rs.
+    let _mgr = updater::UpdateManager::default();
+    let _: Option<updater::UpdateEvent> = None;
 }
 
 fn print_help() {

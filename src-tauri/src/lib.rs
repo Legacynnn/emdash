@@ -14,3 +14,4 @@ pub mod secrets;
 pub mod shell_env;
 pub mod tauri_bindings;
 pub mod ui_sync;
+pub mod updater;
