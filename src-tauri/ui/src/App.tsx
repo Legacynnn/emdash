@@ -33,7 +33,7 @@ export const App = observer(function App() {
   const ready = asReady(stores.projects);
   const selectedProject =
     ready && selectedProjectId
-      ? ready.projects.find((p) => p.id === selectedProjectId) ?? null
+      ? (ready.projects.find((p) => p.id === selectedProjectId) ?? null)
       : null;
   const taskStore = selectedProject ? stores.getOrCreateTaskStore(selectedProject.id) : null;
 
@@ -180,9 +180,7 @@ export const App = observer(function App() {
         onSelect={setSelectedProjectId}
       />
 
-      {selectedProject && taskStore && (
-        <TasksPanel project={selectedProject} store={taskStore} />
-      )}
+      {selectedProject && taskStore && <TasksPanel project={selectedProject} store={taskStore} />}
 
       <TelemetryToggle />
 

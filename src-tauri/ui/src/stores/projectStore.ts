@@ -70,9 +70,7 @@ export class ProjectStore {
 // State-guard selectors. Keep these pure: safe in observer components,
 // effects, and event handlers.
 
-export function asReady(
-  store: ProjectStore,
-): { projects: Project[] } | undefined {
+export function asReady(store: ProjectStore): { projects: Project[] } | undefined {
   return store.state.kind === 'ready' ? { projects: store.state.projects } : undefined;
 }
 

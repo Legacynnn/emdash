@@ -5,8 +5,8 @@
  * Rust side (`src/updater/state.rs`); the renderer just needs to
  * present the events correctly.
  */
-import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, cleanup } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const invokeMock = vi.fn();
 
@@ -39,9 +39,9 @@ describe('UpdaterPanel', () => {
 
     await waitFor(() => {
       // Subscription fires on mount.
-      expect(
-        invokeMock.mock.calls.some((call) => call[0] === 'subscribe_updater_events'),
-      ).toBe(true);
+      expect(invokeMock.mock.calls.some((call) => call[0] === 'subscribe_updater_events')).toBe(
+        true
+      );
     });
 
     // Initial state surface is "idle" before any event arrives.

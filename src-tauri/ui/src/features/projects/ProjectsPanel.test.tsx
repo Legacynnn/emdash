@@ -3,8 +3,8 @@
  * the `@tauri-apps/api/core` boundary so the store→bindings→UI loop
  * runs end-to-end without a host process.
  */
-import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type InvokeMock = ReturnType<typeof vi.fn>;
 

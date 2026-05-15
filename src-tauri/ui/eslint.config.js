@@ -21,5 +21,5 @@ export default tseslint.config(
       // through the `useUiMutations` bridge. See ADR-0004.
       'emdash/no-tauri-event-bus': 'error',
     },
-  },
+  }
 );

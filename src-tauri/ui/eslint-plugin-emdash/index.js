@@ -107,7 +107,7 @@ const noTauriEventBus = {
             const isLikelyDom =
               objectName !== null &&
               ['window', 'document', 'element', 'event', 'target'].includes(
-                objectName.toLowerCase(),
+                objectName.toLowerCase()
               );
             if (isLikelyDom) return;
             context.report({ node, messageId: 'forbiddenEmit' });

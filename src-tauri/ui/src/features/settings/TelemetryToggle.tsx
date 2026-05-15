@@ -75,9 +75,8 @@ export function TelemetryToggle() {
     <section>
       <h2>Settings — Telemetry</h2>
       <p className="muted">
-        Help improve emdash - dev by sending anonymous usage events. Off by default.
-        Stored locally in <code>app_settings</code>; broadcast nothing until you
-        opt in.
+        Help improve emdash - dev by sending anonymous usage events. Off by default. Stored locally
+        in <code>app_settings</code>; broadcast nothing until you opt in.
       </p>
       <label className="row" style={{ alignItems: 'center', gap: '8px' }}>
         <input

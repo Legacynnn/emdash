@@ -3,8 +3,8 @@
  * can exercise the load → toggle → persist round-trip plus the
  * focus-event auto-record without a host process.
  */
-import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type InvokeMock = ReturnType<typeof vi.fn>;
 const invokeMock: InvokeMock = vi.fn();
@@ -42,9 +42,7 @@ describe('TelemetryToggle', () => {
     const { App } = await import('../../App');
     render(<App />);
 
-    const toggle = await waitFor(() =>
-      screen.getByRole('checkbox', { name: /enable telemetry/i }),
-    );
+    const toggle = await waitFor(() => screen.getByRole('checkbox', { name: /enable telemetry/i }));
     expect((toggle as HTMLInputElement).checked).toBe(false);
 
     fireEvent.click(toggle);

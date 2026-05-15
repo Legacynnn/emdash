@@ -13,12 +13,7 @@ function formatError(err: ProjectsCommandError): string {
 }
 
 function isCommandError(value: unknown): value is ProjectsCommandError {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'code' in value &&
-    'message' in value
-  );
+  return typeof value === 'object' && value !== null && 'code' in value && 'message' in value;
 }
 
 export interface ProjectsPanelProps {
@@ -84,11 +79,7 @@ export const ProjectsPanel = observer(function ProjectsPanel({
           aria-label="project path"
           disabled={pending}
         />
-        <button
-          type="button"
-          onClick={handleAdd}
-          disabled={pending || path.trim().length === 0}
-        >
+        <button type="button" onClick={handleAdd} disabled={pending || path.trim().length === 0}>
           {pending ? 'Working...' : 'Add'}
         </button>
         <button type="button" onClick={() => store.load()} disabled={pending}>
@@ -105,9 +96,7 @@ export const ProjectsPanel = observer(function ProjectsPanel({
       {kind === 'error' && store.state.kind === 'error' && (
         <pre className="error">{formatError(store.state.error)}</pre>
       )}
-      {ready && ready.projects.length === 0 && (
-        <p className="muted">No projects yet.</p>
-      )}
+      {ready && ready.projects.length === 0 && <p className="muted">No projects yet.</p>}
       {ready && ready.projects.length > 0 && (
         <ul className="project-list" aria-label="projects">
           {ready.projects.map((p) => {

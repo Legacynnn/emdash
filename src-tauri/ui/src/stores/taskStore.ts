@@ -9,12 +9,7 @@
  * variant fields directly.
  */
 import { makeAutoObservable, runInAction } from 'mobx';
-import {
-  commands,
-  type Task,
-  type TaskSourceBranch,
-  type TasksCommandError,
-} from '../bindings';
+import { commands, type Task, type TasksCommandError, type TaskSourceBranch } from '../bindings';
 
 export type TasksStoreState =
   | { kind: 'idle' }
@@ -44,10 +39,7 @@ export class TaskStore {
     });
   }
 
-  async create(
-    name: string,
-    sourceBranch: TaskSourceBranch,
-  ): Promise<Task | TasksCommandError> {
+  async create(name: string, sourceBranch: TaskSourceBranch): Promise<Task | TasksCommandError> {
     const result = await commands.tasksCreate(this.projectId, name, sourceBranch);
     return result.status === 'ok' ? result.data : result.error;
   }

@@ -13,12 +13,7 @@ function formatError(err: TasksCommandError): string {
 }
 
 function isCommandError(value: unknown): value is TasksCommandError {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'code' in value &&
-    'message' in value
-  );
+  return typeof value === 'object' && value !== null && 'code' in value && 'message' in value;
 }
 
 export interface TasksPanelProps {
