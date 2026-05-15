@@ -70,6 +70,21 @@ pub fn build_specta() -> Builder<tauri::Wry> {
         commands::agents::agents_start,
         commands::agents::agents_stop,
         commands::agents::agents_list_providers,
+        commands::app::app_get_version,
+        commands::app::app_get_platform,
+        commands::app::app_open_external,
+        commands::app::app_open_in,
+        commands::app::app_check_installed_apps,
+        commands::app::app_list_installed_fonts,
+        commands::app::app_open_select_directory_dialog,
+        commands::app::app_clipboard_write_text,
+        commands::fs::fs_read_file,
+        commands::fs::fs_write_file,
+        commands::fs::fs_remove_file,
+        commands::fs::fs_file_exists,
+        commands::fs::fs_stat_file,
+        commands::fs::fs_list_files,
+        commands::fs::fs_read_image,
     ])
 }
 

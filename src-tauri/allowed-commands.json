@@ -58,6 +58,21 @@
     "linear_create_comment",
     "agents_start",
     "agents_stop",
-    "agents_list_providers"
+    "agents_list_providers",
+    "app_get_version",
+    "app_get_platform",
+    "app_open_external",
+    "app_open_in",
+    "app_check_installed_apps",
+    "app_list_installed_fonts",
+    "app_open_select_directory_dialog",
+    "app_clipboard_write_text",
+    "fs_read_file",
+    "fs_write_file",
+    "fs_remove_file",
+    "fs_file_exists",
+    "fs_stat_file",
+    "fs_list_files",
+    "fs_read_image"
   ]
 }

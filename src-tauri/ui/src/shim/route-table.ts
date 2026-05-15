@@ -57,7 +57,6 @@ const toRecord =
 const STATIC_EMPTY_ARRAY: Route = { kind: 'static', value: [] };
 const STATIC_NULL: Route = { kind: 'static', value: null };
 const STATIC_VOID: Route = { kind: 'static', value: undefined };
-const STATIC_FALSE: Route = { kind: 'static', value: false };
 const STATIC_EMPTY_OBJECT: Route = { kind: 'static', value: {} };
 
 // Renderer's standard Result envelope used by many controllers (see
@@ -171,16 +170,32 @@ const ROUTES: Record<string, Route> = {
   'tasks.getWorkspaceSettings': STATIC_NULL,
 
   // == app ==========================================================
-  'app.getAppVersion': { kind: 'static', value: '0.0.0-tauri-dev' },
-  'app.getPlatform': {
-    kind: 'static',
-    value: detectPlatform(),
+  // Real Rust implementations under `src-tauri/src/commands/app.rs`.
+  // The renderer historically returned plain values (no Result
+  // envelope) from these, so we pass invoke results straight through.
+  'app.getAppVersion': { kind: 'invoke', command: 'app_get_version', adapt: noArgs },
+  'app.getPlatform': { kind: 'invoke', command: 'app_get_platform', adapt: noArgs },
+  'app.checkInstalledApps': {
+    kind: 'invoke',
+    command: 'app_check_installed_apps',
+    adapt: ([candidates]) => ({ candidates: Array.isArray(candidates) ? candidates : [] }),
   },
-  'app.checkInstalledApps': STATIC_EMPTY_ARRAY,
-  'app.listInstalledFonts': STATIC_EMPTY_ARRAY,
-  'app.openExternal': STATIC_VOID,
-  'app.openIn': STATIC_VOID,
-  'app.openSelectDirectoryDialog': STATIC_NULL,
+  'app.listInstalledFonts': { kind: 'invoke', command: 'app_list_installed_fonts', adapt: noArgs },
+  'app.openExternal': {
+    kind: 'invoke',
+    command: 'app_open_external',
+    adapt: ([target]) => ({ target }),
+  },
+  'app.openIn': {
+    kind: 'invoke',
+    command: 'app_open_in',
+    adapt: ([path, app]) => ({ path, app }),
+  },
+  'app.openSelectDirectoryDialog': {
+    kind: 'invoke',
+    command: 'app_open_select_directory_dialog',
+    adapt: noArgs,
+  },
 
   // == update =======================================================
   'update.check': {
@@ -468,23 +483,6 @@ function toRendererProject(p: TauriProject): Record<string, unknown> {
     createdAt: p.created_at,
     updatedAt: p.updated_at,
   };
-}
-
-function detectPlatform(): string {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const ua = (navigator as any).userAgentData;
-  if (ua && typeof ua.platform === 'string') {
-    const p = String(ua.platform).toLowerCase();
-    if (p.includes('mac')) return 'darwin';
-    if (p.includes('win')) return 'win32';
-    if (p.includes('linux')) return 'linux';
-    return p;
-  }
-  const fallback = (navigator.platform || '').toLowerCase();
-  if (fallback.includes('mac')) return 'darwin';
-  if (fallback.includes('win')) return 'win32';
-  if (fallback.includes('linux')) return 'linux';
-  return fallback || 'unknown';
 }
 
 export function resolveRoute(channel: string): Route | null {

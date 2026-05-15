@@ -53,6 +53,17 @@ export function dispatchUiMutation(stores: Stores, event: UiMutationEvent): void
       // list view, identity badge) as those views ship. For now the
       // arm exists to satisfy the exhaustiveness check.
       return;
+    case 'linear_identity_changed':
+    case 'linear_data_changed':
+      // EMD-14: Linear provider events. Consumers (issue picker, board
+      // sync indicator) will land cache invalidation here.
+      return;
+    case 'agent_started':
+    case 'agent_exited':
+      // EMD-27: Local agent lifecycle. The PTY xterm consumers receive
+      // bytes via the dedicated Channel<Vec<u8>>; this arm is just for
+      // store-level signals (e.g. agent status badge).
+      return;
   }
   // Exhaustiveness check: a new variant added to UiMutationEvent without a
   // case here makes this a compile error.
