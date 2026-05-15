@@ -1,0 +1,10 @@
+---
+source: tests/wire_format.rs
+assertion_line: 344
+expression: args
+---
+{
+  "number": 42,
+  "owner": "example",
+  "repo": "repo"
+}

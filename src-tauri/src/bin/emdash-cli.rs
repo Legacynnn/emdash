@@ -7,6 +7,7 @@ use std::process::ExitCode;
 
 use emdash_dev::{
     agent_hooks, bindings_parser, db, editor_buffers, git, greeting, projects,
+    providers,
     secrets::{aead, master_key},
     shell_env, tasks, ui_sync, updater, view_state,
     telemetry::{
@@ -94,6 +95,11 @@ fn link_domain_modules() {
     // bin's link graph (no server start here — domain modules only).
     let _registry = agent_hooks::ClassifierRegistry::new();
     let _: Option<agent_hooks::AgentEvent> = None;
+
+    // providers::github: scope enum + identity record are domain-only; the
+    // async oauth + client paths come along but never run from this bin.
+    let _: Option<providers::github::IdentityRecord> = None;
+    let _: &[providers::github::OauthScope] = providers::github::auth::DEFAULT_SCOPES;
 }
 
 fn print_help() {

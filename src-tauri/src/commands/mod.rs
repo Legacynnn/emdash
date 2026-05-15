@@ -1,6 +1,7 @@
 // Tauri command glue — thin wrappers over `crate::*` domain modules.
 
 pub mod editor_buffers;
+pub mod github;
 pub mod greet;
 pub mod path;
 pub mod projects;

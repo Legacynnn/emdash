@@ -52,6 +52,21 @@ export const commands = {
 	viewStateGetAll: () => typedError<{ [key in string]: string }, ViewStateCommandError>(__TAURI_INVOKE("view_state_get_all")),
 	viewStateDelete: (key: string) => typedError<null, ViewStateCommandError>(__TAURI_INVOKE("view_state_delete", { key })),
 	viewStateReset: () => typedError<null, ViewStateCommandError>(__TAURI_INVOKE("view_state_reset")),
+	githubSignInDeviceFlowStart: () => typedError<DeviceFlowStart, GithubCommandError>(__TAURI_INVOKE("github_sign_in_device_flow_start")),
+	githubSignInDeviceFlowPoll: (flow: DeviceFlow) => typedError<IdentityRecord, GithubCommandError>(__TAURI_INVOKE("github_sign_in_device_flow_poll", { flow })),
+	githubSignInViaGhCli: () => typedError<IdentityRecord, GithubCommandError>(__TAURI_INVOKE("github_sign_in_via_gh_cli")),
+	githubSignOut: () => typedError<null, GithubCommandError>(__TAURI_INVOKE("github_sign_out")),
+	githubMe: () => typedError<{
+	login: string,
+	id: string,
+	name: string | null,
+	email: string | null,
+	avatar_url: string | null,
+} | null, GithubCommandError>(__TAURI_INVOKE("github_me")),
+	githubListRepos: () => typedError<RepoSummary[], GithubCommandError>(__TAURI_INVOKE("github_list_repos")),
+	githubListPulls: (owner: string, repo: string) => typedError<PullRequestSummary[], GithubCommandError>(__TAURI_INVOKE("github_list_pulls", { owner, repo })),
+	githubGetPull: (owner: string, repo: string, number: number) => typedError<PullRequestSummary, GithubCommandError>(__TAURI_INVOKE("github_get_pull", { owner, repo, number })),
+	githubGetPullDiff: (owner: string, repo: string, number: number) => typedError<string, GithubCommandError>(__TAURI_INVOKE("github_get_pull_diff", { owner, repo, number })),
 };
 
 /* Types */
@@ -102,6 +117,29 @@ export type AgentEventKind =
  */
 export type CheckReason = "startup" | "resume" | "focus" | "interval" | "manual";
 
+/**
+ *  Opaque handle for the renderer to pass back to
+ *  `device_flow_poll`. We expose just the bits the OAuth server
+ *  needs and keep the rest internal.
+ */
+export type DeviceFlow = {
+	device_code: string,
+	polling_interval_seconds: number,
+};
+
+/**
+ *  What the renderer needs to display when the flow starts.
+ *  `u32` for the timing fields because specta forbids BigInt types
+ *  over IPC. GitHub's intervals + expiries fit comfortably in u32.
+ */
+export type DeviceFlowStart = {
+	user_code: string,
+	verification_uri: string,
+	device_code: string,
+	polling_interval_seconds: number,
+	expires_in_seconds: number,
+};
+
 export type EditorBuffer = {
 	id: string,
 	project_id: string,
@@ -122,6 +160,21 @@ export type EditorBuffersCommandError = {
 };
 
 export type EditorBuffersErrorCode = "storage";
+
+export type GithubCommandError = {
+	code: GithubErrorCode,
+	message: string,
+};
+
+export type GithubErrorCode = "not_signed_in" | "unauthorized" | "storage" | "oauth" | "network" | "rate_limited" | "gh_cli_unavailable" | "malformed";
+
+export type IdentityRecord = {
+	login: string,
+	id: string,
+	name: string | null,
+	email: string | null,
+	avatar_url: string | null,
+};
 
 export type NotificationKind = "general" | "permission_prompt" | "tool_use" | "status";
 
@@ -156,6 +209,32 @@ export type PtyId = number;
 export type PtySize = {
 	rows: number,
 	cols: number,
+};
+
+export type PullRequestSummary = {
+	number: number,
+	title: string,
+	state: string,
+	draft: boolean,
+	html_url: string,
+	author: string | null,
+	base_ref: string,
+	head_ref: string,
+	/**
+	 *  ISO-8601; same string-on-the-wire choice as editor_buffers
+	 *  and agent_hooks.
+	 */
+	created_at: string,
+	updated_at: string,
+};
+
+export type RepoSummary = {
+	owner: string,
+	name: string,
+	full_name: string,
+	private: boolean,
+	default_branch: string | null,
+	description: string | null,
 };
 
 export type SecretsCommandError = {
@@ -228,7 +307,14 @@ export type UiMutationEvent = { kind: "project_created"; id: string } | { kind: 
  *  One classified agent-hook event (EMD-9). `task_id` is `None`
  *  until the agent-spawn site (EMD-27) injects coordinates.
  */
-{ kind: "agent_hook_event"; task_id: string | null; event: AgentEvent };
+{ kind: "agent_hook_event"; task_id: string | null; event: AgentEvent } | 
+/**  EMD-13: GitHub identity changed (sign-in / sign-out / refresh). */
+{ kind: "github_identity_changed" } | 
+/**
+ *  EMD-13: GitHub repo-scoped data changed (PRs, comments, reviews
+ *  of the named `owner/name`).
+ */
+{ kind: "github_data_changed"; repo: string };
 
 /**
  *  Stable machine-readable error code. The renderer matches on this

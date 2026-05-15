@@ -12,6 +12,7 @@ const DOMAIN_MODULES: &[&str] = &[
     "git",
     "greeting",
     "projects",
+    "providers",
     "pty",
     "secrets",
     "shell_env",

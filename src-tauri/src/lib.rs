@@ -12,6 +12,7 @@ pub mod editor_buffers;
 pub mod git;
 pub mod greeting;
 pub mod projects;
+pub mod providers;
 pub mod pty;
 pub mod secrets;
 pub mod shell_env;

@@ -44,6 +44,9 @@ export function dispatchUiMutation(stores: Stores, event: UiMutationEvent): void
     case 'agent_hook_event':
       // EMD-9 exposes the event transport; EMD-27 wires task/project stores.
       return;
+    case 'github_identity_changed':
+    case 'github_data_changed':
+      return;
   }
   // Exhaustiveness check: a new variant added to UiMutationEvent without a
   // case here makes this a compile error.

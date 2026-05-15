@@ -91,3 +91,7 @@ What becomes easier and what becomes harder as a result.
   axum hook server on 127.0.0.1:0, constant-time token validation,
   Classifier trait + ClassifierRegistry, claude reference impl,
   Drop-based shutdown.
+- [0022-github-provider](./0022-github-provider.md) — octocrab +
+  hand-rolled device flow (oauth2 0.x is awkward for two-step
+  start/poll), AEAD token storage, gh CLI fallback, identity split
+  from token, locked OAuth scopes.
