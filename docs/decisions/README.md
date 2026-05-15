@@ -56,3 +56,7 @@ What becomes easier and what becomes harder as a result.
 - [0004-ui-mutation-event-bridge](./0004-ui-mutation-event-bridge.md) —
   Single `Channel<UiMutationEvent>` for renderer cache invalidation,
   enforced by `eslint-plugin-emdash`'s `no-tauri-event-bus` rule.
+- [0005-git-worktrees-and-tasks-table](./0005-git-worktrees-and-tasks-table.md)
+  — `git2` for read ops + shell out for `git worktree`,
+  `WorkspaceFsMutationLock` for FS+DB serialization, JSON
+  `source_branch` discriminator from day one.
