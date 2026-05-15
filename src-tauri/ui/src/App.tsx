@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { commands, type SecretsCommandError } from './bindings';
 import { DebugShell } from './components/DebugShell';
 import { ProjectsPanel } from './features/projects/ProjectsPanel';
+import { TelemetryToggle } from './features/settings/TelemetryToggle';
 import { createStores } from './stores';
 import { useUiMutations } from './ui-sync/useUiMutations';
 
@@ -161,6 +162,8 @@ export function App() {
       </section>
 
       <ProjectsPanel store={stores.projects} />
+
+      <TelemetryToggle />
 
       {import.meta.env.DEV && <DebugShell />}
 
