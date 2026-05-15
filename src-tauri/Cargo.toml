@@ -61,10 +61,19 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"
 # IDs.
 uuid = { version = "1", features = ["v4"] }
 
+# Agent hook server (EMD-9 / ADR-0021). axum 0.7 on 127.0.0.1:0 with
+# per-launch token validation. subtle for constant-time compare.
+axum = { version = "0.7", default-features = false, features = ["http1", "json", "tokio"] }
+tower = "0.5"
+subtle = "2"
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
+
 [dev-dependencies]
 insta = { version = "1.47", features = ["json"] }
 tempfile = "3"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "test-util"] }
+# Used in agent_hooks::server tests to round-trip the axum server.
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 
 [profile.release]
 panic = "abort"

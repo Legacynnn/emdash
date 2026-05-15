@@ -5,6 +5,7 @@
 use std::path::{Path, PathBuf};
 
 const DOMAIN_MODULES: &[&str] = &[
+    "agent_hooks",
     "bindings_parser",
     "db",
     "greeting",

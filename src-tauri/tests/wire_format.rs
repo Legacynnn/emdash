@@ -233,3 +233,79 @@ fn projects_error_envelope_shape() {
         serde_json::to_value(&err).unwrap()
     );
 }
+
+// --- agent_hooks (EMD-9 / ADR-0021) ----------------------------------------
+
+#[test]
+fn agent_event_stop_wire_format() {
+    use emdash_dev::agent_hooks::{AgentEvent, AgentEventKind};
+    let event = AgentEvent {
+        agent: "claude".into(),
+        classifier: "claude".into(),
+        kind: AgentEventKind::Stop,
+        message: Some("session ended".into()),
+        timestamp: "2026-05-15T17:00:00+00:00".into(),
+        task_id: None,
+        project_id: None,
+    };
+    insta::assert_json_snapshot!("agent_event_stop", serde_json::to_value(&event).unwrap());
+}
+
+#[test]
+fn agent_event_notification_tool_use_wire_format() {
+    use emdash_dev::agent_hooks::event::NotificationKind;
+    use emdash_dev::agent_hooks::{AgentEvent, AgentEventKind};
+    let event = AgentEvent {
+        agent: "claude".into(),
+        classifier: "claude".into(),
+        kind: AgentEventKind::Notification {
+            notification_kind: NotificationKind::ToolUse,
+        },
+        message: Some("tool: Bash".into()),
+        timestamp: "2026-05-15T17:00:00+00:00".into(),
+        task_id: None,
+        project_id: None,
+    };
+    insta::assert_json_snapshot!(
+        "agent_event_notification_tool_use",
+        serde_json::to_value(&event).unwrap()
+    );
+}
+
+#[test]
+fn agent_event_unknown_wire_format() {
+    use emdash_dev::agent_hooks::{AgentEvent, AgentEventKind};
+    let event = AgentEvent {
+        agent: "future-x".into(),
+        classifier: "<unknown>".into(),
+        kind: AgentEventKind::Unknown,
+        message: None,
+        timestamp: "2026-05-15T17:00:00+00:00".into(),
+        task_id: None,
+        project_id: None,
+    };
+    insta::assert_json_snapshot!("agent_event_unknown", serde_json::to_value(&event).unwrap());
+}
+
+#[test]
+fn ui_mutation_agent_hook_event_wire_format() {
+    use emdash_dev::agent_hooks::{AgentEvent, AgentEventKind};
+    use emdash_dev::ui_sync::UiMutationEvent;
+    let inner = AgentEvent {
+        agent: "claude".into(),
+        classifier: "claude".into(),
+        kind: AgentEventKind::Stop,
+        message: None,
+        timestamp: "2026-05-15T17:00:00+00:00".into(),
+        task_id: None,
+        project_id: None,
+    };
+    let event = UiMutationEvent::AgentHookEvent {
+        task_id: Some("task-1".into()),
+        event: inner,
+    };
+    insta::assert_json_snapshot!(
+        "ui_mutation_agent_hook_event",
+        serde_json::to_value(&event).unwrap()
+    );
+}

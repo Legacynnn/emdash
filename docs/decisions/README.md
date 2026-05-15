@@ -56,3 +56,7 @@ What becomes easier and what becomes harder as a result.
 - [0004-ui-mutation-event-bridge](./0004-ui-mutation-event-bridge.md) —
   Single `Channel<UiMutationEvent>` for renderer cache invalidation,
   enforced by `eslint-plugin-emdash`'s `no-tauri-event-bus` rule.
+- [0021-agent-hooks-foundation](./0021-agent-hooks-foundation.md) —
+  axum hook server on 127.0.0.1:0, constant-time token validation,
+  Classifier trait + ClassifierRegistry, claude reference impl,
+  Drop-based shutdown.

@@ -22,6 +22,47 @@ export const commands = {
 
 /* Types */
 /**
+ *  Renderer-visible projection of one classified hook event.
+ *  `task_id` / `project_id` are filled in by the agent-spawn site
+ *  (EMD-27) once it lands; until then they're `None` for every
+ *  event.
+ */
+export type AgentEvent = {
+	agent: string,
+	classifier: string,
+	kind: AgentEventKind,
+	message: string | null,
+	/**
+	 *  ISO-8601 UTC timestamp set at enrichment time. Stored as a
+	 *  string at the wire boundary because specta requires a
+	 *  dedicated feature flag to round-trip `chrono::DateTime`.
+	 */
+	timestamp: string,
+	/**
+	 *  Set by the agent-spawn site (EMD-27) when it injects the
+	 *  hook env vars; `None` for raw events received before any
+	 *  spawn integration.
+	 */
+	task_id: string | null,
+	project_id: string | null,
+};
+
+export type AgentEventKind = 
+/**  A normal in-flight notification (e.g. tool use, status message). */
+{ kind: "notification"; notification_kind?: NotificationKind } | 
+/**  Agent's session ended cleanly. */
+{ kind: "stop" } | 
+/**  Agent reported an error. */
+{ kind: "error" } | 
+/**
+ *  Classifier didn't recognize the input; surfaces as an opaque
+ *  pass-through so the renderer can still log it.
+ */
+{ kind: "unknown" };
+
+export type NotificationKind = "general" | "permission_prompt" | "tool_use" | "status";
+
+/**
  *  Projection of one row from the `projects` table that the renderer
  *  actually consumes. Mirror of the columns used in the v1 CRUD surface.
  *  Fields that exist in the schema but aren't needed yet
@@ -71,7 +112,12 @@ export type SpawnOptions = {
 	size: PtySize,
 };
 
-export type UiMutationEvent = { kind: "project_created"; id: string } | { kind: "project_updated"; id: string } | { kind: "project_deleted"; id: string };
+export type UiMutationEvent = { kind: "project_created"; id: string } | { kind: "project_updated"; id: string } | { kind: "project_deleted"; id: string } | 
+/**
+ *  One classified agent-hook event (EMD-9). `task_id` is `None`
+ *  until the agent-spawn site (EMD-27) injects coordinates.
+ */
+{ kind: "agent_hook_event"; task_id: string | null; event: AgentEvent };
 
 /* Tauri Specta runtime */
 async function typedError<T, E>(result: Promise<T>): Promise<{ status: "ok"; data: T } | { status: "error"; error: E }> {

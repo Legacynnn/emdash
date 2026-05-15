@@ -3,12 +3,14 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use emdash_dev::agent_hooks::classifier::ClaudeClassifier;
+use emdash_dev::agent_hooks::{ClassifierRegistry, HookServer, HookServerHandle};
 use emdash_dev::db::Db;
 use emdash_dev::projects::ProjectsService;
 use emdash_dev::pty::registry::Registry;
 use emdash_dev::secrets::{master_key::OsKeyringMasterKey, Secrets};
 use emdash_dev::tauri_bindings;
-use emdash_dev::ui_sync::UiSyncManager;
+use emdash_dev::ui_sync::{UiMutationEvent, UiSyncManager};
 use tauri::Manager;
 
 pub fn export_bindings_default() -> Result<(), Box<dyn std::error::Error>> {
@@ -60,10 +62,33 @@ pub fn run() {
             let projects = Arc::new(ProjectsService::new(db.clone()));
             let ui_sync: Arc<UiSyncManager> = Arc::new(UiSyncManager::new());
 
+            // Agent-hook server (EMD-9 / ADR-0021). Bind synchronously
+            // via Tokio's runtime so port + token are available before
+            // any agent-spawn site (EMD-27) needs them. The handle
+            // lives in app state so the broadcaster + Drop-based
+            // shutdown both stay live for the app lifetime.
+            let classifier_registry = Arc::new(ClassifierRegistry::new());
+            classifier_registry.register(ClaudeClassifier);
+            let hook_broadcaster_ui_sync = ui_sync.clone();
+            let broadcaster: emdash_dev::agent_hooks::server::EventBroadcaster =
+                Arc::new(move |event| {
+                    hook_broadcaster_ui_sync.broadcast(UiMutationEvent::AgentHookEvent {
+                        task_id: event.task_id.clone(),
+                        event,
+                    });
+                });
+            let hook_handle = tauri::async_runtime::block_on(HookServer::start(
+                classifier_registry.clone(),
+                broadcaster,
+            ))?;
+            let hook_handle: Arc<HookServerHandle> = Arc::new(hook_handle);
+
             app.manage(db);
             app.manage(secrets);
             app.manage(projects);
             app.manage(ui_sync);
+            app.manage(classifier_registry);
+            app.manage(hook_handle);
             let pty_registry: Arc<Registry> = Arc::new(Registry::new());
             app.manage(pty_registry);
             Ok(())

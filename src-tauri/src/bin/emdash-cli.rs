@@ -6,7 +6,7 @@ use std::env;
 use std::process::ExitCode;
 
 use emdash_dev::{
-    bindings_parser, db, greeting, projects,
+    agent_hooks, bindings_parser, db, greeting, projects,
     secrets::{aead, master_key},
     shell_env, ui_sync,
 };
@@ -60,6 +60,12 @@ fn link_domain_modules() {
     // projects: CRUD service reference. `ProjectsService::new` requires a Db,
     // which we already pull above; referencing the type keeps the symbol live.
     let _: Option<projects::ProjectsService> = None;
+
+    // agent_hooks: classifier + registry are Tauri-runtime-free. The
+    // HookServer itself lives behind tokio/axum and is excluded from this
+    // bin's link graph (no server start here — domain modules only).
+    let _registry = agent_hooks::ClassifierRegistry::new();
+    let _: Option<agent_hooks::AgentEvent> = None;
 }
 
 fn print_help() {
