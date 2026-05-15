@@ -1,0 +1,9 @@
+---
+source: tests/wire_format.rs
+assertion_line: 234
+expression: "serde_json::to_value(&err).unwrap()"
+---
+{
+  "code": "duplicate_path",
+  "message": "a project already tracks this path: /Users/example/code/repo"
+}

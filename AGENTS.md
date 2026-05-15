@@ -1,6 +1,6 @@
 
 ---
-default_branch: main
+default_branch: dev
 package_manager: pnpm
 node_version: "24.x.x"
 start_command: "pnpm run d"
@@ -83,6 +83,81 @@ Start here. Load only the linked `agents/` docs that are relevant to the task.
 - State guards must use `kind !== 'ready'`, never enumerate non-ready states (new states would silently fall through)
 - Access task manager via `getTaskManagerStore(projectId)`, not through `project.taskManager`
 - Access mounted project via `asMounted(getProjectStore(id))`, not via inline `isMountedProject` guards
+
+## emdash-dev (Tauri 2 + Rust rewrite)
+
+A second product lives under `src-tauri/` — the Tauri 2 + Rust rewrite. It
+ships **alongside** the Electron app, not as a replacement. Conventions and
+decisions for it live in `docs/decisions/` (Michael Nygard ADRs).
+
+Rules specific to `src-tauri/`:
+
+- **Domain code in `lib.rs` must stay free of `tauri::AppHandle`.** Modules
+  reachable through `pub mod` from `lib.rs` (`shell_env`, `greeting`, etc.)
+  must not use `#[tauri::command]` annotations or import/accept
+  `tauri::AppHandle`, `tauri::Window`, or any webview-runtime type.
+  `src-tauri/tests/domain_boundaries.rs` enforces this with a source-level
+  guard. The near-empty `src-tauri/src/bin/emdash-cli.rs` exists to keep the
+  library modules compiling from a non-webview entry point.
+- **Every command must be allowlisted.** `src-tauri/allowed-commands.json`
+  enumerates the channels exposed through `invoke_handler`. `build.rs`
+  fails the build if `ui/src/bindings.ts` and the allowlist drift. To add
+  a command: write it under `src/commands/`, append to
+  `collect_commands![]` in `app.rs`, run
+  `cargo run --bin emdash-dev -- --export-bindings`, then add the channel
+  name to `allowed-commands.json`.
+- **`ui/src/bindings.ts` is generated and committed.** Do not hand-edit it.
+  Regenerate via the `--export-bindings` flag above (debug builds also
+  regenerate on startup). Wire-format changes are pinned by an `insta`
+  snapshot in `tests/wire_format.rs`; deliberate changes need
+  `cargo insta accept`.
+- **Single `UiMutationEvent` bridge** (EMD-7 / ADR-0004). Renderer cache
+  invalidation flows through one `Channel<UiMutationEvent>` opened by
+  `src-tauri/ui/src/ui-sync/useUiMutations.ts`. Host code calls
+  `UiSyncManager::broadcast(...)`; never `app.emit(...)`. The renderer
+  routes events through one `switch` in `ui-sync/dispatch.ts`. The
+  `eslint-plugin-emdash` rule `no-tauri-event-bus` enforces this at
+  lint time (CI fails on violation). Exemption pragma:
+  `// emdash-disable-next-line no-tauri-event-bus -- <reason>` — the
+  only sanctioned exemption today is the `Channel<UiMutationEvent>`
+  construction inside `useUiMutations.ts` itself.
+- **How to add a new feature** (the EMD-7 template). For each feature:
+  1. Add a domain module under `src-tauri/src/<feature>/` (no Tauri
+     imports — `tests/domain_boundaries.rs` enforces this).
+  2. Add Tauri glue in `src-tauri/src/commands/<feature>.rs`. Map domain
+     errors to a `{code, message}` envelope; broadcast a
+     `UiMutationEvent` variant after every successful write.
+  3. Append commands to `collect_commands![]` in `tauri_bindings.rs`,
+     run `cargo run --bin emdash-dev -- --export-bindings`, then add
+     the channel names to `allowed-commands.json`.
+  4. Add an `insta` snapshot per command and per new `UiMutationEvent`
+     variant in `src-tauri/tests/wire_format.rs`.
+  5. On the renderer side: bindings → MobX store →
+     `ui-sync/dispatch.ts` arm → observer component. Add a Vitest
+     smoke test that mocks `@tauri-apps/api/core`.
+  Reference implementation: the `projects` end-to-end from EMD-7.
+- **Versions are pinned exactly.** `tauri`, `tauri-build`, `tauri-specta`,
+  `specta`, and `specta-typescript` are pinned with `=`. Bumping any of
+  them is a deliberate PR; see ADR-0001 for the reasoning.
+
+Build/test commands for `src-tauri/`:
+
+```bash
+cd src-tauri
+cargo check                         # type-check + run capability allowlist
+cargo test                          # unit + wire-format snapshot tests
+cargo run --bin emdash-cli -- -V    # invariant: CLI compiles without webview
+cargo run --bin emdash-dev -- --export-bindings   # regenerate bindings.ts
+```
+
+`cargo tauri dev` requires the Tauri CLI: `cargo install tauri-cli --locked --version "^2"`.
+
+**pnpm workspace note.** `src-tauri/ui` is a pnpm workspace member, so a plain
+`pnpm install` at the repo root resolves React + Vite for it alongside the
+Electron deps. If you're only working on Electron and want to skip the Tauri
+UI tree, pass `--filter '!emdash-dev-ui'`. CI uses
+`--filter emdash-dev-ui...` to install only the Tauri UI subgraph for the
+emdash-dev build job.
 
 ## Non-Negotiables
 
