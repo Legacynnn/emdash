@@ -31,9 +31,32 @@ export const commands = {
 	 *  gates (compile-time host, user toggle) live in the runtime.
 	 */
 	telemetryRecord: (event: TelemetryEvent, ghUsername: string | null, ghAccountId: string | null, email: string | null) => typedError<null, TelemetryCommandError>(__TAURI_INVOKE("telemetry_record", { event, ghUsername, ghAccountId, email })),
+	subscribeUpdaterEvents: (onEvent: Channel<UpdateEvent>) => typedError<null, null>(__TAURI_INVOKE("subscribe_updater_events", { onEvent })),
+	/**
+	 *  Starts a check. The real `tauri-plugin-updater::check()` call lives
+	 *  behind this command — we wrap it so the state machine sees the
+	 *  transitions before the plugin's own events fire. EMD-22 wires the
+	 *  real plugin path; for now we just begin and let the caller drive
+	 *  transitions through `updater_simulate_event` in dev builds.
+	 */
+	updaterCheck: (reason: CheckReason) => typedError<null, UpdaterCommandError>(__TAURI_INVOKE("updater_check", { reason })),
+	/**
+	 *  Debug-only: hand the renderer a trigger to walk the state machine
+	 *  through every UpdateEvent variant without a real update manifest.
+	 *  Production builds drop this command entirely.
+	 */
+	updaterSimulateEvent: (event: UpdateEvent) => typedError<null, UpdaterCommandError>(__TAURI_INVOKE("updater_simulate_event", { event })),
 };
 
 /* Types */
+/**
+ *  Why the manager kicked off a check. Used both for backoff bucket
+ *  selection (a `Manual` check should retry faster than a passive
+ *  `Interval` check) and for renderer-side UX (a `Manual` failure
+ *  surfaces a louder error message).
+ */
+export type CheckReason = "startup" | "resume" | "focus" | "interval" | "manual";
+
 export type FsWatcherCommandError = {
 	code: FsWatcherErrorCode,
 	message: string,
@@ -140,6 +163,49 @@ export type TelemetryErrorCode = "storage" | "invalid";
 export type TelemetryEvent = "app_focus" | "app_unfocus" | "app_dau_ping" | "user_identify";
 
 export type UiMutationEvent = { kind: "project_created"; id: string } | { kind: "project_updated"; id: string } | { kind: "project_deleted"; id: string } | { kind: "task_created"; id: string; project_id: string } | { kind: "task_updated"; id: string; project_id: string } | { kind: "task_deleted"; id: string; project_id: string };
+
+/**
+ *  Stable machine-readable error code. The renderer matches on this
+ *  to decide whether to suggest "Retry now" (network) or "Reinstall"
+ *  (signature_invalid).
+ */
+export type UpdateError = "network" | "signature_invalid" | "manifest_malformed" | "download_failed" | "install_failed" | "internal";
+
+/**
+ *  State the renderer needs to render the updater UI. The variants
+ *  are intentionally narrow — internal state machine transitions
+ *  that don't change what the user sees never broadcast.
+ */
+export type UpdateEvent = 
+/**  A check has started. The renderer shows a spinner. */
+{ kind: "checking"; reason: CheckReason } | 
+/**  The server confirms we're on the latest version. */
+{ kind: "up_to_date" } | 
+/**  A newer version is available. Renderer shows "Download". */
+{ kind: "available"; version: string; notes: string | null } | 
+/**
+ *  Download progress. The throttle caps these at ~200 ms apart
+ *  so a fast download doesn't flood the renderer with re-renders.
+ */
+{ kind: "downloading"; progress: number | null } | 
+/**
+ *  Download complete, pending install on exit. Renderer can
+ *  surface "Restart to install" if it wants to fast-path the
+ *  `RunEvent::Exit` hook.
+ */
+{ kind: "ready_to_install"; version: string } | 
+/**
+ *  A check or download failed. The manager will retry per the
+ *  backoff schedule unless the reason was `Manual`.
+ */
+{ kind: "error"; code: UpdateError; message: string; will_retry: boolean };
+
+export type UpdaterCommandError = {
+	code: UpdaterErrorCode,
+	message: string,
+};
+
+export type UpdaterErrorCode = "already_checking" | "internal";
 
 export type WatchEvent = {
 	/**

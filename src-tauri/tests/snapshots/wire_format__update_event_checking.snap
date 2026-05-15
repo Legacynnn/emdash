@@ -1,0 +1,9 @@
+---
+source: tests/wire_format.rs
+assertion_line: 260
+expression: "serde_json::to_value(&event).unwrap()"
+---
+{
+  "kind": "checking",
+  "reason": "manual"
+}

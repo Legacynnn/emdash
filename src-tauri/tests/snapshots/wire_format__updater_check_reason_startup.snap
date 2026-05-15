@@ -1,0 +1,6 @@
+---
+source: tests/wire_format.rs
+assertion_line: 248
+expression: "serde_json::to_value(CheckReason::Startup).unwrap()"
+---
+"startup"

@@ -21,6 +21,9 @@
     "tasks_delete",
     "telemetry_get_enabled",
     "telemetry_set_enabled",
-    "telemetry_record"
+    "telemetry_record",
+    "subscribe_updater_events",
+    "updater_check",
+    "updater_simulate_event"
   ]
 }

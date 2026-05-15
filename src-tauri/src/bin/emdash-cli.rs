@@ -12,7 +12,7 @@ use emdash_dev::{
     telemetry::{
         config as telemetry_config, event as telemetry_event, settings as telemetry_settings,
     },
-    ui_sync,
+    ui_sync, updater,
 };
 
 const NAME: &str = env!("CARGO_PKG_NAME");
@@ -79,6 +79,11 @@ fn link_domain_modules() {
     let _ = telemetry_config::TelemetryConfig::from_build_env();
     let _: Option<telemetry_event::TelemetryEvent> = None;
     let _ = telemetry_settings::SETTINGS_KEY;
+    // updater: state machine + backoff are Tauri-runtime-free. Plugin glue
+    // (the actual tauri-plugin-updater hookup) lives in commands::updater
+    // and app.rs.
+    let _updater_mgr = updater::UpdateManager::default();
+    let _: Option<updater::UpdateEvent> = None;
 }
 
 fn print_help() {

@@ -57,6 +57,7 @@ What becomes easier and what becomes harder as a result.
   Single `Channel<UiMutationEvent>` for renderer cache invalidation,
   enforced by `eslint-plugin-emdash`'s `no-tauri-event-bus` rule.
 <<<<<<< HEAD
+<<<<<<< HEAD
 - [0020-file-watching](./0020-file-watching.md) — `notify` 6.x + 50 ms
   debounce, Linux inotify ENOSPC degrades to depth-1 watching with a
   user-facing toast (never polls). MCP orchestration deferred to a
@@ -75,3 +76,9 @@ What becomes easier and what becomes harder as a result.
   in `app_settings`; bounded queue with oldest-drop on full;
   privacy contract for what's collected and where it goes.
 >>>>>>> origin/danmelomour/emd-19-telemetry-port
+=======
+- [0008-auto-updater](./0008-auto-updater.md) —
+  Helmor-style `UpdateManager` over `tauri-plugin-updater`, exponential
+  backoff, 200 ms progress throttle, install-on-exit hook, minisign
+  key custody plan, and per-platform recovery procedure.
+>>>>>>> origin/danmelomour/emd-15-auto-updater-state-machine

@@ -33,6 +33,9 @@ pub fn build_specta() -> Builder<tauri::Wry> {
         commands::telemetry::telemetry_get_enabled,
         commands::telemetry::telemetry_set_enabled,
         commands::telemetry::telemetry_record,
+        commands::updater::subscribe_updater_events,
+        commands::updater::updater_check,
+        commands::updater::updater_simulate_event,
     ])
 }
 

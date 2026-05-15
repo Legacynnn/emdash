@@ -73,15 +73,22 @@ uuid = { version = "1", features = ["v4"] }
 # notify 6.1 + a maintained debouncer; we follow the same pair.
 notify = "=6.1.1"
 notify-debouncer-full = "=0.3.2"
+
 # Git. `vendored-libgit2` so we don't depend on the host's libgit2 version
 # (matches the `bundled` rusqlite stance). Read-heavy ops only; worktree
 # create/remove shells out to the `git` CLI for parity with the user's
 # environment (see EMD-17 / ADR-0005).
 git2 = { version = "0.19", default-features = false, features = ["vendored-libgit2"] }
+
 # Telemetry — reqwest with rustls so we don't pull in OpenSSL on Linux.
 # Limited features: just JSON + TLS, no cookies/streams/etc.
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
+
+# Auto-updater (EMD-15 / ADR-0008). tauri-plugin-updater v2 wrapped in
+# `UpdateManager` (Helmor-style) for the state machine, backoff,
+# throttling, and install-on-exit hook.
+tauri-plugin-updater = "2"
 
 [dev-dependencies]
 insta = { version = "1.47", features = ["json"] }
