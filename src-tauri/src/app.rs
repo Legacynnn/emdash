@@ -23,7 +23,20 @@ pub fn export_bindings_default() -> Result<(), Box<dyn std::error::Error>> {
         env!("CARGO_MANIFEST_DIR"),
         tauri_bindings::BINDINGS_PATH
     );
-    tauri_bindings::export_bindings_to(&path)
+    // Write to a temp path and compare-and-swap so mtime only updates
+    // when the contents actually differ. Without this, every debug
+    // launch rewrites bindings.ts, Tauri's dev watcher mistakes the
+    // mtime bump for a content change and triggers a rebuild, which
+    // launches us again, looping forever.
+    let tmp = format!("{path}.tmp");
+    tauri_bindings::export_bindings_to(&tmp)?;
+    let new = std::fs::read_to_string(&tmp)?;
+    let _ = std::fs::remove_file(&tmp);
+    let current = std::fs::read_to_string(&path).unwrap_or_default();
+    if new != current {
+        std::fs::write(&path, new)?;
+    }
+    Ok(())
 }
 
 pub fn run() {
