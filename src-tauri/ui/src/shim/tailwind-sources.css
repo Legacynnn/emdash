@@ -1,0 +1,16 @@
+/*
+ * Tailwind v4 source-discovery bridge.
+ *
+ * `@tailwindcss/vite` auto-scans files under the Vite project root for
+ * class names. Our root is `src-tauri/ui/`, but the actual UI lives in
+ * `src/renderer/` (shared with the Electron build). Without these
+ * directives Tailwind generates an empty utility set and the renderer
+ * paints unstyled.
+ *
+ * Paths are relative to this CSS file. The renderer scans recursively.
+ * Keep `@source` here (not in the renderer's index.css) so the renderer
+ * source tree stays untouched and remains usable by the Electron build.
+ */
+
+@source "../../../../src/renderer/**/*.{ts,tsx,html,css}";
+@source "../../../../src/shared/**/*.{ts,tsx}";
