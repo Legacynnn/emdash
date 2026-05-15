@@ -104,6 +104,18 @@ jobs:
         working-directory: src-tauri
         run: cargo run --quiet --bin emdash-cli --target ${{ matrix.target }} -- --version
 
+      - name: PTY streaming benchmark (non-blocking — EMD-18 / ADR-0006)
+        # Validates the `Channel<Vec<u8>>` primitive on every PR touching
+        # src-tauri/. Failures emit warnings; do not block. Reduced
+        # duration (15 s) keeps CI under budget — the full 60 s
+        # acceptance run lives in ADR-0006.
+        if: matrix.label != 'windows'
+        working-directory: src-tauri
+        continue-on-error: true
+        run: |
+          cargo build --release --bin pty-loadtest --target ${{ matrix.target }}
+          target/${{ matrix.target }}/release/pty-loadtest --streams 10 --duration-secs 15
+
       - name: Verify bindings.ts is up to date (linux + macos-arm)
         # tauri-specta codegen should be platform-deterministic. Running on
         # two host architectures keeps that assumption honest — drift between
