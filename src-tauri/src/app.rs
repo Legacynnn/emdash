@@ -79,10 +79,13 @@ pub fn run() {
             let workspace_fs_lock: Arc<WorkspaceFsMutationLock> =
                 Arc::new(WorkspaceFsMutationLock::new());
             let tasks = Arc::new(TasksService::new(db.clone(), workspace_fs_lock.clone()));
-            let telemetry = Arc::new(Telemetry::new(
-                db.clone(),
-                TelemetryConfig::from_build_env(),
-            ));
+            // Telemetry::new spawns a Tokio worker; the Tauri setup
+            // callback isn't inside a runtime context, so enter Tauri's
+            // own runtime to host the spawn (same pattern as the
+            // HookServer::start call below).
+            let telemetry = Arc::new(tauri::async_runtime::block_on(async {
+                Telemetry::new(db.clone(), TelemetryConfig::from_build_env())
+            }));
             let updater: Arc<UpdateManager> = Arc::new(UpdateManager::default());
 
             // Agent-hook server (EMD-9 / ADR-0021). Bind synchronously
