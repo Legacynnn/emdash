@@ -1,0 +1,6 @@
+---
+source: tests/wire_format.rs
+assertion_line: 291
+expression: "serde_json::to_value(TelemetryEvent::AppDauPing).unwrap()"
+---
+"app_dau_ping"

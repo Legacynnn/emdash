@@ -9,6 +9,7 @@ use emdash_dev::pty::registry::Registry;
 use emdash_dev::secrets::{master_key::OsKeyringMasterKey, Secrets};
 use emdash_dev::tasks::{TasksService, WorkspaceFsMutationLock};
 use emdash_dev::tauri_bindings;
+use emdash_dev::telemetry::{Telemetry, TelemetryConfig};
 use emdash_dev::ui_sync::UiSyncManager;
 use tauri::Manager;
 
@@ -63,6 +64,10 @@ pub fn run() {
             let workspace_fs_lock: Arc<WorkspaceFsMutationLock> =
                 Arc::new(WorkspaceFsMutationLock::new());
             let tasks = Arc::new(TasksService::new(db.clone(), workspace_fs_lock.clone()));
+            let telemetry = Arc::new(Telemetry::new(
+                db.clone(),
+                TelemetryConfig::from_build_env(),
+            ));
 
             app.manage(db);
             app.manage(secrets);
@@ -70,6 +75,7 @@ pub fn run() {
             app.manage(ui_sync);
             app.manage(workspace_fs_lock);
             app.manage(tasks);
+            app.manage(telemetry);
             let pty_registry: Arc<Registry> = Arc::new(Registry::new());
             app.manage(pty_registry);
             Ok(())

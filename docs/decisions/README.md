@@ -64,3 +64,7 @@ What becomes easier and what becomes harder as a result.
   — Validates ADR-0003 with EMD-18 measurements: 10 streams × 60 s
   `yes` → 104 MiB/s aggregate, 442 µs max callback latency. Stay on
   `Channel<Vec<u8>>`; no localhost WebSocket fallback needed.
+- [0007-telemetry-privacy](./0007-telemetry-privacy.md) — Default-off
+  telemetry pipeline; build-time host + key via `dotenvy`; user toggle
+  in `app_settings`; bounded queue with oldest-drop on full;
+  privacy contract for what's collected and where it goes.

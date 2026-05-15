@@ -1,0 +1,6 @@
+---
+source: tests/wire_format.rs
+assertion_line: 300
+expression: "serde_json::to_value(TelemetryEvent::UserIdentify).unwrap()"
+---
+"user_identify"

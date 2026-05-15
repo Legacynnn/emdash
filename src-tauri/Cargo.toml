@@ -26,6 +26,7 @@ path = "src/bin/pty-loadtest.rs"
 [build-dependencies]
 tauri-build = { version = "=2.6.1", features = [] }
 serde_json = "1"
+dotenvy = "0.15"
 
 [dependencies]
 tauri = { version = "=2.11.1", features = [] }
@@ -72,6 +73,11 @@ uuid = { version = "1", features = ["v4"] }
 # create/remove shells out to the `git` CLI for parity with the user's
 # environment (see EMD-17 / ADR-0005).
 git2 = { version = "0.19", default-features = false, features = ["vendored-libgit2"] }
+
+# Telemetry — reqwest with rustls so we don't pull in OpenSSL on Linux.
+# Limited features: just JSON + TLS, no cookies/streams/etc.
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
 
 [dev-dependencies]
 insta = { version = "1.47", features = ["json"] }

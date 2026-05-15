@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { commands, type SecretsCommandError } from './bindings';
 import { DebugShell } from './components/DebugShell';
 import { ProjectsPanel } from './features/projects/ProjectsPanel';
+import { TelemetryToggle } from './features/settings/TelemetryToggle';
 import { TasksPanel } from './features/tasks/TasksPanel';
 import { createStores } from './stores';
 import { asReady } from './stores/projectStore';
@@ -181,6 +182,8 @@ export const App = observer(function App() {
       {selectedProject && taskStore && (
         <TasksPanel project={selectedProject} store={taskStore} />
       )}
+
+      <TelemetryToggle />
 
       {import.meta.env.DEV && <DebugShell />}
 

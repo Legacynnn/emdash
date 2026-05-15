@@ -9,6 +9,9 @@ use emdash_dev::{
     bindings_parser, db, git, greeting, projects,
     secrets::{aead, master_key},
     shell_env, tasks, ui_sync,
+    telemetry::{
+        config as telemetry_config, event as telemetry_event, settings as telemetry_settings,
+    },
 };
 
 const NAME: &str = env!("CARGO_PKG_NAME");
@@ -65,6 +68,13 @@ fn link_domain_modules() {
     let _ = tasks::WorkspaceFsMutationLock::new();
     let _: Option<tasks::TasksService> = None;
     let _: Result<Option<String>, git::GitError> = Ok(None);
+
+    // telemetry: domain-only reference. The runtime requires tokio + Db,
+    // which we don't pull in this binary — referencing the build-time
+    // config and the SETTINGS_KEY constant keeps the module linked.
+    let _ = telemetry_config::TelemetryConfig::from_build_env();
+    let _: Option<telemetry_event::TelemetryEvent> = None;
+    let _ = telemetry_settings::SETTINGS_KEY;
 }
 
 fn print_help() {

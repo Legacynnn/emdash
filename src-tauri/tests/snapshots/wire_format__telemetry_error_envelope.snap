@@ -1,0 +1,9 @@
+---
+source: tests/wire_format.rs
+assertion_line: 288
+expression: "serde_json::to_value(&err).unwrap()"
+---
+{
+  "code": "storage",
+  "message": "db error: pool error"
+}
