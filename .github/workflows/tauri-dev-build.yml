@@ -66,6 +66,12 @@ jobs:
       - name: Type-check Tauri UI
         run: pnpm --filter emdash-dev-ui typecheck
 
+      - name: Lint Tauri UI (no-tauri-event-bus rule is load-bearing)
+        run: pnpm --filter emdash-dev-ui lint
+
+      - name: Vitest (renderer smoke tests)
+        run: pnpm --filter emdash-dev-ui test
+
       - name: Setup Rust (pinned by rust-toolchain.toml)
         uses: dtolnay/rust-toolchain@stable
         with:
