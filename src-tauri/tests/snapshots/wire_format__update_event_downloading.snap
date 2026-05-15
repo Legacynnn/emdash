@@ -1,0 +1,9 @@
+---
+source: tests/wire_format.rs
+assertion_line: 292
+expression: "serde_json::to_value(&event).unwrap()"
+---
+{
+  "kind": "downloading",
+  "progress": 0.42
+}

@@ -79,6 +79,11 @@ git2 = { version = "0.19", default-features = false, features = ["vendored-libgi
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
 
+# Auto-updater (EMD-15 / ADR-0008). tauri-plugin-updater v2 wrapped in
+# `UpdateManager` (Helmor-style) for the state machine, backoff,
+# throttling, and install-on-exit hook.
+tauri-plugin-updater = "2"
+
 [dev-dependencies]
 insta = { version = "1.47", features = ["json"] }
 tempfile = "3"

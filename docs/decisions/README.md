@@ -68,3 +68,7 @@ What becomes easier and what becomes harder as a result.
   telemetry pipeline; build-time host + key via `dotenvy`; user toggle
   in `app_settings`; bounded queue with oldest-drop on full;
   privacy contract for what's collected and where it goes.
+- [0008-auto-updater](./0008-auto-updater.md) —
+  Helmor-style `UpdateManager` over `tauri-plugin-updater`, exponential
+  backoff, 200 ms progress throttle, install-on-exit hook, minisign
+  key custody plan, and per-platform recovery procedure.

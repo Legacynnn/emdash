@@ -5,6 +5,7 @@ import { DebugShell } from './components/DebugShell';
 import { ProjectsPanel } from './features/projects/ProjectsPanel';
 import { TelemetryToggle } from './features/settings/TelemetryToggle';
 import { TasksPanel } from './features/tasks/TasksPanel';
+import { UpdaterPanel } from './features/updater/UpdaterPanel';
 import { createStores } from './stores';
 import { asReady } from './stores/projectStore';
 import { useUiMutations } from './ui-sync/useUiMutations';
@@ -184,6 +185,8 @@ export const App = observer(function App() {
       )}
 
       <TelemetryToggle />
+
+      <UpdaterPanel />
 
       {import.meta.env.DEV && <DebugShell />}
 

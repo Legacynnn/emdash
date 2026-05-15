@@ -27,8 +27,17 @@
   "bundle": {
     "active": false,
     "targets": "all",
+    "createUpdaterArtifacts": true,
     "macOS": {
       "minimumSystemVersion": "11.0"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDlFODBENDg4RTI5NkFENUIKUldSYnJaYmlpTlNBbm80YVloNnJWSTNRaE9hYy9YcUpRL0NMZTRyaG0wSk9DbTAzcmQ4ZTVmNHkK",
+      "endpoints": [
+        "https://updates.emdash.dev/latest.json?target={{target}}&arch={{arch}}&current_version={{current_version}}"
+      ]
     }
   }
 }

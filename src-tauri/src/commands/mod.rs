@@ -8,3 +8,4 @@ pub mod secrets;
 pub mod tasks;
 pub mod telemetry;
 pub mod ui_sync;
+pub mod updater;

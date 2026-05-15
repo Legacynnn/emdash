@@ -1,0 +1,8 @@
+---
+source: tests/wire_format.rs
+assertion_line: 269
+expression: "serde_json::to_value(UpdateEvent::UpToDate).unwrap()"
+---
+{
+  "kind": "up_to_date"
+}

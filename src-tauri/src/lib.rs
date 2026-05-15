@@ -17,3 +17,4 @@ pub mod tasks;
 pub mod tauri_bindings;
 pub mod telemetry;
 pub mod ui_sync;
+pub mod updater;

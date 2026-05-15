@@ -1,0 +1,16 @@
+---
+source: tests/wire_format.rs
+assertion_line: 341
+expression: "serde_json::to_value(&m).unwrap()"
+---
+{
+  "notes": "Initial pre-release.",
+  "platforms": {
+    "darwin-aarch64": {
+      "signature": "untrusted comment: minisign signature ...\n<base64>",
+      "url": "https://updates.emdash.dev/emdash-dev-0.2.0-darwin-aarch64.tar.gz"
+    }
+  },
+  "pub_date": "2026-05-15T17:00:00Z",
+  "version": "0.2.0"
+}
