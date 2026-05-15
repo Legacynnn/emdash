@@ -200,6 +200,103 @@ pub fn classify_common(text: &str, idle_prompt_pattern: &str) -> Option<Classifi
     None
 }
 
+/// Declarative spec for a family-B (and beyond) classifier — runs the
+/// same ordered six-test set as `classify_common`, but every pattern
+/// is optional and the idle pattern accepts a slice (some agents have
+/// multiple disjoint idle markers that we don't want to OR into a
+/// single regex because the alternatives have different anchoring).
+///
+/// Test order matches the TS sources: permission → stop → idle → auth
+/// → elicitation → error. `permission`/`idle`/`elicitation` match on
+/// the 500-byte tail; `auth`/`stop`/`error` match on the full
+/// (ANSI-stripped) buffer because they can be far from the cursor.
+pub struct ClassifySpec {
+    pub permission: Option<&'static str>,
+    pub stop: Option<(&'static str, &'static str)>,
+    pub idle: &'static [&'static str],
+    pub auth: Option<&'static str>,
+    pub elicitation: Option<&'static str>,
+    pub error: Option<&'static str>,
+}
+
+pub fn run_spec(text: &str, spec: &ClassifySpec) -> Option<ClassificationResult> {
+    use regex::RegexBuilder;
+    let tail_start = text.len().saturating_sub(500);
+    let tail = &text[tail_start..];
+
+    let case_insensitive = |pat: &str| RegexBuilder::new(pat).case_insensitive(true).build();
+
+    if let Some(pat) = spec.permission {
+        if let Ok(re) = case_insensitive(pat) {
+            if re.is_match(tail) {
+                return Some(ClassificationResult {
+                    kind: AgentEventKind::Notification {
+                        notification_kind: NotificationKind::PermissionPrompt,
+                    },
+                    message: None,
+                });
+            }
+        }
+    }
+    if let Some((pat, msg)) = spec.stop {
+        if let Ok(re) = case_insensitive(pat) {
+            if re.is_match(tail) {
+                return Some(ClassificationResult {
+                    kind: AgentEventKind::Stop,
+                    message: Some((*msg).to_string()),
+                });
+            }
+        }
+    }
+    for pat in spec.idle {
+        if let Ok(re) = case_insensitive(pat) {
+            if re.is_match(tail) {
+                return Some(ClassificationResult {
+                    kind: AgentEventKind::Notification {
+                        notification_kind: NotificationKind::IdlePrompt,
+                    },
+                    message: None,
+                });
+            }
+        }
+    }
+    if let Some(pat) = spec.auth {
+        if let Ok(re) = case_insensitive(pat) {
+            if re.is_match(text) {
+                return Some(ClassificationResult {
+                    kind: AgentEventKind::Notification {
+                        notification_kind: NotificationKind::AuthSuccess,
+                    },
+                    message: None,
+                });
+            }
+        }
+    }
+    if let Some(pat) = spec.elicitation {
+        if let Ok(re) = case_insensitive(pat) {
+            if re.is_match(tail) {
+                return Some(ClassificationResult {
+                    kind: AgentEventKind::Notification {
+                        notification_kind: NotificationKind::ElicitationDialog,
+                    },
+                    message: None,
+                });
+            }
+        }
+    }
+    if let Some(pat) = spec.error {
+        if let Ok(re) = case_insensitive(pat) {
+            if re.is_match(text) {
+                return Some(ClassificationResult {
+                    kind: AgentEventKind::Error,
+                    message: None,
+                });
+            }
+        }
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
