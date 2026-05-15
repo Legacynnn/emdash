@@ -49,4 +49,10 @@ pub enum NotificationKind {
     PermissionPrompt,
     ToolUse,
     Status,
+    /// EMD-23+: agent is idle / awaiting input (e.g. ready prompt).
+    IdlePrompt,
+    /// EMD-23+: agent sign-in / OAuth flow succeeded.
+    AuthSuccess,
+    /// EMD-23+: agent asks the user a clarifying question.
+    ElicitationDialog,
 }
