@@ -319,7 +319,13 @@ export type LinearWorkflowState = {
 	color: string,
 };
 
-export type NotificationKind = "general" | "permission_prompt" | "tool_use" | "status";
+export type NotificationKind = "general" | "permission_prompt" | "tool_use" | "status" | 
+/**  EMD-23+: agent is idle / awaiting input (e.g. ready prompt). */
+"idle_prompt" | 
+/**  EMD-23+: agent sign-in / OAuth flow succeeded. */
+"auth_success" | 
+/**  EMD-23+: agent asks the user a clarifying question. */
+"elicitation_dialog";
 
 /**
  *  Projection of one row from the `projects` table that the renderer

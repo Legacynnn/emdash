@@ -14,9 +14,12 @@ pub mod env;
 pub mod event;
 pub mod registry;
 pub mod server;
+pub mod text_classifier;
+pub mod text_classifiers;
 
 pub use classifier::{ClassificationResult, Classifier};
 pub use env::inject_hook_env_into;
 pub use event::{AgentEvent, AgentEventKind};
 pub use registry::ClassifierRegistry;
 pub use server::{HookServer, HookServerError, HookServerHandle};
+pub use text_classifier::{BufferedTextClassifier, TextClassifier};
