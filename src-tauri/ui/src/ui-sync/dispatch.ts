@@ -10,11 +10,9 @@
  * rationale.
  */
 import type { UiMutationEvent } from '../bindings';
-import type { ProjectStore } from '../stores/projectStore';
+import type { RendererStores } from '../stores';
 
-export interface Stores {
-  projects: ProjectStore;
-}
+export type Stores = RendererStores;
 
 export function dispatchUiMutation(stores: Stores, event: UiMutationEvent): void {
   switch (event.kind) {
@@ -27,7 +25,22 @@ export function dispatchUiMutation(stores: Stores, event: UiMutationEvent): void
       return;
     case 'project_deleted':
       stores.projects.applyDeleted(event.id);
+      // A deleted project takes its tasks with it (ON DELETE CASCADE on the
+      // DB side); drop the corresponding TaskStore so subsequent navigations
+      // don't surface stale state.
+      stores.tasksByProject.delete(event.id);
       return;
+    case 'task_created':
+    case 'task_updated': {
+      const taskStore = stores.tasksByProject.get(event.project_id);
+      if (taskStore) void taskStore.load();
+      return;
+    }
+    case 'task_deleted': {
+      const taskStore = stores.tasksByProject.get(event.project_id);
+      taskStore?.applyDeleted(event.id);
+      return;
+    }
   }
   // Exhaustiveness check: a new variant added to UiMutationEvent without a
   // case here makes this a compile error.
