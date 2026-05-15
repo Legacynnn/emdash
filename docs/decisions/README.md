@@ -56,3 +56,7 @@ What becomes easier and what becomes harder as a result.
 - [0004-ui-mutation-event-bridge](./0004-ui-mutation-event-bridge.md) —
   Single `Channel<UiMutationEvent>` for renderer cache invalidation,
   enforced by `eslint-plugin-emdash`'s `no-tauri-event-bus` rule.
+- [0007-telemetry-privacy](./0007-telemetry-privacy.md) — Default-off
+  telemetry pipeline; build-time host + key via `dotenvy`; user toggle
+  in `app_settings`; bounded queue with oldest-drop on full;
+  privacy contract for what's collected and where it goes.
