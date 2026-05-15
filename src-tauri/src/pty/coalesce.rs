@@ -70,6 +70,7 @@ mod tests {
     use parking_lot::Mutex;
     use std::sync::Arc;
 
+    #[allow(clippy::type_complexity)] // test helper — the explicit nested type doc what the sink records
     fn make_sink() -> (Arc<Mutex<Vec<Vec<u8>>>>, impl Fn(Vec<u8>) + Send + Clone) {
         let store: Arc<Mutex<Vec<Vec<u8>>>> = Arc::new(Mutex::new(Vec::new()));
         let sink = {

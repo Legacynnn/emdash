@@ -143,3 +143,93 @@ fn pty_error_envelope_shape() {
     let err = PtyError::NotFound { id: PtyId(42) };
     insta::assert_json_snapshot!("pty_error_not_found", serde_json::to_value(&err).unwrap());
 }
+
+// --- ui_sync ---------------------------------------------------------------
+
+#[test]
+fn subscribe_ui_mutations_wire_format() {
+    let request_args = serde_json::json!({ "subId": "renderer-1" });
+    insta::assert_json_snapshot!("subscribe_ui_mutations_request_args", request_args);
+}
+
+#[test]
+fn unsubscribe_ui_mutations_wire_format() {
+    let request_args = serde_json::json!({ "subId": "renderer-1" });
+    insta::assert_json_snapshot!("unsubscribe_ui_mutations_request_args", request_args);
+}
+
+#[test]
+fn ui_mutation_event_project_created_wire_format() {
+    use emdash_dev::ui_sync::UiMutationEvent;
+    let event = UiMutationEvent::ProjectCreated { id: "p1".into() };
+    insta::assert_json_snapshot!(
+        "ui_mutation_event_project_created",
+        serde_json::to_value(&event).unwrap()
+    );
+}
+
+#[test]
+fn ui_mutation_event_project_updated_wire_format() {
+    use emdash_dev::ui_sync::UiMutationEvent;
+    let event = UiMutationEvent::ProjectUpdated { id: "p1".into() };
+    insta::assert_json_snapshot!(
+        "ui_mutation_event_project_updated",
+        serde_json::to_value(&event).unwrap()
+    );
+}
+
+#[test]
+fn ui_mutation_event_project_deleted_wire_format() {
+    use emdash_dev::ui_sync::UiMutationEvent;
+    let event = UiMutationEvent::ProjectDeleted { id: "p1".into() };
+    insta::assert_json_snapshot!(
+        "ui_mutation_event_project_deleted",
+        serde_json::to_value(&event).unwrap()
+    );
+}
+
+// --- projects --------------------------------------------------------------
+
+#[test]
+fn projects_list_wire_format() {
+    let request_args = serde_json::Value::Null;
+    insta::assert_json_snapshot!("projects_list_request_args", request_args);
+}
+
+#[test]
+fn projects_add_wire_format() {
+    let request_args = serde_json::json!({ "path": "/Users/example/code/repo" });
+    insta::assert_json_snapshot!("projects_add_request_args", request_args);
+}
+
+#[test]
+fn projects_remove_wire_format() {
+    let request_args = serde_json::json!({ "id": "00000000-0000-0000-0000-000000000001" });
+    insta::assert_json_snapshot!("projects_remove_request_args", request_args);
+}
+
+#[test]
+fn project_response_shape() {
+    use emdash_dev::projects::Project;
+    let project = Project {
+        id: "00000000-0000-0000-0000-000000000001".into(),
+        name: "repo".into(),
+        path: "/Users/example/code/repo".into(),
+        created_at: "2026-05-15 00:00:00".into(),
+        updated_at: "2026-05-15 00:00:00".into(),
+    };
+    insta::assert_json_snapshot!("project_response", serde_json::to_value(&project).unwrap());
+}
+
+#[test]
+fn projects_error_envelope_shape() {
+    use emdash_dev::commands::projects::{ProjectsCommandError, ProjectsErrorCode};
+    let err = ProjectsCommandError {
+        code: ProjectsErrorCode::DuplicatePath,
+        message: "a project already tracks this path: /Users/example/code/repo".to_string(),
+    };
+    insta::assert_json_snapshot!(
+        "projects_error_envelope",
+        serde_json::to_value(&err).unwrap()
+    );
+}

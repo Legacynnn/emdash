@@ -1,0 +1,9 @@
+---
+source: tests/wire_format.rs
+assertion_line: 185
+expression: "serde_json::to_value(&event).unwrap()"
+---
+{
+  "id": "p1",
+  "kind": "project_deleted"
+}

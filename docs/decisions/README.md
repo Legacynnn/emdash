@@ -51,3 +51,8 @@ What becomes easier and what becomes harder as a result.
 - [0002-db-and-secrets-foundation](./0002-db-and-secrets-foundation.md) —
   Two-pool rusqlite topology, collapsed bootstrap migration, master key in
   OS keychain, per-row ChaCha20-Poly1305 AEAD.
+- [0003-pty-streaming-via-channel](./0003-pty-streaming-via-channel.md) —
+  PTY streaming on `Channel<Vec<u8>>` with sender-side coalescing.
+- [0004-ui-mutation-event-bridge](./0004-ui-mutation-event-bridge.md) —
+  Single `Channel<UiMutationEvent>` for renderer cache invalidation,
+  enforced by `eslint-plugin-emdash`'s `no-tauri-event-bus` rule.

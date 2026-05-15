@@ -111,9 +111,31 @@ Rules specific to `src-tauri/`:
   regenerate on startup). Wire-format changes are pinned by an `insta`
   snapshot in `tests/wire_format.rs`; deliberate changes need
   `cargo insta accept`.
-- **Single `UiMutationEvent` bridge** *(placeholder, lands in [EMD-7](https://linear.app/emdash-helmor/issue/EMD-7))*.
-  Renderer state mutations will flow through exactly one event channel;
-  rule details ship with that issue.
+- **Single `UiMutationEvent` bridge** (EMD-7 / ADR-0004). Renderer cache
+  invalidation flows through one `Channel<UiMutationEvent>` opened by
+  `src-tauri/ui/src/ui-sync/useUiMutations.ts`. Host code calls
+  `UiSyncManager::broadcast(...)`; never `app.emit(...)`. The renderer
+  routes events through one `switch` in `ui-sync/dispatch.ts`. The
+  `eslint-plugin-emdash` rule `no-tauri-event-bus` enforces this at
+  lint time (CI fails on violation). Exemption pragma:
+  `// emdash-disable-next-line no-tauri-event-bus -- <reason>` — the
+  only sanctioned exemption today is the `Channel<UiMutationEvent>`
+  construction inside `useUiMutations.ts` itself.
+- **How to add a new feature** (the EMD-7 template). For each feature:
+  1. Add a domain module under `src-tauri/src/<feature>/` (no Tauri
+     imports — `tests/domain_boundaries.rs` enforces this).
+  2. Add Tauri glue in `src-tauri/src/commands/<feature>.rs`. Map domain
+     errors to a `{code, message}` envelope; broadcast a
+     `UiMutationEvent` variant after every successful write.
+  3. Append commands to `collect_commands![]` in `tauri_bindings.rs`,
+     run `cargo run --bin emdash-dev -- --export-bindings`, then add
+     the channel names to `allowed-commands.json`.
+  4. Add an `insta` snapshot per command and per new `UiMutationEvent`
+     variant in `src-tauri/tests/wire_format.rs`.
+  5. On the renderer side: bindings → MobX store →
+     `ui-sync/dispatch.ts` arm → observer component. Add a Vitest
+     smoke test that mocks `@tauri-apps/api/core`.
+  Reference implementation: the `projects` end-to-end from EMD-7.
 - **Versions are pinned exactly.** `tauri`, `tauri-build`, `tauri-specta`,
   `specta`, and `specta-typescript` are pinned with `=`. Bumping any of
   them is a deliberate PR; see ADR-0001 for the reasoning.

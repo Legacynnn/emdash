@@ -20,6 +20,11 @@ pub fn build_specta() -> Builder<tauri::Wry> {
         commands::pty::pty_write,
         commands::pty::pty_resize,
         commands::pty::pty_kill,
+        commands::ui_sync::subscribe_ui_mutations,
+        commands::ui_sync::unsubscribe_ui_mutations,
+        commands::projects::projects_list,
+        commands::projects::projects_add,
+        commands::projects::projects_remove,
     ])
 }
 

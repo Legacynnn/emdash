@@ -1,0 +1,8 @@
+---
+source: tests/wire_format.rs
+assertion_line: 158
+expression: request_args
+---
+{
+  "subId": "renderer-1"
+}

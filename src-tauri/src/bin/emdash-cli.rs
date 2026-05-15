@@ -6,9 +6,9 @@ use std::env;
 use std::process::ExitCode;
 
 use emdash_dev::{
-    bindings_parser, db, greeting,
+    bindings_parser, db, greeting, projects,
     secrets::{aead, master_key},
-    shell_env,
+    shell_env, ui_sync,
 };
 
 const NAME: &str = env!("CARGO_PKG_NAME");
@@ -52,6 +52,14 @@ fn link_domain_modules() {
     // so a webview-runtime leak would fail this binary's link step.
     let _ = aead::aad_for("");
     let _: Option<Box<dyn master_key::MasterKeyProvider>> = None;
+
+    // ui_sync: state-sync domain primitive (no Tauri runtime — Channel<T>
+    // wrapping happens in commands::ui_sync, not here).
+    let _mgr = ui_sync::UiSyncManager::new();
+
+    // projects: CRUD service reference. `ProjectsService::new` requires a Db,
+    // which we already pull above; referencing the type keeps the symbol live.
+    let _: Option<projects::ProjectsService> = None;
 }
 
 fn print_help() {
