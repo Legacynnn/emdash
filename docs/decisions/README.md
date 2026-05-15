@@ -99,3 +99,7 @@ What becomes easier and what becomes harder as a result.
   hand-rolled device flow (oauth2 0.x is awkward for two-step
   start/poll), AEAD token storage, gh CLI fallback, identity split
   from token, locked OAuth scopes.
+- [0023-linear-provider](./0023-linear-provider.md) — API-key paste
+  (no OAuth in v1), hand-rolled GraphQL via reqwest, 14 commands,
+  AEAD token + identity-split, auto-revoke on 401, all types
+  prefixed `Linear` to avoid specta name collisions.

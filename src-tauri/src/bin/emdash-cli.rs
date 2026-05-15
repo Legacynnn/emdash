@@ -101,6 +101,11 @@ fn link_domain_modules() {
     // async oauth + client paths come along but never run from this bin.
     let _: Option<providers::github::IdentityRecord> = None;
     let _: &[providers::github::OauthScope] = providers::github::auth::DEFAULT_SCOPES;
+
+    // providers::linear: API-key paste only in v1; identity record is
+    // domain-only so the bin links cleanly without pulling reqwest.
+    let _: Option<providers::linear::LinearIdentityRecord> = None;
+    let _: Option<providers::linear::LinearError> = None;
 }
 
 fn print_help() {

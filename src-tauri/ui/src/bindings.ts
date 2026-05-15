@@ -69,6 +69,26 @@ export const commands = {
 	githubListPulls: (owner: string, repo: string) => typedError<PullRequestSummary[], GithubCommandError>(__TAURI_INVOKE("github_list_pulls", { owner, repo })),
 	githubGetPull: (owner: string, repo: string, number: number) => typedError<PullRequestSummary, GithubCommandError>(__TAURI_INVOKE("github_get_pull", { owner, repo, number })),
 	githubGetPullDiff: (owner: string, repo: string, number: number) => typedError<string, GithubCommandError>(__TAURI_INVOKE("github_get_pull_diff", { owner, repo, number })),
+	linearSignIn: (token: string) => typedError<LinearIdentityRecord, LinearCommandError>(__TAURI_INVOKE("linear_sign_in", { token })),
+	linearSignOut: () => typedError<null, LinearCommandError>(__TAURI_INVOKE("linear_sign_out")),
+	linearMe: () => typedError<{
+	id: string,
+	name: string,
+	display_name: string | null,
+	email: string | null,
+	avatar_url: string | null,
+} | null, LinearCommandError>(__TAURI_INVOKE("linear_me")),
+	linearListTeams: () => typedError<LinearTeam[], LinearCommandError>(__TAURI_INVOKE("linear_list_teams")),
+	linearListProjects: (teamId: string) => typedError<LinearProject[], LinearCommandError>(__TAURI_INVOKE("linear_list_projects", { teamId })),
+	linearListCycles: (teamId: string) => typedError<LinearCycle[], LinearCommandError>(__TAURI_INVOKE("linear_list_cycles", { teamId })),
+	linearListLabels: (teamId: string) => typedError<LinearLabel[], LinearCommandError>(__TAURI_INVOKE("linear_list_labels", { teamId })),
+	linearListStates: (teamId: string) => typedError<LinearWorkflowState[], LinearCommandError>(__TAURI_INVOKE("linear_list_states", { teamId })),
+	linearListIssues: (filter: LinearIssueFilter) => typedError<LinearIssue[], LinearCommandError>(__TAURI_INVOKE("linear_list_issues", { filter })),
+	linearGetIssue: (id: string) => typedError<LinearIssue, LinearCommandError>(__TAURI_INVOKE("linear_get_issue", { id })),
+	linearCreateIssue: (input: LinearIssueCreateInput) => typedError<LinearIssue, LinearCommandError>(__TAURI_INVOKE("linear_create_issue", { input })),
+	linearUpdateIssue: (id: string, input: LinearIssueUpdateInput) => typedError<LinearIssue, LinearCommandError>(__TAURI_INVOKE("linear_update_issue", { id, input })),
+	linearListComments: (issueId: string) => typedError<LinearIssueComment[], LinearCommandError>(__TAURI_INVOKE("linear_list_comments", { issueId })),
+	linearCreateComment: (issueId: string, body: string) => typedError<LinearIssueComment, LinearCommandError>(__TAURI_INVOKE("linear_create_comment", { issueId, body })),
 };
 
 /* Types */
@@ -183,6 +203,120 @@ export type IdentityRecord = {
 	name: string | null,
 	email: string | null,
 	avatar_url: string | null,
+};
+
+export type LinearCommandError = {
+	code: LinearErrorCode,
+	message: string,
+};
+
+export type LinearCycle = {
+	id: string,
+	number: number,
+	name: string | null,
+	starts_at: string | null,
+	ends_at: string | null,
+};
+
+export type LinearErrorCode = "not_signed_in" | "unauthorized" | "storage" | "graphql" | "network" | "rate_limited" | "malformed";
+
+export type LinearIdentityRecord = {
+	id: string,
+	name: string,
+	display_name: string | null,
+	email: string | null,
+	avatar_url: string | null,
+};
+
+export type LinearIssue = {
+	id: string,
+	identifier: string,
+	number: number,
+	title: string,
+	description: string | null,
+	/**
+	 *  `state.name`; the full state object is not flattened to keep
+	 *  the v1 surface narrow.
+	 */
+	state_name: string,
+	state_id: string,
+	priority: number,
+	assignee_id: string | null,
+	assignee_name: string | null,
+	team_id: string,
+	project_id: string | null,
+	cycle_id: string | null,
+	parent_id: string | null,
+	url: string,
+	created_at: string,
+	updated_at: string,
+};
+
+export type LinearIssueComment = {
+	id: string,
+	body: string,
+	user_name: string | null,
+	created_at: string,
+	updated_at: string,
+};
+
+export type LinearIssueCreateInput = {
+	team_id: string,
+	title: string,
+	description: string | null,
+	state_id: string | null,
+	assignee_id: string | null,
+	priority: number | null,
+	project_id: string | null,
+};
+
+/**
+ *  Filter set the renderer can pass into `linear.list_issues`. Each
+ *  field narrows the result set; `team_id` is typically the anchor.
+ */
+export type LinearIssueFilter = {
+	team_id: string | null,
+	project_id: string | null,
+	cycle_id: string | null,
+	state_id: string | null,
+	assignee_id: string | null,
+	limit: number | null,
+};
+
+export type LinearIssueUpdateInput = {
+	title: string | null,
+	description: string | null,
+	state_id: string | null,
+	assignee_id: string | null,
+	priority: number | null,
+};
+
+export type LinearLabel = {
+	id: string,
+	name: string,
+	color: string,
+};
+
+export type LinearProject = {
+	id: string,
+	name: string,
+	state: string,
+	description: string | null,
+};
+
+export type LinearTeam = {
+	id: string,
+	key: string,
+	name: string,
+	description: string | null,
+};
+
+export type LinearWorkflowState = {
+	id: string,
+	name: string,
+	/**  One of: `triage`, `backlog`, `unstarted`, `started`, `completed`, `canceled`. */
+	state_type: string,
+	color: string,
 };
 
 export type NotificationKind = "general" | "permission_prompt" | "tool_use" | "status";
@@ -323,7 +457,11 @@ export type UiMutationEvent = { kind: "project_created"; id: string } | { kind: 
  *  EMD-13: GitHub repo-scoped data changed (PRs, comments, reviews
  *  of the named `owner/name`).
  */
-{ kind: "github_data_changed"; repo: string };
+{ kind: "github_data_changed"; repo: string } | 
+/**  EMD-14: Linear identity changed (sign-in / sign-out / refresh). */
+{ kind: "linear_identity_changed" } | 
+/**  EMD-14: Linear team-scoped data changed (issues, comments). */
+{ kind: "linear_data_changed"; team: string };
 
 /**
  *  Stable machine-readable error code. The renderer matches on this
