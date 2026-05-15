@@ -45,4 +45,16 @@ pub enum UiMutationEvent {
     GithubDataChanged {
         repo: String,
     },
+    /// EMD-27: an agent started for the named task.
+    AgentStarted {
+        task_id: String,
+        provider: crate::agents::AgentProvider,
+    },
+    /// EMD-27: an agent exited (clean or killed). `exit_code` is
+    /// `None` when the host stopped the agent before the child
+    /// process reported a code.
+    AgentExited {
+        task_id: String,
+        exit_code: Option<i32>,
+    },
 }

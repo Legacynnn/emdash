@@ -131,6 +131,18 @@ pub fn run() {
             ))?;
             let hook_handle: Arc<HookServerHandle> = Arc::new(hook_handle);
 
+            let pty_registry: Arc<Registry> = Arc::new(Registry::new());
+            // EMD-27 / ADR-0024: agent-spawn service. Constructed
+            // after the hook server has bound so the port + token
+            // injected into the agent env are guaranteed live.
+            let agent_service = Arc::new(emdash_dev::agents::AgentService::new(
+                db.clone(),
+                pty_registry.clone(),
+                workspace_fs_lock.clone(),
+                hook_handle.port(),
+                hook_handle.token().to_string(),
+            ));
+
             app.manage(db);
             app.manage(secrets);
             app.manage(projects);
@@ -142,7 +154,7 @@ pub fn run() {
             app.manage(updater);
             app.manage(classifier_registry);
             app.manage(hook_handle);
-            let pty_registry: Arc<Registry> = Arc::new(Registry::new());
+            app.manage(agent_service);
             app.manage(pty_registry);
             Ok(())
         })

@@ -53,6 +53,9 @@ pub fn build_specta() -> Builder<tauri::Wry> {
         commands::github::github_list_pulls,
         commands::github::github_get_pull,
         commands::github::github_get_pull_diff,
+        commands::agents::agents_start,
+        commands::agents::agents_stop,
+        commands::agents::agents_list_providers,
     ])
 }
 

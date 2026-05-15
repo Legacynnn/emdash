@@ -99,3 +99,8 @@ What becomes easier and what becomes harder as a result.
   hand-rolled device flow (oauth2 0.x is awkward for two-step
   start/poll), AEAD token storage, gh CLI fallback, identity split
   from token, locked OAuth scopes.
+- [0024-local-agent-invocation](./0024-local-agent-invocation.md) —
+  Where worktree + PTY + hook server first meet. Provider enum +
+  env merge order (shell_env → per-provider → hook coords),
+  per-task fs lock, `tasks.pty_id` column update, AgentStarted /
+  AgentExited UiMutationEvents.

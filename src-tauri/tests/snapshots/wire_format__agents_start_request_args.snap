@@ -1,0 +1,13 @@
+---
+source: tests/wire_format.rs
+assertion_line: 828
+expression: args
+---
+{
+  "provider": "claude",
+  "size": {
+    "cols": 80,
+    "rows": 24
+  },
+  "taskId": "task-1"
+}
