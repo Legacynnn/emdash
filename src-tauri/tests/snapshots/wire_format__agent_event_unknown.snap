@@ -1,0 +1,16 @@
+---
+source: tests/wire_format.rs
+assertion_line: 287
+expression: "serde_json::to_value(&event).unwrap()"
+---
+{
+  "agent": "future-x",
+  "classifier": "<unknown>",
+  "kind": {
+    "kind": "unknown"
+  },
+  "message": null,
+  "project_id": null,
+  "task_id": null,
+  "timestamp": "2026-05-15T17:00:00+00:00"
+}

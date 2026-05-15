@@ -6,7 +6,7 @@ use std::env;
 use std::process::ExitCode;
 
 use emdash_dev::{
-    bindings_parser, db, editor_buffers, git, greeting, projects,
+    agent_hooks, bindings_parser, db, editor_buffers, git, greeting, projects,
     secrets::{aead, master_key},
     shell_env, tasks, ui_sync, updater, view_state,
     telemetry::{
@@ -88,6 +88,12 @@ fn link_domain_modules() {
     let _: Option<editor_buffers::EditorBuffer> = None;
     let _: Option<serde_json::Value> = None;
     let _ = view_state::ViewStateError::MalformedJson(String::new());
+
+    // agent_hooks: classifier + registry are Tauri-runtime-free. The
+    // HookServer itself lives behind tokio/axum and is excluded from this
+    // bin's link graph (no server start here — domain modules only).
+    let _registry = agent_hooks::ClassifierRegistry::new();
+    let _: Option<agent_hooks::AgentEvent> = None;
 }
 
 fn print_help() {

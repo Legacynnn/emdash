@@ -87,3 +87,7 @@ What becomes easier and what becomes harder as a result.
 - [0017-settings-subsystem](./0017-settings-subsystem.md) — Port v1 (M).
 - [0018-view-state-subsystem](./0018-view-state-subsystem.md) — Port (S, this PR).
 - [0019-workspaces-subsystem](./0019-workspaces-subsystem.md) — Port core; defer BYOI.
+- [0021-agent-hooks-foundation](./0021-agent-hooks-foundation.md) —
+  axum hook server on 127.0.0.1:0, constant-time token validation,
+  Classifier trait + ClassifierRegistry, claude reference impl,
+  Drop-based shutdown.

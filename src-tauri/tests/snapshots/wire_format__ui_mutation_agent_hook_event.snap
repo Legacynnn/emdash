@@ -1,0 +1,20 @@
+---
+source: tests/wire_format.rs
+assertion_line: 310
+expression: "serde_json::to_value(&event).unwrap()"
+---
+{
+  "event": {
+    "agent": "claude",
+    "classifier": "claude",
+    "kind": {
+      "kind": "stop"
+    },
+    "message": null,
+    "project_id": null,
+    "task_id": null,
+    "timestamp": "2026-05-15T17:00:00+00:00"
+  },
+  "kind": "agent_hook_event",
+  "task_id": "task-1"
+}

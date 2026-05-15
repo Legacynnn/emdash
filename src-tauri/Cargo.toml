@@ -89,6 +89,12 @@ tauri-plugin-updater = "2"
 # plugin is built into the App.
 tauri-plugin-window-state = "2"
 
+# Agent hook server (EMD-9 / ADR-0021). axum 0.7 on 127.0.0.1:0 with
+# per-launch token validation. subtle for constant-time compare.
+axum = { version = "0.7", default-features = false, features = ["http1", "json", "tokio"] }
+tower = "0.5"
+subtle = "2"
+
 [dev-dependencies]
 insta = { version = "1.47", features = ["json"] }
 tempfile = "3"

@@ -41,6 +41,9 @@ export function dispatchUiMutation(stores: Stores, event: UiMutationEvent): void
       taskStore?.applyDeleted(event.id);
       return;
     }
+    case 'agent_hook_event':
+      // EMD-9 exposes the event transport; EMD-27 wires task/project stores.
+      return;
   }
   // Exhaustiveness check: a new variant added to UiMutationEvent without a
   // case here makes this a compile error.

@@ -17,4 +17,10 @@ pub enum UiMutationEvent {
     TaskCreated { id: String, project_id: String },
     TaskUpdated { id: String, project_id: String },
     TaskDeleted { id: String, project_id: String },
+    /// One classified agent-hook event (EMD-9). `task_id` is `None`
+    /// until the agent-spawn site (EMD-27) injects coordinates.
+    AgentHookEvent {
+        task_id: Option<String>,
+        event: crate::agent_hooks::AgentEvent,
+    },
 }
