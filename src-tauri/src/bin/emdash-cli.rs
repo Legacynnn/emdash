@@ -6,13 +6,13 @@ use std::env;
 use std::process::ExitCode;
 
 use emdash_dev::{
-    bindings_parser, db, fs_watcher, git, greeting, projects,
+    bindings_parser, db, editor_buffers, fs_watcher, git, greeting, projects,
     secrets::{aead, master_key},
     shell_env, tasks,
     telemetry::{
         config as telemetry_config, event as telemetry_event, settings as telemetry_settings,
     },
-    ui_sync, updater,
+    ui_sync, updater, view_state,
 };
 
 const NAME: &str = env!("CARGO_PKG_NAME");
@@ -84,6 +84,12 @@ fn link_domain_modules() {
     // and app.rs.
     let _updater_mgr = updater::UpdateManager::default();
     let _: Option<updater::UpdateEvent> = None;
+    // editor_buffers + view_state: tiny KV-shaped domain modules ported from
+    // Electron (ADR-0012 / ADR-0018). Referencing one function each keeps
+    // the symbol live for the linker.
+    let _: Option<editor_buffers::EditorBuffer> = None;
+    let _: Option<serde_json::Value> = None;
+    let _ = view_state::ViewStateError::MalformedJson(String::new());
 }
 
 fn print_help() {

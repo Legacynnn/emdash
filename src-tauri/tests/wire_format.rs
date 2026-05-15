@@ -600,3 +600,57 @@ fn update_manifest_canonical_shape() {
         serde_json::to_value(&m).unwrap()
     );
 }
+
+// --- editor_buffers + view_state (EMD-21 / ADRs 0012, 0018) ----------------
+
+#[test]
+fn editor_buffer_save_wire_format() {
+    let request_args = serde_json::json!({
+        "projectId": "p1",
+        "workspaceId": "ws1",
+        "filePath": "src/main.rs",
+        "content": "fn main() {}\n"
+    });
+    insta::assert_json_snapshot!("editor_buffer_save_request_args", request_args);
+}
+
+#[test]
+fn editor_buffer_list_wire_format() {
+    let request_args = serde_json::json!({
+        "projectId": "p1",
+        "workspaceId": "ws1",
+    });
+    insta::assert_json_snapshot!("editor_buffer_list_request_args", request_args);
+}
+
+#[test]
+fn editor_buffer_response_shape() {
+    use emdash_dev::editor_buffers::EditorBuffer;
+    let buffer = EditorBuffer {
+        id: "p1|ws1|src/main.rs".to_string(),
+        project_id: "p1".to_string(),
+        workspace_id: "ws1".to_string(),
+        file_path: "src/main.rs".to_string(),
+        content: "fn main() {}\n".to_string(),
+        updated_at_ms: "1763216400000".to_string(),
+    };
+    insta::assert_json_snapshot!(
+        "editor_buffer_response",
+        serde_json::to_value(&buffer).unwrap()
+    );
+}
+
+#[test]
+fn view_state_save_wire_format() {
+    let request_args = serde_json::json!({
+        "key": "layout.tabs",
+        "valueJson": "{\"tabs\":[\"a\",\"b\"]}"
+    });
+    insta::assert_json_snapshot!("view_state_save_request_args", request_args);
+}
+
+#[test]
+fn view_state_get_wire_format() {
+    let request_args = serde_json::json!({ "key": "layout.tabs" });
+    insta::assert_json_snapshot!("view_state_get_request_args", request_args);
+}

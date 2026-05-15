@@ -1,0 +1,9 @@
+---
+source: tests/wire_format.rs
+assertion_line: 282
+expression: request_args
+---
+{
+  "key": "layout.tabs",
+  "valueJson": "{\"tabs\":[\"a\",\"b\"]}"
+}
