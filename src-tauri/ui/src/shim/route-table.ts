@@ -313,8 +313,13 @@ const ROUTES: Record<string, Route> = {
   'providerSettings.resetItem': STATIC_VOID,
 
   // == workspaces ===================================================
-  // TODO: port from src/main/core/workspaces.
-  'workspaces.resolveBootstrap': STATIC_NULL,
+  // Tauri's `tasks_create` is atomic: the worktree is created as part
+  // of the same call. From the renderer's standpoint, every task we
+  // can navigate to is `{ kind: 'ready' }` — there's no separate
+  // bootstrap step. adoptWorktree/createWorktree become no-ops because
+  // the renderer would only call them on an unprovisioned task and
+  // Tauri doesn't surface that state.
+  'workspaces.resolveBootstrap': { kind: 'static', value: { kind: 'ready' } },
   'workspaces.adoptWorktree': STATIC_RESULT_OK_NULL,
   'workspaces.createWorktree': STATIC_RESULT_OK_NULL,
 

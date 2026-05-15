@@ -12,7 +12,7 @@ test_commands:
   - "pnpm run typecheck"
   - "pnpm run test"
 ports:
-  dev: 3000
+  dev: 1420
 required_env: []
 optional_env:
   - TELEMETRY_ENABLED
@@ -84,11 +84,22 @@ Start here. Load only the linked `agents/` docs that are relevant to the task.
 - Access task manager via `getTaskManagerStore(projectId)`, not through `project.taskManager`
 - Access mounted project via `asMounted(getProjectStore(id))`, not via inline `isMountedProject` guards
 
-## emdash-dev (Tauri 2 + Rust rewrite)
+## emdash-dev (Tauri 2 + Rust rewrite) — primary build
 
-A second product lives under `src-tauri/` — the Tauri 2 + Rust rewrite. It
-ships **alongside** the Electron app, not as a replacement. Conventions and
-decisions for it live in `docs/decisions/` (Michael Nygard ADRs).
+The Tauri 2 + Rust rewrite under `src-tauri/` is the **primary build** that
+`pnpm run dev` / `pnpm run build` / `pnpm run package` target. The Electron
+codebase remains in-tree during the migration window but is on the way out
+— prefer `dev:electron` / `package:electron` for any remaining Electron
+work and the Tauri scripts (`dev:tauri`, `build:tauri`) for everything
+else. Conventions and decisions for `src-tauri/` live in `docs/decisions/`
+(Michael Nygard ADRs).
+
+The Electron renderer (`src/renderer/`) is currently shared with the Tauri
+build via a `window.electronAPI` polyfill — see
+`src-tauri/ui/src/shim/electron-api.ts` and the route table next to it.
+Channels still backed by static stubs in `route-table.ts` are the
+outstanding ports; see the table at the top of that file (TODO comments)
+plus `docs/migration/tauri-renderer-wire.md` for the systematic plan.
 
 Rules specific to `src-tauri/`:
 
