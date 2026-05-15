@@ -1,0 +1,14 @@
+---
+source: tests/wire_format.rs
+assertion_line: 262
+expression: request_args
+---
+{
+  "name": "Feature X",
+  "projectId": "00000000-0000-0000-0000-000000000001",
+  "sourceBranch": {
+    "branch": "main",
+    "host": "origin",
+    "type": "remote"
+  }
+}

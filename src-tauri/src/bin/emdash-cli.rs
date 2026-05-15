@@ -6,9 +6,9 @@ use std::env;
 use std::process::ExitCode;
 
 use emdash_dev::{
-    bindings_parser, db, fs_watcher, greeting, projects,
+    bindings_parser, db, fs_watcher, git, greeting, projects,
     secrets::{aead, master_key},
-    shell_env, ui_sync,
+    shell_env, tasks, ui_sync,
 };
 
 const NAME: &str = env!("CARGO_PKG_NAME");
@@ -65,6 +65,10 @@ fn link_domain_modules() {
     // lives in commands::fs_watcher).
     let _registry = fs_watcher::WatcherRegistry::new();
     let _: Option<fs_watcher::WatchEvent> = None;
+    // tasks + git: type references so the symbols link.
+    let _ = tasks::WorkspaceFsMutationLock::new();
+    let _: Option<tasks::TasksService> = None;
+    let _: Result<Option<String>, git::GitError> = Ok(None);
 }
 
 fn print_help() {

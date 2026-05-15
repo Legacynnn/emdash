@@ -23,9 +23,15 @@ function isCommandError(value: unknown): value is ProjectsCommandError {
 
 export interface ProjectsPanelProps {
   store: ProjectStore;
+  selectedId: string | null;
+  onSelect: (id: string | null) => void;
 }
 
-export const ProjectsPanel = observer(function ProjectsPanel({ store }: ProjectsPanelProps) {
+export const ProjectsPanel = observer(function ProjectsPanel({
+  store,
+  selectedId,
+  onSelect,
+}: ProjectsPanelProps) {
   const [path, setPath] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -104,24 +110,33 @@ export const ProjectsPanel = observer(function ProjectsPanel({ store }: Projects
       )}
       {ready && ready.projects.length > 0 && (
         <ul className="project-list" aria-label="projects">
-          {ready.projects.map((p) => (
-            <li key={p.id}>
-              <div>
-                <strong>{p.name}</strong>
-                <div className="muted">
-                  <code>{p.path}</code>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleRemove(p.id)}
-                disabled={pending}
-                aria-label={`remove ${p.name}`}
-              >
-                Remove
-              </button>
-            </li>
-          ))}
+          {ready.projects.map((p) => {
+            const isSelected = p.id === selectedId;
+            return (
+              <li key={p.id} className={isSelected ? 'selected' : undefined}>
+                <button
+                  type="button"
+                  className="select-area"
+                  onClick={() => onSelect(isSelected ? null : p.id)}
+                  aria-pressed={isSelected}
+                  aria-label={`select ${p.name}`}
+                >
+                  <strong>{p.name}</strong>
+                  <div className="muted">
+                    <code>{p.path}</code>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleRemove(p.id)}
+                  disabled={pending}
+                  aria-label={`remove ${p.name}`}
+                >
+                  Remove
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
 

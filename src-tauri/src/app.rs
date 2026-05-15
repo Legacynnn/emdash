@@ -8,6 +8,7 @@ use emdash_dev::fs_watcher::WatcherRegistry;
 use emdash_dev::projects::ProjectsService;
 use emdash_dev::pty::registry::Registry;
 use emdash_dev::secrets::{master_key::OsKeyringMasterKey, Secrets};
+use emdash_dev::tasks::{TasksService, WorkspaceFsMutationLock};
 use emdash_dev::tauri_bindings;
 use emdash_dev::ui_sync::UiSyncManager;
 use tauri::Manager;
@@ -61,12 +62,17 @@ pub fn run() {
             let projects = Arc::new(ProjectsService::new(db.clone()));
             let ui_sync: Arc<UiSyncManager> = Arc::new(UiSyncManager::new());
             let fs_watcher: Arc<WatcherRegistry> = Arc::new(WatcherRegistry::new());
+            let workspace_fs_lock: Arc<WorkspaceFsMutationLock> =
+                Arc::new(WorkspaceFsMutationLock::new());
+            let tasks = Arc::new(TasksService::new(db.clone(), workspace_fs_lock.clone()));
 
             app.manage(db);
             app.manage(secrets);
             app.manage(projects);
             app.manage(ui_sync);
             app.manage(fs_watcher);
+            app.manage(workspace_fs_lock);
+            app.manage(tasks);
             let pty_registry: Arc<Registry> = Arc::new(Registry::new());
             app.manage(pty_registry);
             Ok(())

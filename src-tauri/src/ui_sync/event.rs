@@ -14,4 +14,7 @@ pub enum UiMutationEvent {
     ProjectCreated { id: String },
     ProjectUpdated { id: String },
     ProjectDeleted { id: String },
+    TaskCreated { id: String, project_id: String },
+    TaskUpdated { id: String, project_id: String },
+    TaskDeleted { id: String, project_id: String },
 }

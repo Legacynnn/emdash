@@ -15,6 +15,9 @@
     "projects_add",
     "projects_remove",
     "fs_watcher_subscribe",
-    "fs_watcher_unsubscribe"
+    "fs_watcher_unsubscribe",
+    "tasks_list",
+    "tasks_create",
+    "tasks_delete"
   ]
 }

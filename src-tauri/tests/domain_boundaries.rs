@@ -8,11 +8,13 @@ const DOMAIN_MODULES: &[&str] = &[
     "bindings_parser",
     "db",
     "fs_watcher",
+    "git",
     "greeting",
     "projects",
     "pty",
     "secrets",
     "shell_env",
+    "tasks",
     "ui_sync",
 ];
 const TAURI_GLUE_MODULES: &[&str] = &["commands", "tauri_bindings"];

@@ -161,3 +161,22 @@ button:active {
 .project-list li button:hover {
   background: #fef2f2;
 }
+
+.project-list li.selected {
+  border-color: #6366f1;
+  background: #eef2ff;
+}
+
+.project-list li .select-area {
+  flex: 1;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+
+.project-list li .select-area:hover {
+  background: transparent;
+}

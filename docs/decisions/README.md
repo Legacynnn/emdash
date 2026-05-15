@@ -60,3 +60,7 @@ What becomes easier and what becomes harder as a result.
   debounce, Linux inotify ENOSPC degrades to depth-1 watching with a
   user-facing toast (never polls). MCP orchestration deferred to a
   follow-up issue.
+- [0005-git-worktrees-and-tasks-table](./0005-git-worktrees-and-tasks-table.md)
+  — `git2` for read ops + shell out for `git worktree`,
+  `WorkspaceFsMutationLock` for FS+DB serialization, JSON
+  `source_branch` discriminator from day one.

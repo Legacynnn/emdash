@@ -1,8 +1,11 @@
+import { observer } from 'mobx-react-lite';
 import { useMemo, useState } from 'react';
 import { commands, type SecretsCommandError } from './bindings';
 import { DebugShell } from './components/DebugShell';
 import { ProjectsPanel } from './features/projects/ProjectsPanel';
+import { TasksPanel } from './features/tasks/TasksPanel';
 import { createStores } from './stores';
+import { asReady } from './stores/projectStore';
 import { useUiMutations } from './ui-sync/useUiMutations';
 
 function formatThrown(e: unknown): string {
@@ -19,9 +22,18 @@ function formatSecretsError(err: SecretsCommandError): string {
   return `[${err.code}] ${err.message}`;
 }
 
-export function App() {
+export const App = observer(function App() {
   const stores = useMemo(() => createStores(), []);
   useUiMutations(stores);
+
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+
+  const ready = asReady(stores.projects);
+  const selectedProject =
+    ready && selectedProjectId
+      ? ready.projects.find((p) => p.id === selectedProjectId) ?? null
+      : null;
+  const taskStore = selectedProject ? stores.getOrCreateTaskStore(selectedProject.id) : null;
 
   const [name, setName] = useState('');
   const [greeting, setGreeting] = useState<string | null>(null);
@@ -160,11 +172,19 @@ export function App() {
         {readBack !== null && <pre className="output">stored and re-read: {readBack}</pre>}
       </section>
 
-      <ProjectsPanel store={stores.projects} />
+      <ProjectsPanel
+        store={stores.projects}
+        selectedId={selectedProjectId}
+        onSelect={setSelectedProjectId}
+      />
+
+      {selectedProject && taskStore && (
+        <TasksPanel project={selectedProject} store={taskStore} />
+      )}
 
       {import.meta.env.DEV && <DebugShell />}
 
       {error && <pre className="error">{error}</pre>}
     </main>
   );
-}
+});
