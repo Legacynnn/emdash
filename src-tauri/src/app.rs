@@ -23,12 +23,21 @@ pub fn export_bindings_default() -> Result<(), Box<dyn std::error::Error>> {
         env!("CARGO_MANIFEST_DIR"),
         tauri_bindings::BINDINGS_PATH
     );
-    // Write to a temp path and compare-and-swap so mtime only updates
-    // when the contents actually differ. Without this, every debug
-    // launch rewrites bindings.ts, Tauri's dev watcher mistakes the
-    // mtime bump for a content change and triggers a rebuild, which
-    // launches us again, looping forever.
-    let tmp = format!("{path}.tmp");
+    // Export to a temp path *outside* src-tauri so Tauri's dev watcher
+    // doesn't see it, then compare-and-swap into ui/src/bindings.ts.
+    // Two-layer fix:
+    //   1. Writing in-tree (even a `.tmp` sibling) triggers the watcher.
+    //      Use `std::env::temp_dir()` to escape the watched root.
+    //   2. mtime-only watching means a content-identical rewrite still
+    //      fires the watcher — so only write when the bytes differ.
+    let tmp = std::env::temp_dir().join(format!(
+        "emdash-dev-bindings-{}-{}.ts",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0)
+    ));
     tauri_bindings::export_bindings_to(&tmp)?;
     let new = std::fs::read_to_string(&tmp)?;
     let _ = std::fs::remove_file(&tmp);
