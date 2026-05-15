@@ -1,0 +1,6 @@
+---
+source: tests/wire_format.rs
+assertion_line: 840
+expression: "serde_json::to_value(AgentProvider::Codex).unwrap()"
+---
+"codex"

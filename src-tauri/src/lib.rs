@@ -5,6 +5,7 @@
 //! `tests/domain_boundaries.rs`. See ADR-0001 for the rationale.
 
 pub mod agent_hooks;
+pub mod agents;
 pub mod bindings_parser;
 pub mod commands;
 pub mod db;

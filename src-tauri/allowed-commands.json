@@ -55,6 +55,9 @@
     "linear_create_issue",
     "linear_update_issue",
     "linear_list_comments",
-    "linear_create_comment"
+    "linear_create_comment",
+    "agents_start",
+    "agents_stop",
+    "agents_list_providers"
   ]
 }

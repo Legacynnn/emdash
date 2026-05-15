@@ -815,3 +815,57 @@ fn ui_mutation_github_data_changed_wire_format() {
         serde_json::to_value(&event).unwrap()
     );
 }
+
+// --- agents (EMD-27 / ADR-0024) --------------------------------------------
+
+#[test]
+fn agents_start_wire_format() {
+    let args = serde_json::json!({
+        "taskId": "task-1",
+        "provider": "claude",
+        "size": { "rows": 24, "cols": 80 },
+    });
+    insta::assert_json_snapshot!("agents_start_request_args", args);
+}
+
+#[test]
+fn agents_stop_wire_format() {
+    let args = serde_json::json!({ "taskId": "task-1" });
+    insta::assert_json_snapshot!("agents_stop_request_args", args);
+}
+
+#[test]
+fn agents_provider_codex_wire_format() {
+    use emdash_dev::agents::AgentProvider;
+    insta::assert_json_snapshot!(
+        "agents_provider_codex",
+        serde_json::to_value(AgentProvider::Codex).unwrap()
+    );
+}
+
+#[test]
+fn ui_mutation_agent_started_wire_format() {
+    use emdash_dev::agents::AgentProvider;
+    use emdash_dev::ui_sync::UiMutationEvent;
+    let event = UiMutationEvent::AgentStarted {
+        task_id: "task-1".into(),
+        provider: AgentProvider::Claude,
+    };
+    insta::assert_json_snapshot!(
+        "ui_mutation_agent_started",
+        serde_json::to_value(&event).unwrap()
+    );
+}
+
+#[test]
+fn ui_mutation_agent_exited_wire_format() {
+    use emdash_dev::ui_sync::UiMutationEvent;
+    let event = UiMutationEvent::AgentExited {
+        task_id: "task-1".into(),
+        exit_code: Some(0),
+    };
+    insta::assert_json_snapshot!(
+        "ui_mutation_agent_exited",
+        serde_json::to_value(&event).unwrap()
+    );
+}

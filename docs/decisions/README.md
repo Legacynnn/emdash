@@ -103,3 +103,8 @@ What becomes easier and what becomes harder as a result.
   (no OAuth in v1), hand-rolled GraphQL via reqwest, 14 commands,
   AEAD token + identity-split, auto-revoke on 401, all types
   prefixed `Linear` to avoid specta name collisions.
+- [0024-local-agent-invocation](./0024-local-agent-invocation.md) —
+  Where worktree + PTY + hook server first meet. Provider enum +
+  env merge order (shell_env → per-provider → hook coords),
+  per-task fs lock, `tasks.pty_id` column update, AgentStarted /
+  AgentExited UiMutationEvents.

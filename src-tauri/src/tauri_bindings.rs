@@ -67,6 +67,9 @@ pub fn build_specta() -> Builder<tauri::Wry> {
         commands::linear::linear_update_issue,
         commands::linear::linear_list_comments,
         commands::linear::linear_create_comment,
+        commands::agents::agents_start,
+        commands::agents::agents_stop,
+        commands::agents::agents_list_providers,
     ])
 }
 

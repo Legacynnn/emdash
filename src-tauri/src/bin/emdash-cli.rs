@@ -6,7 +6,7 @@ use std::env;
 use std::process::ExitCode;
 
 use emdash_dev::{
-    agent_hooks, bindings_parser, db, editor_buffers, fs_watcher, git, greeting, projects,
+    agent_hooks, agents, bindings_parser, db, editor_buffers, fs_watcher, git, greeting, projects,
     providers,
     secrets::{aead, master_key},
     shell_env, tasks,
@@ -96,6 +96,10 @@ fn link_domain_modules() {
     // bin's link graph (no server start here — domain modules only).
     let _ah_registry = agent_hooks::ClassifierRegistry::new();
     let _: Option<agent_hooks::AgentEvent> = None;
+
+    // agents: provider enum + spec helper are domain-only; the
+    // AgentService runtime requires tokio + PTY, not exercised here.
+    let _: agents::ProviderSpec = agents::provider_spec(agents::AgentProvider::Codex);
 
     // providers::github: scope enum + identity record are domain-only; the
     // async oauth + client paths come along but never run from this bin.
