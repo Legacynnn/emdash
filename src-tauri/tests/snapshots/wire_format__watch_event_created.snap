@@ -1,0 +1,13 @@
+---
+source: tests/wire_format.rs
+assertion_line: 261
+expression: "serde_json::to_value(&event).unwrap()"
+---
+{
+  "event": {
+    "kind": "created"
+  },
+  "paths": [
+    "/Users/example/code/repo/src/main.rs"
+  ]
+}

@@ -7,6 +7,7 @@
 pub mod bindings_parser;
 pub mod commands;
 pub mod db;
+pub mod fs_watcher;
 pub mod greeting;
 pub mod projects;
 pub mod pty;

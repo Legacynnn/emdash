@@ -13,6 +13,8 @@
     "unsubscribe_ui_mutations",
     "projects_list",
     "projects_add",
-    "projects_remove"
+    "projects_remove",
+    "fs_watcher_subscribe",
+    "fs_watcher_unsubscribe"
   ]
 }

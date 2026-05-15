@@ -18,9 +18,18 @@ export const commands = {
 	projectsList: () => typedError<Project[], ProjectsCommandError>(__TAURI_INVOKE("projects_list")),
 	projectsAdd: (path: string) => typedError<Project, ProjectsCommandError>(__TAURI_INVOKE("projects_add", { path })),
 	projectsRemove: (id: string) => typedError<null, ProjectsCommandError>(__TAURI_INVOKE("projects_remove", { id })),
+	fsWatcherSubscribe: (id: string, path: string, onEvent: Channel<WatchEvent>) => typedError<WatcherFallback, FsWatcherCommandError>(__TAURI_INVOKE("fs_watcher_subscribe", { id, path, onEvent })),
+	fsWatcherUnsubscribe: (id: string) => typedError<boolean, FsWatcherCommandError>(__TAURI_INVOKE("fs_watcher_unsubscribe", { id })),
 };
 
 /* Types */
+export type FsWatcherCommandError = {
+	code: FsWatcherErrorCode,
+	message: string,
+};
+
+export type FsWatcherErrorCode = "path_missing" | "notify" | "io";
+
 /**
  *  Projection of one row from the `projects` table that the renderer
  *  actually consumes. Mirror of the columns used in the v1 CRUD surface.
@@ -72,6 +81,28 @@ export type SpawnOptions = {
 };
 
 export type UiMutationEvent = { kind: "project_created"; id: string } | { kind: "project_updated"; id: string } | { kind: "project_deleted"; id: string };
+
+export type WatchEvent = {
+	/**
+	 *  Coalesced batch of paths; for `Renamed`, the `from` / `to`
+	 *  inside the kind carry the pair, and `paths` is empty.
+	 */
+	paths: string[],
+	event: WatchEventKind,
+};
+
+export type WatchEventKind = { kind: "created" } | { kind: "modified" } | { kind: "deleted" } | { kind: "renamed"; from: string; to: string };
+
+/**
+ *  Whether the watcher is running with full recursive coverage or
+ *  degraded to the EMD-11 ENOSPC fallback (top-level only).
+ */
+export type WatcherFallback = "none" | 
+/**
+ *  Linux inotify limit hit; scoped to depth 1. User can remediate
+ *  with `sysctl fs.inotify.max_user_watches=524288`.
+ */
+"inotify_enospc_depth_one";
 
 /* Tauri Specta runtime */
 async function typedError<T, E>(result: Promise<T>): Promise<{ status: "ok"; data: T } | { status: "error"; error: E }> {

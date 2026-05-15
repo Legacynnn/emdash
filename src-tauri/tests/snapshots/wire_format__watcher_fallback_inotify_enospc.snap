@@ -1,0 +1,6 @@
+---
+source: tests/wire_format.rs
+assertion_line: 286
+expression: "serde_json::to_value(WatcherFallback::InotifyEnospcDepthOne).unwrap()"
+---
+"inotify_enospc_depth_one"

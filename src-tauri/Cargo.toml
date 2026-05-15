@@ -61,6 +61,12 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"
 # IDs.
 uuid = { version = "1", features = ["v4"] }
 
+# File watching (EMD-11 / ADR-0020). Pinned: macOS FSEvents behavior
+# has churned across `notify` 6.x and 7.x releases. Helmor uses
+# notify 6.1 + a maintained debouncer; we follow the same pair.
+notify = "=6.1.1"
+notify-debouncer-full = "=0.3.2"
+
 [dev-dependencies]
 insta = { version = "1.47", features = ["json"] }
 tempfile = "3"

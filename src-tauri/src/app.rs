@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use emdash_dev::db::Db;
+use emdash_dev::fs_watcher::WatcherRegistry;
 use emdash_dev::projects::ProjectsService;
 use emdash_dev::pty::registry::Registry;
 use emdash_dev::secrets::{master_key::OsKeyringMasterKey, Secrets};
@@ -59,11 +60,13 @@ pub fn run() {
             let secrets = Arc::new(Secrets::new(master, db.clone()));
             let projects = Arc::new(ProjectsService::new(db.clone()));
             let ui_sync: Arc<UiSyncManager> = Arc::new(UiSyncManager::new());
+            let fs_watcher: Arc<WatcherRegistry> = Arc::new(WatcherRegistry::new());
 
             app.manage(db);
             app.manage(secrets);
             app.manage(projects);
             app.manage(ui_sync);
+            app.manage(fs_watcher);
             let pty_registry: Arc<Registry> = Arc::new(Registry::new());
             app.manage(pty_registry);
             Ok(())
