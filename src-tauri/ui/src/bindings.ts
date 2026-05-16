@@ -209,6 +209,23 @@ export const commands = {
 	dependenciesGetAll: () => __TAURI_INVOKE<DependencyEntry[]>("dependencies_get_all"),
 	dependenciesProbe: (id: string) => __TAURI_INVOKE<DependencyEntry>("dependencies_probe", { id }),
 	searchCommandPalette: (query: string, items: CommandPaletteItem[]) => __TAURI_INVOKE<CommandPaletteResult[]>("search_command_palette", { query, items }),
+	skillsGetCatalog: () => __TAURI_INVOKE<Skill[]>("skills_get_catalog"),
+	skillsGetDetail: (id: string) => __TAURI_INVOKE<{
+	id: string,
+	name: string,
+	description: string,
+	installed: boolean,
+} | null>("skills_get_detail", { id }),
+	skillsGetDetectedAgents: () => __TAURI_INVOKE<string[]>("skills_get_detected_agents"),
+	mcpLoadAll: () => __TAURI_INVOKE<McpServer[]>("mcp_load_all"),
+	mcpGetProviders: () => __TAURI_INVOKE<McpProvider[]>("mcp_get_providers"),
+	sshGetConnections: () => __TAURI_INVOKE<SshConnection[]>("ssh_get_connections"),
+	sshGetConnectionState: () => __TAURI_INVOKE<{ [key in string]: string }>("ssh_get_connection_state"),
+	sshGetHealthStates: () => __TAURI_INVOKE<{ [key in string]: string }>("ssh_get_health_states"),
+	pullRequestsList: () => __TAURI_INVOKE<PullRequestStub[]>("pull_requests_list"),
+	pullRequestsForTask: (taskId: string) => __TAURI_INVOKE<PullRequestStub[]>("pull_requests_for_task", { taskId }),
+	pullRequestsGetComments: (repo: string, number: number) => __TAURI_INVOKE<PrComment[]>("pull_requests_get_comments", { repo, number }),
+	pullRequestsGetFilterOptions: () => __TAURI_INVOKE<PrFilterOptions>("pull_requests_get_filter_options"),
 };
 
 /* Types */
@@ -553,6 +570,19 @@ export type LinearWorkflowState = {
 	color: string,
 };
 
+export type McpProvider = {
+	id: string,
+	name: string,
+	servers: McpServer[],
+};
+
+export type McpServer = {
+	id: string,
+	name: string,
+	command: string,
+	args: string[],
+};
+
 export type NewConversationInput = {
 	project_id: string,
 	task_id: string,
@@ -576,6 +606,18 @@ export type NotificationKind = "general" | "permission_prompt" | "tool_use" | "s
 "auth_success" | 
 /**  EMD-23+: agent asks the user a clarifying question. */
 "elicitation_dialog";
+
+export type PrComment = {
+	id: string,
+	body: string,
+	author: string,
+};
+
+export type PrFilterOptions = {
+	repos: string[],
+	authors: string[],
+	labels: string[],
+};
 
 /**
  *  Projection of one row from the `projects` table that the renderer
@@ -630,6 +672,14 @@ export type PtySize = {
 	cols: number,
 };
 
+export type PullRequestStub = {
+	id: string,
+	number: number,
+	title: string,
+	state: string,
+	url: string,
+};
+
 export type PullRequestSummary = {
 	number: number,
 	title: string,
@@ -669,12 +719,26 @@ export type SecretsCommandError = {
 
 export type SecretsErrorCode = "keyring_unavailable" | "crypto" | "storage" | "invalid_value" | "unknown";
 
+export type Skill = {
+	id: string,
+	name: string,
+	description: string,
+	installed: boolean,
+};
+
 export type SpawnOptions = {
 	command: string,
 	args: string[],
 	cwd: string | null,
 	env: { [key in string]: string },
 	size: PtySize,
+};
+
+export type SshConnection = {
+	id: string,
+	name: string,
+	host: string,
+	username: string,
 };
 
 /**

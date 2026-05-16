@@ -116,6 +116,18 @@ pub fn build_specta() -> Builder<tauri::Wry> {
         commands::dependencies::dependencies_get_all,
         commands::dependencies::dependencies_probe,
         commands::search::search_command_palette,
+        commands::skills::skills_get_catalog,
+        commands::skills::skills_get_detail,
+        commands::skills::skills_get_detected_agents,
+        commands::mcp::mcp_load_all,
+        commands::mcp::mcp_get_providers,
+        commands::ssh::ssh_get_connections,
+        commands::ssh::ssh_get_connection_state,
+        commands::ssh::ssh_get_health_states,
+        commands::pull_requests::pull_requests_list,
+        commands::pull_requests::pull_requests_for_task,
+        commands::pull_requests::pull_requests_get_comments,
+        commands::pull_requests::pull_requests_get_filter_options,
     ])
 }
 

@@ -484,10 +484,24 @@ const ROUTES: Record<string, Route> = {
   'repository.getRemoteBranches': STATIC_EMPTY_ARRAY,
 
   // == pullRequests =================================================
-  'pullRequests.listPullRequests': STATIC_EMPTY_ARRAY,
-  'pullRequests.getPullRequestsForTask': STATIC_EMPTY_ARRAY,
-  'pullRequests.getPullRequestComments': STATIC_EMPTY_ARRAY,
-  'pullRequests.getFilterOptions': STATIC_EMPTY_OBJECT,
+  // Read-side wired to real (currently empty) Rust commands; mutation
+  // ops stay stubbed until the github commands grow create/merge.
+  'pullRequests.listPullRequests': { kind: 'invoke', command: 'pull_requests_list', adapt: noArgs },
+  'pullRequests.getPullRequestsForTask': {
+    kind: 'invoke',
+    command: 'pull_requests_for_task',
+    adapt: ([taskId]) => ({ taskId }),
+  },
+  'pullRequests.getPullRequestComments': {
+    kind: 'invoke',
+    command: 'pull_requests_get_comments',
+    adapt: ([repo, number]) => ({ repo, number }),
+  },
+  'pullRequests.getFilterOptions': {
+    kind: 'invoke',
+    command: 'pull_requests_get_filter_options',
+    adapt: noArgs,
+  },
   'pullRequests.refreshPullRequest': STATIC_VOID,
   'pullRequests.syncPullRequests': STATIC_VOID,
   'pullRequests.forceFullSyncPullRequests': STATIC_VOID,
@@ -659,28 +673,41 @@ const ROUTES: Record<string, Route> = {
   },
 
   // == skills =======================================================
-  'skills.getCatalog': STATIC_EMPTY_ARRAY,
-  'skills.getDetail': STATIC_NULL,
+  'skills.getCatalog': { kind: 'invoke', command: 'skills_get_catalog', adapt: noArgs },
+  'skills.getDetail': {
+    kind: 'invoke',
+    command: 'skills_get_detail',
+    adapt: ([id]) => ({ id }),
+  },
+  'skills.getDetectedAgents': {
+    kind: 'invoke',
+    command: 'skills_get_detected_agents',
+    adapt: noArgs,
+  },
   'skills.refreshCatalog': STATIC_VOID,
   'skills.install': STATIC_RESULT_OK_NULL,
   'skills.uninstall': STATIC_RESULT_OK_NULL,
   'skills.create': STATIC_RESULT_OK_NULL,
 
   // == mcp ==========================================================
-  'mcp.loadAll': STATIC_EMPTY_ARRAY,
-  'mcp.getProviders': STATIC_EMPTY_ARRAY,
+  'mcp.loadAll': { kind: 'invoke', command: 'mcp_load_all', adapt: noArgs },
+  'mcp.getProviders': { kind: 'invoke', command: 'mcp_get_providers', adapt: noArgs },
   'mcp.refreshProviders': STATIC_VOID,
   'mcp.saveServer': STATIC_RESULT_OK_NULL,
   'mcp.removeServer': STATIC_VOID,
 
   // == ssh ==========================================================
-  // TODO: port from src/main/core/ssh. SSH connection store calls
-  // these on bootstrap; returning empties keeps the start() chain
-  // happy until the Rust ssh module lands.
-  'ssh.getConnections': STATIC_EMPTY_ARRAY,
-  'ssh.getConnectionState': STATIC_EMPTY_OBJECT,
+  // Tauri's SSH layer is unported — host returns empty registries so
+  // the renderer's SSH view degrades to "no remote connections".
+  // The local-only flow is fully functional without this.
+  'ssh.getConnections': { kind: 'invoke', command: 'ssh_get_connections', adapt: noArgs },
+  'ssh.getConnectionState': {
+    kind: 'invoke',
+    command: 'ssh_get_connection_state',
+    adapt: noArgs,
+  },
   'ssh.getConnectionUsage': STATIC_EMPTY_OBJECT,
-  'ssh.getHealthStates': STATIC_EMPTY_OBJECT,
+  'ssh.getHealthStates': { kind: 'invoke', command: 'ssh_get_health_states', adapt: noArgs },
   'ssh.connect': STATIC_RESULT_OK_NULL,
   'ssh.testConnection': STATIC_RESULT_OK_NULL,
   'ssh.saveConnection': STATIC_RESULT_OK_NULL,

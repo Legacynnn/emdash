@@ -104,6 +104,18 @@
     "resource_monitor_get_snapshot",
     "dependencies_get_all",
     "dependencies_probe",
-    "search_command_palette"
+    "search_command_palette",
+    "skills_get_catalog",
+    "skills_get_detail",
+    "skills_get_detected_agents",
+    "mcp_load_all",
+    "mcp_get_providers",
+    "ssh_get_connections",
+    "ssh_get_connection_state",
+    "ssh_get_health_states",
+    "pull_requests_list",
+    "pull_requests_for_task",
+    "pull_requests_get_comments",
+    "pull_requests_get_filter_options"
   ]
 }
