@@ -16,11 +16,11 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use super::model::TasksError;
+use super::model::WorkspacesError;
 
 pub const WORKTREES_DIR_NAME: &str = ".emdash-worktrees";
 
-/// Path where the task's worktree will live, given the project root
+/// Path where the workspace's worktree will live, given the project root
 /// and the branch name. Returns an absolute path with the platform's
 /// canonical separators. Embedded `/` in the branch (e.g. `feat/x`)
 /// turns into a nested subdirectory — git handles that fine.
@@ -28,36 +28,36 @@ pub fn worktree_path(project_root: &Path, branch: &str) -> PathBuf {
     project_root.join(WORKTREES_DIR_NAME).join(branch)
 }
 
-/// `git worktree add -b <task_branch> <path> <source_branch>`.
+/// `git worktree add -b <workspace_branch> <path> <source_branch>`.
 ///
-/// `task_branch` is the **new** branch the worktree checks out (a
-/// task-scoped name created on demand). `source_branch` is the
+/// `workspace_branch` is the **new** branch the worktree checks out (a
+/// workspace-scoped name created on demand). `source_branch` is the
 /// starting point, typically the result of
-/// `TaskSourceBranch::checkout_target`.
+/// `WorkspaceSourceBranch::checkout_target`.
 pub fn add(
     project_root: &Path,
     worktree_path: &Path,
-    task_branch: &str,
+    workspace_branch: &str,
     source_branch: &str,
-) -> Result<(), TasksError> {
+) -> Result<(), WorkspacesError> {
     if let Some(parent) = worktree_path.parent() {
         std::fs::create_dir_all(parent)
-            .map_err(|e| TasksError::WorktreeFailed(format!("mkdir {}: {e}", parent.display())))?;
+            .map_err(|e| WorkspacesError::WorktreeFailed(format!("mkdir {}: {e}", parent.display())))?;
     }
     let path_arg = canonical_path_arg(worktree_path);
     let output = Command::new("git")
         .arg("worktree")
         .arg("add")
         .arg("-b")
-        .arg(task_branch)
+        .arg(workspace_branch)
         .arg(&path_arg)
         .arg(source_branch)
         .current_dir(project_root)
         .output()
-        .map_err(|e| TasksError::WorktreeFailed(format!("spawn git: {e}")))?;
+        .map_err(|e| WorkspacesError::WorktreeFailed(format!("spawn git: {e}")))?;
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-        return Err(TasksError::WorktreeFailed(format!(
+        return Err(WorkspacesError::WorktreeFailed(format!(
             "git worktree add failed: {stderr}"
         )));
     }
@@ -66,10 +66,10 @@ pub fn add(
 
 /// `git worktree remove --force <path>`.
 ///
-/// Force is intentional: removing a task in the renderer should never
+/// Force is intentional: removing a workspace in the renderer should never
 /// fail because the user left a dirty file behind. Lost work would be
 /// surprising; the renderer should warn before calling delete.
-pub fn remove(project_root: &Path, worktree_path: &Path) -> Result<(), TasksError> {
+pub fn remove(project_root: &Path, worktree_path: &Path) -> Result<(), WorkspacesError> {
     let path_arg = canonical_path_arg(worktree_path);
     let output = Command::new("git")
         .arg("worktree")
@@ -78,10 +78,10 @@ pub fn remove(project_root: &Path, worktree_path: &Path) -> Result<(), TasksErro
         .arg(&path_arg)
         .current_dir(project_root)
         .output()
-        .map_err(|e| TasksError::WorktreeFailed(format!("spawn git: {e}")))?;
+        .map_err(|e| WorkspacesError::WorktreeFailed(format!("spawn git: {e}")))?;
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-        return Err(TasksError::WorktreeFailed(format!(
+        return Err(WorkspacesError::WorktreeFailed(format!(
             "git worktree remove failed: {stderr}"
         )));
     }
@@ -146,8 +146,8 @@ mod tests {
 
     #[test]
     fn worktree_path_under_emdash_worktrees() {
-        let p = worktree_path(Path::new("/a/b"), "task-1");
-        assert!(p.ends_with(".emdash-worktrees/task-1"));
+        let p = worktree_path(Path::new("/a/b"), "ws-1");
+        assert!(p.ends_with(".emdash-worktrees/ws-1"));
     }
 
     #[test]
@@ -159,8 +159,8 @@ mod tests {
     #[test]
     fn add_creates_directory_with_checkout() {
         let (_dir, project) = init_repo();
-        let wt = worktree_path(&project, "task-abc");
-        add(&project, &wt, "task/abc", "main").unwrap();
+        let wt = worktree_path(&project, "ws-abc");
+        add(&project, &wt, "ws/abc", "main").unwrap();
         assert!(wt.is_dir(), "worktree dir should exist");
         // git worktree should write a .git pointer file.
         let dotgit = wt.join(".git");
@@ -170,18 +170,18 @@ mod tests {
     #[test]
     fn add_fails_when_path_already_exists() {
         let (_dir, project) = init_repo();
-        let wt = worktree_path(&project, "task-abc");
+        let wt = worktree_path(&project, "ws-abc");
         std::fs::create_dir_all(&wt).unwrap();
         std::fs::write(wt.join("placeholder"), "x").unwrap();
-        let err = add(&project, &wt, "task/abc", "main").unwrap_err();
-        assert!(matches!(err, TasksError::WorktreeFailed(_)));
+        let err = add(&project, &wt, "ws/abc", "main").unwrap_err();
+        assert!(matches!(err, WorkspacesError::WorktreeFailed(_)));
     }
 
     #[test]
     fn remove_deletes_worktree_dir() {
         let (_dir, project) = init_repo();
-        let wt = worktree_path(&project, "task-x");
-        add(&project, &wt, "task/x", "main").unwrap();
+        let wt = worktree_path(&project, "ws-x");
+        add(&project, &wt, "ws/x", "main").unwrap();
         assert!(wt.is_dir());
         remove(&project, &wt).unwrap();
         assert!(!wt.is_dir(), "worktree dir should be gone after remove");

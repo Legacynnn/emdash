@@ -20,22 +20,22 @@ pub enum UiMutationEvent {
     ProjectDeleted {
         id: String,
     },
-    TaskCreated {
+    WorkspaceCreated {
         id: String,
         project_id: String,
     },
-    TaskUpdated {
+    WorkspaceUpdated {
         id: String,
         project_id: String,
     },
-    TaskDeleted {
+    WorkspaceDeleted {
         id: String,
         project_id: String,
     },
-    /// One classified agent-hook event (EMD-9). `task_id` is `None`
+    /// One classified agent-hook event (EMD-9). `workspace_id` is `None`
     /// until the agent-spawn site (EMD-27) injects coordinates.
     AgentHookEvent {
-        task_id: Option<String>,
+        workspace_id: Option<String>,
         event: crate::agent_hooks::AgentEvent,
     },
     /// EMD-13: GitHub identity changed (sign-in / sign-out / refresh).
@@ -51,49 +51,49 @@ pub enum UiMutationEvent {
     LinearDataChanged {
         team: String,
     },
-    /// EMD-27: an agent started for the named task.
+    /// EMD-27: an agent started for the named workspace.
     AgentStarted {
-        task_id: String,
+        workspace_id: String,
         provider: crate::agents::AgentProvider,
     },
     /// EMD-27: an agent exited (clean or killed). `exit_code` is
     /// `None` when the host stopped the agent before the child
     /// process reported a code.
     AgentExited {
-        task_id: String,
+        workspace_id: String,
         exit_code: Option<i32>,
     },
-    /// A conversation was created under a task.
+    /// A conversation was created under a workspace.
     ConversationCreated {
         id: String,
-        task_id: String,
+        workspace_id: String,
         project_id: String,
     },
     /// A conversation was renamed or had its recency bumped.
     ConversationUpdated {
         id: String,
-        task_id: String,
+        workspace_id: String,
         project_id: String,
     },
     ConversationDeleted {
         id: String,
-        task_id: String,
+        workspace_id: String,
         project_id: String,
     },
-    /// Terminal tabs are siblings of conversations under a task.
+    /// Terminal tabs are siblings of conversations under a workspace.
     TerminalCreated {
         id: String,
-        task_id: String,
+        workspace_id: String,
         project_id: String,
     },
     TerminalUpdated {
         id: String,
-        task_id: String,
+        workspace_id: String,
         project_id: String,
     },
     TerminalDeleted {
         id: String,
-        task_id: String,
+        workspace_id: String,
         project_id: String,
     },
     /// A skill was installed (catalog state flipped).

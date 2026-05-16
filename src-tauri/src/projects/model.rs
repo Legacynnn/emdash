@@ -9,7 +9,7 @@ use crate::db::DbError;
 /// Projection of one row from the `projects` table that the renderer
 /// actually consumes. Mirror of the columns used in the v1 CRUD surface.
 /// Fields that exist in the schema but aren't needed yet
-/// (`workspace_provider`, `base_ref`, `ssh_connection_id`) are
+/// (`infra_provider`, `base_ref`, `ssh_connection_id`) are
 /// intentionally omitted — port them when a feature requires them.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
 pub struct Project {

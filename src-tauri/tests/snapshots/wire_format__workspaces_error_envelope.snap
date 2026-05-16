@@ -1,6 +1,5 @@
 ---
 source: tests/wire_format.rs
-assertion_line: 296
 expression: "serde_json::to_value(&err).unwrap()"
 ---
 {

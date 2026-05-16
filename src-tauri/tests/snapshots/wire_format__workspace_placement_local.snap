@@ -1,0 +1,5 @@
+---
+source: tests/wire_format.rs
+expression: "serde_json::to_value(WorkspacePlacement::Local).unwrap()"
+---
+"local"

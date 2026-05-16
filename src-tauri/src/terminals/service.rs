@@ -18,15 +18,18 @@ impl TerminalsService {
         Self { db }
     }
 
-    pub fn list_for_task(&self, task_id: &str) -> Result<Vec<Terminal>, TerminalsError> {
+    pub fn list_for_workspace(
+        &self,
+        workspace_id: &str,
+    ) -> Result<Vec<Terminal>, TerminalsError> {
         let conn = self.db.read()?;
         let mut stmt = conn.prepare(
-            "SELECT id, project_id, task_id, name, ssh, created_at, updated_at \
-             FROM terminals WHERE task_id = ?1 \
+            "SELECT id, project_id, workspace_id, name, ssh, created_at, updated_at \
+             FROM terminals WHERE workspace_id = ?1 \
              ORDER BY created_at ASC, id ASC",
         )?;
         let rows = stmt
-            .query_map(params![task_id], row_to_terminal)?
+            .query_map(params![workspace_id], row_to_terminal)?
             .collect::<Result<Vec<_>, _>>()?;
         Ok(rows)
     }
@@ -34,7 +37,7 @@ impl TerminalsService {
     pub fn get(&self, id: &str) -> Result<Option<Terminal>, TerminalsError> {
         let conn = self.db.read()?;
         let mut stmt = conn.prepare(
-            "SELECT id, project_id, task_id, name, ssh, created_at, updated_at \
+            "SELECT id, project_id, workspace_id, name, ssh, created_at, updated_at \
              FROM terminals WHERE id = ?1",
         )?;
         let mut rows = stmt.query_map(params![id], row_to_terminal)?;
@@ -49,31 +52,31 @@ impl TerminalsService {
         if trimmed.is_empty() {
             return Err(TerminalsError::EmptyName);
         }
-        let task_exists: bool = self
+        let workspace_exists: bool = self
             .db
             .read()?
             .query_row(
-                "SELECT 1 FROM tasks WHERE id = ?1",
-                params![input.task_id],
+                "SELECT 1 FROM workspaces WHERE id = ?1",
+                params![input.workspace_id],
                 |_| Ok(true),
             )
             .or_else(|e| match e {
                 rusqlite::Error::QueryReturnedNoRows => Ok(false),
                 _ => Err(e),
             })?;
-        if !task_exists {
-            return Err(TerminalsError::TaskNotFound(input.task_id));
+        if !workspace_exists {
+            return Err(TerminalsError::WorkspaceNotFound(input.workspace_id));
         }
 
         let id = Uuid::new_v4().to_string();
         let conn = self.db.write()?;
         conn.execute(
-            "INSERT INTO terminals (id, project_id, task_id, name, ssh) \
+            "INSERT INTO terminals (id, project_id, workspace_id, name, ssh) \
              VALUES (?1, ?2, ?3, ?4, ?5)",
             params![
                 id,
                 input.project_id,
-                input.task_id,
+                input.workspace_id,
                 trimmed,
                 input.ssh.unwrap_or(false) as i32,
             ],
@@ -116,7 +119,7 @@ fn row_to_terminal(row: &rusqlite::Row<'_>) -> rusqlite::Result<Terminal> {
     Ok(Terminal {
         id: row.get(0)?,
         project_id: row.get(1)?,
-        task_id: row.get(2)?,
+        workspace_id: row.get(2)?,
         name: row.get(3)?,
         ssh: ssh_int != 0,
         created_at: row.get(5)?,

@@ -1,6 +1,6 @@
-//! Conversations domain. Each task can host multiple conversation
+//! Conversations domain. Each workspace can host multiple conversation
 //! threads (one per agent provider / branch of work). The renderer
-//! displays them as tabs inside a task view.
+//! displays them as tabs inside a workspace view.
 //!
 //! Tauri-runtime-free: deals in `Db` and domain types only. Broadcasts
 //! live at the glue layer in `commands::conversations`.

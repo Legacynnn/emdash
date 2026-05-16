@@ -283,80 +283,164 @@ fn watcher_fallback_inotify_enospc_wire_format() {
     );
 }
 
-// --- tasks -----------------------------------------------------------------
+// --- workspaces ------------------------------------------------------------
 
 #[test]
-fn tasks_list_wire_format() {
+fn workspaces_list_wire_format() {
     let request_args = serde_json::json!({ "projectId": "00000000-0000-0000-0000-000000000001" });
-    insta::assert_json_snapshot!("tasks_list_request_args", request_args);
+    insta::assert_json_snapshot!("workspaces_list_request_args", request_args);
 }
 
 #[test]
-fn tasks_create_wire_format() {
+fn workspaces_create_wire_format() {
     let request_args = serde_json::json!({
         "projectId": "00000000-0000-0000-0000-000000000001",
         "name": "Feature X",
-        "sourceBranch": { "type": "local", "branch": "main" }
+        "sourceBranch": { "type": "local", "branch": "main" },
+        "workspaceBranch": null,
+        "placement": "worktree",
+        "existingBranch": false,
     });
-    insta::assert_json_snapshot!("tasks_create_request_args", request_args);
+    insta::assert_json_snapshot!("workspaces_create_request_args", request_args);
 }
 
 #[test]
-fn tasks_create_wire_format_remote_source() {
+fn workspaces_create_wire_format_remote_source() {
     let request_args = serde_json::json!({
         "projectId": "00000000-0000-0000-0000-000000000001",
         "name": "Feature X",
-        "sourceBranch": { "type": "remote", "host": "origin", "branch": "main" }
+        "sourceBranch": { "type": "remote", "host": "origin", "branch": "main" },
+        "workspaceBranch": null,
+        "placement": "worktree",
+        "existingBranch": false,
     });
-    insta::assert_json_snapshot!("tasks_create_request_args_remote", request_args);
+    insta::assert_json_snapshot!("workspaces_create_request_args_remote", request_args);
 }
 
 #[test]
-fn tasks_delete_wire_format() {
+fn workspaces_create_wire_format_local_existing() {
+    let request_args = serde_json::json!({
+        "projectId": "00000000-0000-0000-0000-000000000001",
+        "name": "ongoing work",
+        "sourceBranch": { "type": "local", "branch": "feat/in-progress" },
+        "workspaceBranch": "feat/in-progress",
+        "placement": "local",
+        "existingBranch": true,
+    });
+    insta::assert_json_snapshot!(
+        "workspaces_create_request_args_local_existing",
+        request_args
+    );
+}
+
+#[test]
+fn workspaces_delete_wire_format() {
     let request_args = serde_json::json!({ "id": "00000000-0000-0000-0000-000000000001" });
-    insta::assert_json_snapshot!("tasks_delete_request_args", request_args);
+    insta::assert_json_snapshot!("workspaces_delete_request_args", request_args);
 }
 
 #[test]
-fn task_response_shape() {
-    use emdash_dev::tasks::model::TaskStatus;
-    use emdash_dev::tasks::{Task, TaskSourceBranch};
-    let task = Task {
+fn workspace_response_shape() {
+    use emdash_dev::workspaces::model::WorkspaceStatus;
+    use emdash_dev::workspaces::{Workspace, WorkspacePlacement, WorkspaceSourceBranch};
+    let workspace = Workspace {
         id: "00000000-0000-0000-0000-000000000001".into(),
         project_id: "00000000-0000-0000-0000-000000000002".into(),
         name: "Feature X".into(),
-        status: TaskStatus::Active,
-        path: "/Users/example/code/repo/.emdash-worktrees/00000000-0000-0000-0000-000000000001"
-            .into(),
-        source_branch: TaskSourceBranch::Local {
+        status: WorkspaceStatus::Active,
+        placement: WorkspacePlacement::Worktree,
+        path: "/Users/example/code/repo/.emdash-worktrees/feature-x".into(),
+        source_branch: WorkspaceSourceBranch::Local {
             branch: "main".into(),
         },
         pty_id: None,
         created_at: "2026-05-15 00:00:00".into(),
         updated_at: "2026-05-15 00:00:00".into(),
     };
-    insta::assert_json_snapshot!("task_response", serde_json::to_value(&task).unwrap());
+    insta::assert_json_snapshot!(
+        "workspace_response",
+        serde_json::to_value(&workspace).unwrap()
+    );
 }
 
 #[test]
-fn tasks_error_envelope_shape() {
-    use emdash_dev::commands::tasks::{TasksCommandError, TasksErrorCode};
-    let err = TasksCommandError {
-        code: TasksErrorCode::WorktreeFailed,
-        message: "git worktree add failed: fatal: ...".to_string(),
+fn workspace_response_local_shape() {
+    use emdash_dev::workspaces::model::WorkspaceStatus;
+    use emdash_dev::workspaces::{Workspace, WorkspacePlacement, WorkspaceSourceBranch};
+    let workspace = Workspace {
+        id: "00000000-0000-0000-0000-000000000003".into(),
+        project_id: "00000000-0000-0000-0000-000000000002".into(),
+        name: "in-place".into(),
+        status: WorkspaceStatus::Active,
+        placement: WorkspacePlacement::Local,
+        path: "/Users/example/code/repo".into(),
+        source_branch: WorkspaceSourceBranch::Local {
+            branch: "main".into(),
+        },
+        pty_id: None,
+        created_at: "2026-05-15 00:00:00".into(),
+        updated_at: "2026-05-15 00:00:00".into(),
     };
-    insta::assert_json_snapshot!("tasks_error_envelope", serde_json::to_value(&err).unwrap());
+    insta::assert_json_snapshot!(
+        "workspace_response_local",
+        serde_json::to_value(&workspace).unwrap()
+    );
 }
 
 #[test]
-fn ui_mutation_event_task_created_wire_format() {
+fn workspaces_error_envelope_shape() {
+    use emdash_dev::commands::workspaces::{WorkspacesCommandError, WorkspacesErrorCode};
+    let err = WorkspacesCommandError {
+        code: WorkspacesErrorCode::WorktreeFailed,
+        message: "git worktree add failed: fatal: ...".to_string(),
+        existing_workspace_id: None,
+        changed_files: None,
+    };
+    insta::assert_json_snapshot!(
+        "workspaces_error_envelope",
+        serde_json::to_value(&err).unwrap()
+    );
+}
+
+#[test]
+fn workspaces_error_envelope_local_slot_taken() {
+    use emdash_dev::commands::workspaces::{WorkspacesCommandError, WorkspacesErrorCode};
+    let err = WorkspacesCommandError {
+        code: WorkspacesErrorCode::LocalSlotTaken,
+        message: "project already has an active local workspace: feature-x".to_string(),
+        existing_workspace_id: Some("00000000-0000-0000-0000-000000000001".into()),
+        changed_files: None,
+    };
+    insta::assert_json_snapshot!(
+        "workspaces_error_envelope_local_slot_taken",
+        serde_json::to_value(&err).unwrap()
+    );
+}
+
+#[test]
+fn workspaces_error_envelope_dirty_tree() {
+    use emdash_dev::commands::workspaces::{WorkspacesCommandError, WorkspacesErrorCode};
+    let err = WorkspacesCommandError {
+        code: WorkspacesErrorCode::DirtyTree,
+        message: "project working tree is dirty".to_string(),
+        existing_workspace_id: None,
+        changed_files: Some(vec!["src/lib.rs".into(), "Cargo.lock".into()]),
+    };
+    insta::assert_json_snapshot!(
+        "workspaces_error_envelope_dirty_tree",
+        serde_json::to_value(&err).unwrap()
+    );
+}
+
+#[test]
+fn ui_mutation_event_workspace_created_wire_format() {
     use emdash_dev::ui_sync::UiMutationEvent;
-    let event = UiMutationEvent::TaskCreated {
-        id: "t1".into(),
+    let event = UiMutationEvent::WorkspaceCreated {
+        id: "w1".into(),
         project_id: "p1".into(),
     };
     insta::assert_json_snapshot!(
-        "ui_mutation_event_task_created",
+        "ui_mutation_event_workspace_created",
         serde_json::to_value(&event).unwrap()
     );
 }
@@ -453,53 +537,71 @@ fn ui_mutation_github_identity_changed_wire_format() {
 }
 
 #[test]
-fn ui_mutation_event_task_updated_wire_format() {
+fn ui_mutation_event_workspace_updated_wire_format() {
     use emdash_dev::ui_sync::UiMutationEvent;
-    let event = UiMutationEvent::TaskUpdated {
-        id: "t1".into(),
+    let event = UiMutationEvent::WorkspaceUpdated {
+        id: "w1".into(),
         project_id: "p1".into(),
     };
     insta::assert_json_snapshot!(
-        "ui_mutation_event_task_updated",
+        "ui_mutation_event_workspace_updated",
         serde_json::to_value(&event).unwrap()
     );
 }
 
 #[test]
-fn ui_mutation_event_task_deleted_wire_format() {
+fn ui_mutation_event_workspace_deleted_wire_format() {
     use emdash_dev::ui_sync::UiMutationEvent;
-    let event = UiMutationEvent::TaskDeleted {
-        id: "t1".into(),
+    let event = UiMutationEvent::WorkspaceDeleted {
+        id: "w1".into(),
         project_id: "p1".into(),
     };
     insta::assert_json_snapshot!(
-        "ui_mutation_event_task_deleted",
+        "ui_mutation_event_workspace_deleted",
         serde_json::to_value(&event).unwrap()
     );
 }
 
 #[test]
-fn task_source_branch_local_wire_format() {
-    use emdash_dev::tasks::TaskSourceBranch;
-    let s = TaskSourceBranch::Local {
+fn workspace_source_branch_local_wire_format() {
+    use emdash_dev::workspaces::WorkspaceSourceBranch;
+    let s = WorkspaceSourceBranch::Local {
         branch: "main".into(),
     };
     insta::assert_json_snapshot!(
-        "task_source_branch_local",
+        "workspace_source_branch_local",
         serde_json::to_value(&s).unwrap()
     );
 }
 
 #[test]
-fn task_source_branch_remote_wire_format() {
-    use emdash_dev::tasks::TaskSourceBranch;
-    let s = TaskSourceBranch::Remote {
+fn workspace_source_branch_remote_wire_format() {
+    use emdash_dev::workspaces::WorkspaceSourceBranch;
+    let s = WorkspaceSourceBranch::Remote {
         host: "origin".into(),
         branch: "main".into(),
     };
     insta::assert_json_snapshot!(
-        "task_source_branch_remote",
+        "workspace_source_branch_remote",
         serde_json::to_value(&s).unwrap()
+    );
+}
+
+#[test]
+fn workspace_placement_worktree_wire_format() {
+    use emdash_dev::workspaces::WorkspacePlacement;
+    insta::assert_json_snapshot!(
+        "workspace_placement_worktree",
+        serde_json::to_value(WorkspacePlacement::Worktree).unwrap()
+    );
+}
+
+#[test]
+fn workspace_placement_local_wire_format() {
+    use emdash_dev::workspaces::WorkspacePlacement;
+    insta::assert_json_snapshot!(
+        "workspace_placement_local",
+        serde_json::to_value(WorkspacePlacement::Local).unwrap()
     );
 }
 
@@ -757,7 +859,7 @@ fn agent_event_stop_wire_format() {
         kind: AgentEventKind::Stop,
         message: Some("session ended".into()),
         timestamp: "2026-05-15T17:00:00+00:00".into(),
-        task_id: None,
+        workspace_id: None,
         project_id: None,
     };
     insta::assert_json_snapshot!("agent_event_stop", serde_json::to_value(&event).unwrap());
@@ -775,7 +877,7 @@ fn agent_event_notification_tool_use_wire_format() {
         },
         message: Some("tool: Bash".into()),
         timestamp: "2026-05-15T17:00:00+00:00".into(),
-        task_id: None,
+        workspace_id: None,
         project_id: None,
     };
     insta::assert_json_snapshot!(
@@ -793,7 +895,7 @@ fn agent_event_unknown_wire_format() {
         kind: AgentEventKind::Unknown,
         message: None,
         timestamp: "2026-05-15T17:00:00+00:00".into(),
-        task_id: None,
+        workspace_id: None,
         project_id: None,
     };
     insta::assert_json_snapshot!("agent_event_unknown", serde_json::to_value(&event).unwrap());
@@ -809,11 +911,11 @@ fn ui_mutation_agent_hook_event_wire_format() {
         kind: AgentEventKind::Stop,
         message: None,
         timestamp: "2026-05-15T17:00:00+00:00".into(),
-        task_id: None,
+        workspace_id: None,
         project_id: None,
     };
     let event = UiMutationEvent::AgentHookEvent {
-        task_id: Some("task-1".into()),
+        workspace_id: Some("ws-1".into()),
         event: inner,
     };
     insta::assert_json_snapshot!(
@@ -839,7 +941,7 @@ fn ui_mutation_github_data_changed_wire_format() {
 #[test]
 fn agents_start_wire_format() {
     let args = serde_json::json!({
-        "taskId": "task-1",
+        "workspaceId": "ws-1",
         "provider": "claude",
         "size": { "rows": 24, "cols": 80 },
     });
@@ -848,7 +950,7 @@ fn agents_start_wire_format() {
 
 #[test]
 fn agents_stop_wire_format() {
-    let args = serde_json::json!({ "taskId": "task-1" });
+    let args = serde_json::json!({ "workspaceId": "ws-1" });
     insta::assert_json_snapshot!("agents_stop_request_args", args);
 }
 
@@ -866,7 +968,7 @@ fn ui_mutation_agent_started_wire_format() {
     use emdash_dev::agents::AgentProvider;
     use emdash_dev::ui_sync::UiMutationEvent;
     let event = UiMutationEvent::AgentStarted {
-        task_id: "task-1".into(),
+        workspace_id: "ws-1".into(),
         provider: AgentProvider::Claude,
     };
     insta::assert_json_snapshot!(
@@ -879,7 +981,7 @@ fn ui_mutation_agent_started_wire_format() {
 fn ui_mutation_agent_exited_wire_format() {
     use emdash_dev::ui_sync::UiMutationEvent;
     let event = UiMutationEvent::AgentExited {
-        task_id: "task-1".into(),
+        workspace_id: "ws-1".into(),
         exit_code: Some(0),
     };
     insta::assert_json_snapshot!(

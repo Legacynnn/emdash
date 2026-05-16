@@ -18,20 +18,23 @@ impl ConversationsService {
         Self { db }
     }
 
-    /// List conversations belonging to `task_id`. Newest-interacted
+    /// List conversations belonging to `workspace_id`. Newest-interacted
     /// first so the renderer's tab order matches recency.
-    pub fn list_for_task(&self, task_id: &str) -> Result<Vec<Conversation>, ConversationsError> {
+    pub fn list_for_workspace(
+        &self,
+        workspace_id: &str,
+    ) -> Result<Vec<Conversation>, ConversationsError> {
         let conn = self.db.read()?;
         let mut stmt = conn.prepare(
-            "SELECT id, project_id, task_id, title, provider, config, \
+            "SELECT id, project_id, workspace_id, title, provider, config, \
                     COALESCE(is_initial_conversation, 0), last_interacted_at, \
                     created_at, updated_at \
              FROM conversations \
-             WHERE task_id = ?1 \
+             WHERE workspace_id = ?1 \
              ORDER BY COALESCE(last_interacted_at, created_at) DESC, id ASC",
         )?;
         let rows = stmt
-            .query_map(params![task_id], row_to_conversation)?
+            .query_map(params![workspace_id], row_to_conversation)?
             .collect::<Result<Vec<_>, _>>()?;
         Ok(rows)
     }
@@ -39,7 +42,7 @@ impl ConversationsService {
     pub fn get(&self, id: &str) -> Result<Option<Conversation>, ConversationsError> {
         let conn = self.db.read()?;
         let mut stmt = conn.prepare(
-            "SELECT id, project_id, task_id, title, provider, config, \
+            "SELECT id, project_id, workspace_id, title, provider, config, \
                     COALESCE(is_initial_conversation, 0), last_interacted_at, \
                     created_at, updated_at \
              FROM conversations \
@@ -61,20 +64,20 @@ impl ConversationsService {
             return Err(ConversationsError::EmptyTitle);
         }
         let id = Uuid::new_v4().to_string();
-        let task_exists: bool = self
+        let workspace_exists: bool = self
             .db
             .read()?
             .query_row(
-                "SELECT 1 FROM tasks WHERE id = ?1",
-                params![input.task_id],
+                "SELECT 1 FROM workspaces WHERE id = ?1",
+                params![input.workspace_id],
                 |_| Ok(true),
             )
             .or_else(|e| match e {
                 rusqlite::Error::QueryReturnedNoRows => Ok(false),
                 _ => Err(e),
             })?;
-        if !task_exists {
-            return Err(ConversationsError::TaskNotFound(input.task_id));
+        if !workspace_exists {
+            return Err(ConversationsError::WorkspaceNotFound(input.workspace_id));
         }
 
         let now_iso = chrono::Utc::now().to_rfc3339();
@@ -82,13 +85,13 @@ impl ConversationsService {
         let conn = self.db.write()?;
         conn.execute(
             "INSERT INTO conversations \
-                 (id, project_id, task_id, title, provider, config, \
+                 (id, project_id, workspace_id, title, provider, config, \
                   is_initial_conversation, last_interacted_at) \
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
             params![
                 id,
                 input.project_id,
-                input.task_id,
+                input.workspace_id,
                 trimmed,
                 input.provider,
                 input.config,
@@ -150,7 +153,7 @@ fn row_to_conversation(row: &rusqlite::Row<'_>) -> rusqlite::Result<Conversation
     Ok(Conversation {
         id: row.get(0)?,
         project_id: row.get(1)?,
-        task_id: row.get(2)?,
+        workspace_id: row.get(2)?,
         title: row.get(3)?,
         provider: row.get(4)?,
         config: row.get(5)?,

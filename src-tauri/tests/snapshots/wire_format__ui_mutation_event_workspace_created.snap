@@ -1,10 +1,9 @@
 ---
 source: tests/wire_format.rs
-assertion_line: 332
 expression: "serde_json::to_value(&event).unwrap()"
 ---
 {
-  "id": "t1",
-  "kind": "task_deleted",
+  "id": "w1",
+  "kind": "workspace_created",
   "project_id": "p1"
 }

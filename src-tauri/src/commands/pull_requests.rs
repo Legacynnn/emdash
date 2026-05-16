@@ -23,7 +23,7 @@ pub fn pull_requests_list() -> Vec<PullRequestStub> {
 
 #[tauri::command]
 #[specta::specta]
-pub fn pull_requests_for_task(_task_id: String) -> Vec<PullRequestStub> {
+pub fn pull_requests_for_workspace(_workspace_id: String) -> Vec<PullRequestStub> {
     Vec::new()
 }
 

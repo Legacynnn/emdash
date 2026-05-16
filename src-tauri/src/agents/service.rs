@@ -1,14 +1,14 @@
-//! `AgentService` — start/stop an agent for a task.
+//! `AgentService` — start/stop an agent for a workspace.
 //!
 //! Composes:
-//! - `tasks::TasksService` to resolve the task → worktree path,
+//! - `workspaces::WorkspacesService` to resolve the workspace → path,
 //!   `pty_id` column update on start/stop
 //! - `pty::Registry` to spawn the PTY itself
 //! - `shell_env::shell_env()` for the captured login-shell env
 //! - `agent_hooks::inject_hook_env_into` to plant the hook URL +
 //!   token before spawn
-//! - `WorkspaceFsMutationLock` (re-used from tasks) so concurrent
-//!   start/stop on the same task serialize cleanly
+//! - `WorkspaceFsMutationLock` (re-used from workspaces) so concurrent
+//!   start/stop on the same workspace serialize cleanly
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -22,15 +22,15 @@ use crate::db::{Db, DbError};
 use crate::pty::registry::Registry as PtyRegistry;
 use crate::pty::types::{PtyId, PtySize, SpawnOptions};
 use crate::shell_env;
-use crate::tasks::{TasksService, WorkspaceFsMutationLock};
+use crate::workspaces::{WorkspaceFsMutationLock, WorkspacesService};
 
 use super::provider::{provider_spec, AgentProvider};
 
 #[derive(Debug, Error)]
 pub enum AgentsError {
-    #[error("task not found: {0}")]
-    TaskNotFound(String),
-    #[error("task already has an agent running (pty {0})")]
+    #[error("workspace not found: {0}")]
+    WorkspaceNotFound(String),
+    #[error("workspace already has an agent running (pty {0})")]
     AlreadyRunning(String),
     #[error("db error: {0}")]
     Db(#[from] DbError),
@@ -38,8 +38,8 @@ pub enum AgentsError {
     Sqlite(#[from] rusqlite::Error),
     #[error("pty error: {0}")]
     Pty(String),
-    #[error("tasks error: {0}")]
-    Tasks(String),
+    #[error("workspaces error: {0}")]
+    Workspaces(String),
 }
 
 /// Callback the Tauri glue passes in. The host wires this so each
@@ -76,24 +76,24 @@ impl AgentService {
         }
     }
 
-    /// Start an agent for `task_id`. Returns the freshly-spawned
+    /// Start an agent for `workspace_id`. Returns the freshly-spawned
     /// `PtyId`. Side effects:
-    /// - `tasks.pty_id` updated to the new PTY id
+    /// - `workspaces.pty_id` updated to the new PTY id
     /// - PTY output streamed via `on_output`
     /// - hook env vars injected at spawn time
     pub fn start(
         &self,
-        task_id: &str,
+        workspace_id: &str,
         provider: AgentProvider,
         size: PtySize,
         on_output: OutputCallback,
     ) -> Result<PtyId, AgentsError> {
-        // Serialize start/stop on the same task so concurrent
+        // Serialize start/stop on the same workspace so concurrent
         // requests can't double-spawn.
-        let mutex = self.fs_lock.lock_for(task_id);
+        let mutex = self.fs_lock.lock_for(workspace_id);
         let _guard = mutex.lock();
 
-        let (worktree_path, existing_pty_id) = self.fetch_task_meta(task_id)?;
+        let (workspace_path, existing_pty_id) = self.fetch_workspace_meta(workspace_id)?;
         if let Some(existing) = existing_pty_id {
             return Err(AgentsError::AlreadyRunning(existing));
         }
@@ -108,7 +108,7 @@ impl AgentService {
         let opts = SpawnOptions {
             command: spec.binary.to_string(),
             args: spec.args.clone(),
-            cwd: Some(worktree_path.to_string_lossy().to_string()),
+            cwd: Some(workspace_path.to_string_lossy().to_string()),
             env,
             size,
         };
@@ -118,54 +118,62 @@ impl AgentService {
             .spawn(opts, move |bytes| on_output(bytes))
             .map_err(|e| AgentsError::Pty(format!("{e:?}")))?;
 
-        self.update_task_pty_id(task_id, Some(&pty_id.0.to_string()))?;
+        self.update_workspace_pty_id(workspace_id, Some(&pty_id.0.to_string()))?;
         Ok(pty_id)
     }
 
-    /// Stop the running agent. Idempotent — calling on a task with
+    /// Stop the running agent. Idempotent — calling on a workspace with
     /// no agent is a no-op.
-    pub fn stop(&self, task_id: &str) -> Result<(), AgentsError> {
-        let mutex = self.fs_lock.lock_for(task_id);
+    pub fn stop(&self, workspace_id: &str) -> Result<(), AgentsError> {
+        let mutex = self.fs_lock.lock_for(workspace_id);
         let _guard = mutex.lock();
 
-        let (_path, existing_pty_id) = self.fetch_task_meta(task_id)?;
+        let (_path, existing_pty_id) = self.fetch_workspace_meta(workspace_id)?;
         if let Some(id_str) = existing_pty_id {
             if let Ok(id_num) = id_str.parse::<u32>() {
                 let _ = self.pty.kill(PtyId(id_num));
             }
         }
-        self.update_task_pty_id(task_id, None)?;
+        self.update_workspace_pty_id(workspace_id, None)?;
         Ok(())
     }
 
-    /// `(worktree_path, current_pty_id)` for the task.
-    fn fetch_task_meta(&self, task_id: &str) -> Result<(PathBuf, Option<String>), AgentsError> {
+    /// `(workspace_path, current_pty_id)` for the workspace.
+    fn fetch_workspace_meta(
+        &self,
+        workspace_id: &str,
+    ) -> Result<(PathBuf, Option<String>), AgentsError> {
         use rusqlite::OptionalExtension;
         let conn = self.db.read()?;
         let row = conn
             .query_row(
-                "SELECT path, pty_id FROM tasks WHERE id = ?",
-                params![task_id],
+                "SELECT path, pty_id FROM workspaces WHERE id = ?",
+                params![workspace_id],
                 |r| Ok((r.get::<_, String>(0)?, r.get::<_, Option<String>>(1)?)),
             )
             .optional()?;
-        let (path, pty_id) = row.ok_or_else(|| AgentsError::TaskNotFound(task_id.to_string()))?;
+        let (path, pty_id) =
+            row.ok_or_else(|| AgentsError::WorkspaceNotFound(workspace_id.to_string()))?;
         Ok((PathBuf::from(path), pty_id))
     }
 
-    fn update_task_pty_id(&self, task_id: &str, pty_id: Option<&str>) -> Result<(), AgentsError> {
+    fn update_workspace_pty_id(
+        &self,
+        workspace_id: &str,
+        pty_id: Option<&str>,
+    ) -> Result<(), AgentsError> {
         let conn = self.db.write()?;
         conn.execute(
-            "UPDATE tasks SET pty_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-            params![pty_id, task_id],
+            "UPDATE workspaces SET pty_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            params![pty_id, workspace_id],
         )?;
         Ok(())
     }
 }
 
 /// Convenience helper for the renderer-side stream wiring. The
-/// `TasksService` reference exists today to keep this struct
+/// `WorkspacesService` reference exists today to keep this struct
 /// composable later; v1 only needs `Db + Registry + fs_lock + hook
 /// coordinates`.
 #[allow(dead_code)]
-fn _tasks_service_anchor(_: &TasksService) {}
+fn _workspaces_service_anchor(_: &WorkspacesService) {}

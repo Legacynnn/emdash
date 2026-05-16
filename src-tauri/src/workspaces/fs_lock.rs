@@ -1,9 +1,9 @@
 //! `WorkspaceFsMutationLock` — Helmor-style per-workspace mutex.
 //!
 //! Serializes worktree create/destroy with the matching DB row update
-//! so two concurrent `tasks.create / tasks.delete` calls targeting the
-//! same workspace can't interleave: one acquires the per-workspace
-//! `Mutex` and the other waits.
+//! so two concurrent `workspaces.create / workspaces.delete` calls
+//! targeting the same workspace can't interleave: one acquires the
+//! per-workspace `Mutex` and the other waits.
 //!
 //! Implementation: a `parking_lot::Mutex<HashMap<String, Arc<Mutex<()>>>>`
 //! map. Each `lock_for(id)` call returns an `Arc<Mutex<()>>` that the

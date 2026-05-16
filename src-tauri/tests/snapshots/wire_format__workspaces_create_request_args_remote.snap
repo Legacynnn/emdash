@@ -1,14 +1,16 @@
 ---
 source: tests/wire_format.rs
-assertion_line: 262
 expression: request_args
 ---
 {
+  "existingBranch": false,
   "name": "Feature X",
+  "placement": "worktree",
   "projectId": "00000000-0000-0000-0000-000000000001",
   "sourceBranch": {
     "branch": "main",
     "host": "origin",
     "type": "remote"
-  }
+  },
+  "workspaceBranch": null
 }

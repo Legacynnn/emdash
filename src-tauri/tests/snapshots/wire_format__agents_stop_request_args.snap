@@ -1,8 +1,7 @@
 ---
 source: tests/wire_format.rs
-assertion_line: 834
 expression: args
 ---
 {
-  "taskId": "task-1"
+  "workspaceId": "ws-1"
 }

@@ -14,7 +14,7 @@ use crate::db::DbError;
 pub struct Conversation {
     pub id: String,
     pub project_id: String,
-    pub task_id: String,
+    pub workspace_id: String,
     pub title: String,
     pub provider: Option<String>,
     pub config: Option<String>,
@@ -27,7 +27,7 @@ pub struct Conversation {
 #[derive(Clone, Debug, Deserialize, Type)]
 pub struct NewConversationInput {
     pub project_id: String,
-    pub task_id: String,
+    pub workspace_id: String,
     pub title: String,
     pub provider: Option<String>,
     pub config: Option<String>,
@@ -38,8 +38,8 @@ pub struct NewConversationInput {
 pub enum ConversationsError {
     #[error("conversation not found: {0}")]
     NotFound(String),
-    #[error("task not found: {0}")]
-    TaskNotFound(String),
+    #[error("workspace not found: {0}")]
+    WorkspaceNotFound(String),
     #[error("title is empty")]
     EmptyTitle,
     #[error("db error: {0}")]

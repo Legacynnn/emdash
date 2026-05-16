@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 /// Renderer-visible projection of one classified hook event.
-/// `task_id` / `project_id` are filled in by the agent-spawn site
+/// `workspace_id` / `project_id` are filled in by the agent-spawn site
 /// (EMD-27) once it lands; until then they're `None` for every
 /// event.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -20,7 +20,7 @@ pub struct AgentEvent {
     /// Set by the agent-spawn site (EMD-27) when it injects the
     /// hook env vars; `None` for raw events received before any
     /// spawn integration.
-    pub task_id: Option<String>,
+    pub workspace_id: Option<String>,
     pub project_id: Option<String>,
 }
 

@@ -1,6 +1,5 @@
 ---
 source: tests/wire_format.rs
-assertion_line: 310
 expression: "serde_json::to_value(&event).unwrap()"
 ---
 {
@@ -12,9 +11,9 @@ expression: "serde_json::to_value(&event).unwrap()"
     },
     "message": null,
     "project_id": null,
-    "task_id": null,
-    "timestamp": "2026-05-15T17:00:00+00:00"
+    "timestamp": "2026-05-15T17:00:00+00:00",
+    "workspace_id": null
   },
   "kind": "agent_hook_event",
-  "task_id": "task-1"
+  "workspace_id": "ws-1"
 }

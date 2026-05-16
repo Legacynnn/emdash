@@ -9,11 +9,11 @@ use emdash_dev::{
     agent_hooks, agents, bindings_parser, db, editor_buffers, fs_watcher, git, greeting, projects,
     providers,
     secrets::{aead, master_key},
-    shell_env, tasks,
+    shell_env,
     telemetry::{
         config as telemetry_config, event as telemetry_event, settings as telemetry_settings,
     },
-    ui_sync, updater, view_state,
+    ui_sync, updater, view_state, workspaces,
 };
 
 const NAME: &str = env!("CARGO_PKG_NAME");
@@ -70,9 +70,9 @@ fn link_domain_modules() {
     // lives in commands::fs_watcher).
     let _registry = fs_watcher::WatcherRegistry::new();
     let _: Option<fs_watcher::WatchEvent> = None;
-    // tasks + git: type references so the symbols link.
-    let _ = tasks::WorkspaceFsMutationLock::new();
-    let _: Option<tasks::TasksService> = None;
+    // workspaces + git: type references so the symbols link.
+    let _ = workspaces::WorkspaceFsMutationLock::new();
+    let _: Option<workspaces::WorkspacesService> = None;
     let _: Result<Option<String>, git::GitError> = Ok(None);
     // telemetry: domain-only reference. The runtime requires tokio + Db,
     // which we don't pull in this binary — referencing the build-time

@@ -32,7 +32,7 @@ CREATE TABLE projects (
     id text PRIMARY KEY NOT NULL,
     name text NOT NULL,
     path text NOT NULL,
-    workspace_provider text NOT NULL DEFAULT 'local',
+    infra_provider text NOT NULL DEFAULT 'local',
     base_ref text,
     ssh_connection_id text REFERENCES ssh_connections(id) ON DELETE SET NULL,
     created_at text NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -67,49 +67,37 @@ CREATE TABLE app_settings (
 );
 CREATE UNIQUE INDEX idx_app_settings_key ON app_settings (key);
 
--- tasks --------------------------------------------------------------------
--- `path` and `pty_id` are emdash-dev additions (EMD-17 / EMD-27) that the
--- Electron schema doesn't carry. `source_branch` is treated as a JSON
--- discriminator from day one: `{"type":"local","branch":"..."}` or
--- `{"type":"remote","host":"...","branch":"..."}`. We keep `text` storage
--- because rusqlite has no first-class JSON column type; the domain layer
+-- workspaces ---------------------------------------------------------------
+-- A workspace is one unit of work inside a project. `placement` controls
+-- whether the work lives in a git worktree under `.emdash-worktrees/<branch>/`
+-- ('worktree') or in the project directory itself ('local'). `path` is the
+-- on-disk root: worktree dir for 'worktree', project root for 'local'.
+-- `source_branch` is a JSON discriminator: `{"type":"local","branch":"..."}`
+-- or `{"type":"remote","host":"...","branch":"..."}`. The domain layer
 -- decodes/encodes on read/write.
-CREATE TABLE tasks (
+CREATE TABLE workspaces (
     id text PRIMARY KEY NOT NULL,
     project_id text NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     name text NOT NULL,
     status text NOT NULL,
+    placement text NOT NULL DEFAULT 'worktree',
     path text NOT NULL,
     pty_id text,
     source_branch text,
-    task_branch text,
+    workspace_branch text,
     linked_issue text,
     archived_at text,
     created_at text NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at text NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_interacted_at text,
     status_changed_at text NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    is_pinned integer NOT NULL DEFAULT 0,
-    workspace_provider text,
-    workspace_id text,
-    workspace_provider_data text
+    is_pinned integer NOT NULL DEFAULT 0
 );
-CREATE INDEX idx_tasks_project_id ON tasks (project_id);
-CREATE INDEX idx_tasks_pty_id ON tasks (pty_id) WHERE pty_id IS NOT NULL;
-
--- workspaces ---------------------------------------------------------------
-CREATE TABLE workspaces (
-    id text PRIMARY KEY NOT NULL,
-    key text,
-    type text NOT NULL,
-    data text,
-    path text,
-    lines_added integer,
-    lines_deleted integer,
-    created_at text NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at text NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-CREATE UNIQUE INDEX idx_workspaces_key ON workspaces (key) WHERE key IS NOT NULL;
+CREATE INDEX idx_workspaces_project_id ON workspaces (project_id);
+CREATE INDEX idx_workspaces_pty_id ON workspaces (pty_id) WHERE pty_id IS NOT NULL;
+CREATE UNIQUE INDEX idx_workspaces_one_local_per_project
+    ON workspaces (project_id)
+    WHERE placement = 'local' AND archived_at IS NULL;
 
 -- pull_request_users -------------------------------------------------------
 CREATE TABLE pull_request_users (
@@ -191,7 +179,7 @@ CREATE INDEX idx_prc_pull_request_url ON pull_request_checks (pull_request_url);
 CREATE TABLE conversations (
     id text PRIMARY KEY NOT NULL,
     project_id text NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    task_id text NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    workspace_id text NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
     title text NOT NULL,
     provider text,
     config text,
@@ -200,19 +188,19 @@ CREATE TABLE conversations (
     last_interacted_at text,
     is_initial_conversation integer
 );
-CREATE INDEX idx_conversations_task_id ON conversations (task_id);
+CREATE INDEX idx_conversations_workspace_id ON conversations (workspace_id);
 
 -- terminals ----------------------------------------------------------------
 CREATE TABLE terminals (
     id text PRIMARY KEY NOT NULL,
     project_id text NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    task_id text NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    workspace_id text NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
     ssh integer NOT NULL DEFAULT 0,
     name text NOT NULL,
     created_at text NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at text NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX idx_terminals_task_id ON terminals (task_id);
+CREATE INDEX idx_terminals_workspace_id ON terminals (workspace_id);
 
 -- messages -----------------------------------------------------------------
 CREATE TABLE messages (
@@ -308,7 +296,6 @@ mod tests {
             "pull_request_users",
             "pull_requests",
             "ssh_connections",
-            "tasks",
             "terminals",
             "workspaces",
         ];

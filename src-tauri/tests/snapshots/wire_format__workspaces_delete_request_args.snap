@@ -1,6 +1,5 @@
 ---
 source: tests/wire_format.rs
-assertion_line: 268
 expression: request_args
 ---
 {

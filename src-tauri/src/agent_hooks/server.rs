@@ -177,7 +177,7 @@ async fn handle_hook(
         kind: classified.kind,
         message: classified.message,
         timestamp: Utc::now().to_rfc3339(),
-        task_id: None,
+        workspace_id: None,
         project_id: None,
     };
     (state.broadcaster)(event);

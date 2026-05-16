@@ -1,10 +1,9 @@
 ---
 source: tests/wire_format.rs
-assertion_line: 867
 expression: "serde_json::to_value(&event).unwrap()"
 ---
 {
   "exit_code": 0,
   "kind": "agent_exited",
-  "task_id": "task-1"
+  "workspace_id": "ws-1"
 }

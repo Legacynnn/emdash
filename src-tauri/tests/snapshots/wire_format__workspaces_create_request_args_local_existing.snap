@@ -1,0 +1,15 @@
+---
+source: tests/wire_format.rs
+expression: request_args
+---
+{
+  "existingBranch": true,
+  "name": "ongoing work",
+  "placement": "local",
+  "projectId": "00000000-0000-0000-0000-000000000001",
+  "sourceBranch": {
+    "branch": "feat/in-progress",
+    "type": "local"
+  },
+  "workspaceBranch": "feat/in-progress"
+}

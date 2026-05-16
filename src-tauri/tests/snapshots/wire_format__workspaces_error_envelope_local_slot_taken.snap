@@ -1,0 +1,9 @@
+---
+source: tests/wire_format.rs
+expression: "serde_json::to_value(&err).unwrap()"
+---
+{
+  "code": "local_slot_taken",
+  "existing_workspace_id": "00000000-0000-0000-0000-000000000001",
+  "message": "project already has an active local workspace: feature-x"
+}

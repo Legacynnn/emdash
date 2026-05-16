@@ -24,9 +24,9 @@ export const commands = {
 	projectsRemove: (id: string) => typedError<null, ProjectsCommandError>(__TAURI_INVOKE("projects_remove", { id })),
 	fsWatcherSubscribe: (id: string, path: string, onEvent: Channel<WatchEvent>) => typedError<WatcherFallback, FsWatcherCommandError>(__TAURI_INVOKE("fs_watcher_subscribe", { id, path, onEvent })),
 	fsWatcherUnsubscribe: (id: string) => typedError<boolean, FsWatcherCommandError>(__TAURI_INVOKE("fs_watcher_unsubscribe", { id })),
-	tasksList: (projectId: string) => typedError<Task[], TasksCommandError>(__TAURI_INVOKE("tasks_list", { projectId })),
-	tasksCreate: (projectId: string, name: string, sourceBranch: TaskSourceBranch, taskBranch: string | null) => typedError<Task, TasksCommandError>(__TAURI_INVOKE("tasks_create", { projectId, name, sourceBranch, taskBranch })),
-	tasksDelete: (id: string) => typedError<null, TasksCommandError>(__TAURI_INVOKE("tasks_delete", { id })),
+	workspacesList: (projectId: string) => typedError<Workspace[], WorkspacesCommandError_Serialize>(__TAURI_INVOKE("workspaces_list", { projectId })),
+	workspacesCreate: (projectId: string, name: string, sourceBranch: WorkspaceSourceBranch, workspaceBranch: string | null, placement: WorkspacePlacement, existingBranch: boolean) => typedError<Workspace, WorkspacesCommandError_Serialize>(__TAURI_INVOKE("workspaces_create", { projectId, name, sourceBranch, workspaceBranch, placement, existingBranch })),
+	workspacesDelete: (id: string) => typedError<null, WorkspacesCommandError_Serialize>(__TAURI_INVOKE("workspaces_delete", { id })),
 	telemetryGetEnabled: () => typedError<boolean, TelemetryCommandError>(__TAURI_INVOKE("telemetry_get_enabled")),
 	telemetrySetEnabled: (enabled: boolean) => typedError<null, TelemetryCommandError>(__TAURI_INVOKE("telemetry_set_enabled", { enabled })),
 	/**
@@ -95,12 +95,12 @@ export const commands = {
 	linearListComments: (issueId: string) => typedError<LinearIssueComment[], LinearCommandError>(__TAURI_INVOKE("linear_list_comments", { issueId })),
 	linearCreateComment: (issueId: string, body: string) => typedError<LinearIssueComment, LinearCommandError>(__TAURI_INVOKE("linear_create_comment", { issueId, body })),
 	/**
-	 *  Spawn `provider` for `task_id`. Returns the PTY id so the
+	 *  Spawn `provider` for `workspace_id`. Returns the PTY id so the
 	 *  renderer can wire `pty_write` / `pty_resize` / `pty_kill` to the
 	 *  same id without a follow-up lookup.
 	 */
-	agentsStart: (taskId: string, provider: AgentProvider, size: PtySize, onOutput: Channel<number[]>) => typedError<PtyId, AgentsCommandError>(__TAURI_INVOKE("agents_start", { taskId, provider, size, onOutput })),
-	agentsStop: (taskId: string) => typedError<null, AgentsCommandError>(__TAURI_INVOKE("agents_stop", { taskId })),
+	agentsStart: (workspaceId: string, provider: AgentProvider, size: PtySize, onOutput: Channel<number[]>) => typedError<PtyId, AgentsCommandError>(__TAURI_INVOKE("agents_start", { workspaceId, provider, size, onOutput })),
+	agentsStop: (workspaceId: string) => typedError<null, AgentsCommandError>(__TAURI_INVOKE("agents_stop", { workspaceId })),
 	agentsListProviders: () => __TAURI_INVOKE<ProviderSpec[]>("agents_list_providers"),
 	/**
 	 *  Cargo-derived version string. The renderer's about-screen displays
@@ -169,26 +169,26 @@ export const commands = {
 } | null, FsCommandError>(__TAURI_INVOKE("fs_stat_file", { path })),
 	fsListFiles: (path: string, includeHidden: boolean | null) => typedError<FsListEntry[], FsCommandError>(__TAURI_INVOKE("fs_list_files", { path, includeHidden })),
 	fsReadImage: (path: string) => typedError<FsImageData, FsCommandError>(__TAURI_INVOKE("fs_read_image", { path })),
-	conversationsListForTask: (taskId: string) => typedError<Conversation[], ConversationsCommandError>(__TAURI_INVOKE("conversations_list_for_task", { taskId })),
+	conversationsListForWorkspace: (workspaceId: string) => typedError<Conversation[], ConversationsCommandError>(__TAURI_INVOKE("conversations_list_for_workspace", { workspaceId })),
 	conversationsCreate: (input: NewConversationInput) => typedError<Conversation, ConversationsCommandError>(__TAURI_INVOKE("conversations_create", { input })),
 	conversationsRename: (id: string, title: string) => typedError<null, ConversationsCommandError>(__TAURI_INVOKE("conversations_rename", { id, title })),
 	conversationsTouch: (id: string) => typedError<null, ConversationsCommandError>(__TAURI_INVOKE("conversations_touch", { id })),
 	conversationsDelete: (id: string) => typedError<null, ConversationsCommandError>(__TAURI_INVOKE("conversations_delete", { id })),
-	terminalsListForTask: (taskId: string) => typedError<Terminal[], TerminalsCommandError>(__TAURI_INVOKE("terminals_list_for_task", { taskId })),
+	terminalsListForWorkspace: (workspaceId: string) => typedError<Terminal[], TerminalsCommandError>(__TAURI_INVOKE("terminals_list_for_workspace", { workspaceId })),
 	terminalsCreate: (input: NewTerminalInput) => typedError<Terminal, TerminalsCommandError>(__TAURI_INVOKE("terminals_create", { input })),
 	terminalsRename: (id: string, name: string) => typedError<null, TerminalsCommandError>(__TAURI_INVOKE("terminals_rename", { id, name })),
 	terminalsDelete: (id: string) => typedError<null, TerminalsCommandError>(__TAURI_INVOKE("terminals_delete", { id })),
-	tasksRename: (id: string, name: string) => typedError<Task, TasksCommandError>(__TAURI_INVOKE("tasks_rename", { id, name })),
-	tasksArchive: (id: string) => typedError<Task, TasksCommandError>(__TAURI_INVOKE("tasks_archive", { id })),
-	tasksRestore: (id: string) => typedError<Task, TasksCommandError>(__TAURI_INVOKE("tasks_restore", { id })),
-	tasksSetPinned: (id: string, pinned: boolean) => typedError<null, TasksCommandError>(__TAURI_INVOKE("tasks_set_pinned", { id, pinned })),
-	tasksUpdateLinkedIssue: (id: string, linkedIssue: string | null) => typedError<null, TasksCommandError>(__TAURI_INVOKE("tasks_update_linked_issue", { id, linkedIssue })),
+	workspacesRename: (id: string, name: string) => typedError<Workspace, WorkspacesCommandError_Serialize>(__TAURI_INVOKE("workspaces_rename", { id, name })),
+	workspacesArchive: (id: string) => typedError<Workspace, WorkspacesCommandError_Serialize>(__TAURI_INVOKE("workspaces_archive", { id })),
+	workspacesRestore: (id: string) => typedError<Workspace, WorkspacesCommandError_Serialize>(__TAURI_INVOKE("workspaces_restore", { id })),
+	workspacesSetPinned: (id: string, pinned: boolean) => typedError<null, WorkspacesCommandError_Serialize>(__TAURI_INVOKE("workspaces_set_pinned", { id, pinned })),
+	workspacesUpdateLinkedIssue: (id: string, linkedIssue: string | null) => typedError<null, WorkspacesCommandError_Serialize>(__TAURI_INVOKE("workspaces_update_linked_issue", { id, linkedIssue })),
 	/**
 	 *  Compute a short slugged name suggestion. Deterministic — the same
 	 *  `description` always produces the same suggestion. Useful for the
-	 *  renderer's "Generate name" button on new-task dialogs.
+	 *  renderer's "Generate name" button on new-workspace dialogs.
 	 */
-	tasksGenerateName: (description: string) => __TAURI_INVOKE<string>("tasks_generate_name", { description }),
+	workspacesGenerateName: (description: string) => __TAURI_INVOKE<string>("workspaces_generate_name", { description }),
 	gitFullStatus: (workspaceId: string) => typedError<GitFullStatus, GitCommandError>(__TAURI_INVOKE("git_full_status", { workspaceId })),
 	gitChangedFiles: (workspaceId: string) => typedError<GitStatusEntry[], GitCommandError>(__TAURI_INVOKE("git_changed_files", { workspaceId })),
 	gitCurrentBranch: (workspaceId: string) => typedError<string | null, GitCommandError>(__TAURI_INVOKE("git_current_branch", { workspaceId })),
@@ -248,7 +248,7 @@ export const commands = {
 	sshGetConnectionState: () => __TAURI_INVOKE<{ [key in string]: string }>("ssh_get_connection_state"),
 	sshGetHealthStates: () => __TAURI_INVOKE<{ [key in string]: string }>("ssh_get_health_states"),
 	pullRequestsList: () => __TAURI_INVOKE<PullRequestStub[]>("pull_requests_list"),
-	pullRequestsForTask: (taskId: string) => __TAURI_INVOKE<PullRequestStub[]>("pull_requests_for_task", { taskId }),
+	pullRequestsForWorkspace: (workspaceId: string) => __TAURI_INVOKE<PullRequestStub[]>("pull_requests_for_workspace", { workspaceId }),
 	pullRequestsGetComments: (repo: string, number: number) => __TAURI_INVOKE<PrComment[]>("pull_requests_get_comments", { repo, number }),
 	pullRequestsGetFilterOptions: () => __TAURI_INVOKE<PrFilterOptions>("pull_requests_get_filter_options"),
 };
@@ -256,7 +256,7 @@ export const commands = {
 /* Types */
 /**
  *  Renderer-visible projection of one classified hook event.
- *  `task_id` / `project_id` are filled in by the agent-spawn site
+ *  `workspace_id` / `project_id` are filled in by the agent-spawn site
  *  (EMD-27) once it lands; until then they're `None` for every
  *  event.
  */
@@ -276,7 +276,7 @@ export type AgentEvent = {
 	 *  hook env vars; `None` for raw events received before any
 	 *  spawn integration.
 	 */
-	task_id: string | null,
+	workspace_id: string | null,
 	project_id: string | null,
 };
 
@@ -305,7 +305,7 @@ export type AgentsCommandError = {
 	message: string,
 };
 
-export type AgentsErrorCode = "task_not_found" | "already_running" | "spawn_failed" | "storage";
+export type AgentsErrorCode = "workspace_not_found" | "already_running" | "spawn_failed" | "storage";
 
 export type AppCommandError = {
 	code: AppErrorCode,
@@ -400,7 +400,7 @@ export type CommandPaletteResult = {
 export type Conversation = {
 	id: string,
 	project_id: string,
-	task_id: string,
+	workspace_id: string,
 	title: string,
 	provider: string | null,
 	config: string | null,
@@ -415,7 +415,7 @@ export type ConversationsCommandError = {
 	message: string,
 };
 
-export type ConversationsErrorCode = "not_found" | "task_not_found" | "empty_title" | "storage";
+export type ConversationsErrorCode = "not_found" | "workspace_not_found" | "empty_title" | "storage";
 
 export type CredentialKey = {
 	key: string,
@@ -744,7 +744,7 @@ export type McpTransport = "stdio" | "http";
 
 export type NewConversationInput = {
 	project_id: string,
-	task_id: string,
+	workspace_id: string,
 	title: string,
 	provider: string | null,
 	config: string | null,
@@ -753,7 +753,7 @@ export type NewConversationInput = {
 
 export type NewTerminalInput = {
 	project_id: string,
-	task_id: string,
+	workspace_id: string,
 	name: string,
 	ssh: boolean | null,
 };
@@ -782,7 +782,7 @@ export type PrFilterOptions = {
  *  Projection of one row from the `projects` table that the renderer
  *  actually consumes. Mirror of the columns used in the v1 CRUD surface.
  *  Fields that exist in the schema but aren't needed yet
- *  (`workspace_provider`, `base_ref`, `ssh_connection_id`) are
+ *  (`infra_provider`, `base_ref`, `ssh_connection_id`) are
  *  intentionally omitted — port them when a feature requires them.
  */
 export type Project = {
@@ -928,41 +928,6 @@ export type SshConnection = {
 	username: string,
 };
 
-/**
- *  Renderer-facing task projection. Fields beyond v1 (`task_branch`,
- *  `linked_issue`, etc.) live in the DB schema but stay out of this
- *  struct until a feature needs them.
- */
-export type Task = {
-	id: string,
-	project_id: string,
-	name: string,
-	status: TaskStatus,
-	path: string,
-	source_branch: TaskSourceBranch,
-	pty_id: string | null,
-	created_at: string,
-	updated_at: string,
-};
-
-/**
- *  Where the task's worktree branches from. JSON-encoded in the
- *  `source_branch` column; the domain layer is the only thing that
- *  touches the wire format. Schema migration 0002/0003 from Drizzle
- *  history was about turning a plain string into this discriminator —
- *  in emdash-dev's collapsed bootstrap it ships tagged from day one.
- */
-export type TaskSourceBranch = { type: "local"; branch: string } | { type: "remote"; host: string; branch: string };
-
-export type TaskStatus = "active" | "archived";
-
-export type TasksCommandError = {
-	code: TasksErrorCode,
-	message: string,
-};
-
-export type TasksErrorCode = "empty_name" | "empty_branch" | "branch_already_exists" | "project_not_found" | "project_path_invalid" | "not_found" | "worktree_path_exists" | "worktree_failed" | "git" | "storage" | "malformed";
-
 export type TelemetryCommandError = {
 	code: TelemetryErrorCode,
 	message: string,
@@ -979,7 +944,7 @@ export type TelemetryEvent = "app_focus" | "app_unfocus" | "app_dau_ping" | "use
 export type Terminal = {
 	id: string,
 	project_id: string,
-	task_id: string,
+	workspace_id: string,
 	name: string,
 	ssh: boolean,
 	created_at: string,
@@ -991,7 +956,7 @@ export type TerminalsCommandError = {
 	message: string,
 };
 
-export type TerminalsErrorCode = "not_found" | "task_not_found" | "empty_name" | "storage";
+export type TerminalsErrorCode = "not_found" | "workspace_not_found" | "empty_name" | "storage";
 
 /**
  *  Where the stored access token came from. Surfaced to the renderer so
@@ -1001,12 +966,12 @@ export type TerminalsErrorCode = "not_found" | "task_not_found" | "empty_name" |
  */
 export type TokenSource = "secure_storage" | "cli";
 
-export type UiMutationEvent = { kind: "project_created"; id: string } | { kind: "project_updated"; id: string } | { kind: "project_deleted"; id: string } | { kind: "task_created"; id: string; project_id: string } | { kind: "task_updated"; id: string; project_id: string } | { kind: "task_deleted"; id: string; project_id: string } | 
+export type UiMutationEvent = { kind: "project_created"; id: string } | { kind: "project_updated"; id: string } | { kind: "project_deleted"; id: string } | { kind: "workspace_created"; id: string; project_id: string } | { kind: "workspace_updated"; id: string; project_id: string } | { kind: "workspace_deleted"; id: string; project_id: string } | 
 /**
- *  One classified agent-hook event (EMD-9). `task_id` is `None`
+ *  One classified agent-hook event (EMD-9). `workspace_id` is `None`
  *  until the agent-spawn site (EMD-27) injects coordinates.
  */
-{ kind: "agent_hook_event"; task_id: string | null; event: AgentEvent } | 
+{ kind: "agent_hook_event"; workspace_id: string | null; event: AgentEvent } | 
 /**  EMD-13: GitHub identity changed (sign-in / sign-out / refresh). */
 { kind: "github_identity_changed" } | 
 /**
@@ -1018,20 +983,20 @@ export type UiMutationEvent = { kind: "project_created"; id: string } | { kind: 
 { kind: "linear_identity_changed" } | 
 /**  EMD-14: Linear team-scoped data changed (issues, comments). */
 { kind: "linear_data_changed"; team: string } | 
-/**  EMD-27: an agent started for the named task. */
-{ kind: "agent_started"; task_id: string; provider: AgentProvider } | 
+/**  EMD-27: an agent started for the named workspace. */
+{ kind: "agent_started"; workspace_id: string; provider: AgentProvider } | 
 /**
  *  EMD-27: an agent exited (clean or killed). `exit_code` is
  *  `None` when the host stopped the agent before the child
  *  process reported a code.
  */
-{ kind: "agent_exited"; task_id: string; exit_code: number | null } | 
-/**  A conversation was created under a task. */
-{ kind: "conversation_created"; id: string; task_id: string; project_id: string } | 
+{ kind: "agent_exited"; workspace_id: string; exit_code: number | null } | 
+/**  A conversation was created under a workspace. */
+{ kind: "conversation_created"; id: string; workspace_id: string; project_id: string } | 
 /**  A conversation was renamed or had its recency bumped. */
-{ kind: "conversation_updated"; id: string; task_id: string; project_id: string } | { kind: "conversation_deleted"; id: string; task_id: string; project_id: string } | 
-/**  Terminal tabs are siblings of conversations under a task. */
-{ kind: "terminal_created"; id: string; task_id: string; project_id: string } | { kind: "terminal_updated"; id: string; task_id: string; project_id: string } | { kind: "terminal_deleted"; id: string; task_id: string; project_id: string } | 
+{ kind: "conversation_updated"; id: string; workspace_id: string; project_id: string } | { kind: "conversation_deleted"; id: string; workspace_id: string; project_id: string } | 
+/**  Terminal tabs are siblings of conversations under a workspace. */
+{ kind: "terminal_created"; id: string; workspace_id: string; project_id: string } | { kind: "terminal_updated"; id: string; workspace_id: string; project_id: string } | { kind: "terminal_deleted"; id: string; workspace_id: string; project_id: string } | 
 /**  A skill was installed (catalog state flipped). */
 { kind: "skill_installed"; id: string } | 
 /**  A skill was uninstalled. */
@@ -1116,6 +1081,64 @@ export type WatcherFallback = "none" |
  *  with `sysctl fs.inotify.max_user_watches=524288`.
  */
 "inotify_enospc_depth_one";
+
+/**
+ *  Renderer-facing workspace projection. Fields beyond v1
+ *  (`workspace_branch`, `linked_issue`, etc.) live in the DB schema but
+ *  stay out of this struct until a feature needs them.
+ */
+export type Workspace = {
+	id: string,
+	project_id: string,
+	name: string,
+	status: WorkspaceStatus,
+	placement: WorkspacePlacement,
+	path: string,
+	source_branch: WorkspaceSourceBranch,
+	pty_id: string | null,
+	created_at: string,
+	updated_at: string,
+};
+
+/**
+ *  Placement controls how/where the workspace lives on disk.
+ * 
+ *  - `worktree`: a `git worktree` rooted at `.emdash-worktrees/<branch>/`.
+ *  - `local`: the project directory itself. At most one active local
+ *    workspace per project (enforced by a partial-unique DB index).
+ */
+export type WorkspacePlacement = "worktree" | "local";
+
+/**
+ *  Where the workspace's branch is based on. JSON-encoded in the
+ *  `source_branch` column; the domain layer is the only thing that
+ *  touches the wire format.
+ */
+export type WorkspaceSourceBranch = { type: "local"; branch: string } | { type: "remote"; host: string; branch: string };
+
+export type WorkspaceStatus = "active" | "archived";
+
+export type WorkspacesCommandError = WorkspacesCommandError_Serialize | WorkspacesCommandError_Deserialize;
+
+export type WorkspacesCommandError_Deserialize = {
+	code: WorkspacesErrorCode,
+	message: string,
+	/**  Populated for `LocalSlotTaken` — surfaces which workspace is occupying the slot. */
+	existing_workspace_id: string | null,
+	/**  Populated for `DirtyTree`. */
+	changed_files: string[] | null,
+};
+
+export type WorkspacesCommandError_Serialize = {
+	code: WorkspacesErrorCode,
+	message: string,
+	/**  Populated for `LocalSlotTaken` — surfaces which workspace is occupying the slot. */
+	existing_workspace_id?: string | null,
+	/**  Populated for `DirtyTree`. */
+	changed_files?: string[] | null,
+};
+
+export type WorkspacesErrorCode = "empty_name" | "empty_branch" | "branch_already_exists" | "branch_not_found" | "project_not_found" | "project_path_invalid" | "not_found" | "worktree_path_exists" | "worktree_failed" | "switch_failed" | "dirty_tree" | "local_slot_taken" | "git" | "storage" | "malformed";
 
 /* Tauri Specta runtime */
 async function typedError<T, E>(result: Promise<T>): Promise<{ status: "ok"; data: T } | { status: "error"; error: E }> {

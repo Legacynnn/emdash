@@ -10,7 +10,7 @@ use crate::db::DbError;
 pub struct Terminal {
     pub id: String,
     pub project_id: String,
-    pub task_id: String,
+    pub workspace_id: String,
     pub name: String,
     pub ssh: bool,
     pub created_at: String,
@@ -20,7 +20,7 @@ pub struct Terminal {
 #[derive(Clone, Debug, Deserialize, Type)]
 pub struct NewTerminalInput {
     pub project_id: String,
-    pub task_id: String,
+    pub workspace_id: String,
     pub name: String,
     pub ssh: Option<bool>,
 }
@@ -29,8 +29,8 @@ pub struct NewTerminalInput {
 pub enum TerminalsError {
     #[error("terminal not found: {0}")]
     NotFound(String),
-    #[error("task not found: {0}")]
-    TaskNotFound(String),
+    #[error("workspace not found: {0}")]
+    WorkspaceNotFound(String),
     #[error("name is empty")]
     EmptyName,
     #[error("db error: {0}")]

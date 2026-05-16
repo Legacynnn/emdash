@@ -19,7 +19,7 @@ pub struct TerminalsCommandError {
 #[serde(rename_all = "snake_case")]
 pub enum TerminalsErrorCode {
     NotFound,
-    TaskNotFound,
+    WorkspaceNotFound,
     EmptyName,
     Storage,
 }
@@ -28,7 +28,7 @@ impl From<TerminalsError> for TerminalsCommandError {
     fn from(e: TerminalsError) -> Self {
         let code = match &e {
             TerminalsError::NotFound(_) => TerminalsErrorCode::NotFound,
-            TerminalsError::TaskNotFound(_) => TerminalsErrorCode::TaskNotFound,
+            TerminalsError::WorkspaceNotFound(_) => TerminalsErrorCode::WorkspaceNotFound,
             TerminalsError::EmptyName => TerminalsErrorCode::EmptyName,
             TerminalsError::Db(_) | TerminalsError::Sqlite(_) => TerminalsErrorCode::Storage,
         };
@@ -41,11 +41,11 @@ impl From<TerminalsError> for TerminalsCommandError {
 
 #[tauri::command]
 #[specta::specta]
-pub fn terminals_list_for_task(
+pub fn terminals_list_for_workspace(
     service: State<'_, Arc<TerminalsService>>,
-    task_id: String,
+    workspace_id: String,
 ) -> Result<Vec<Terminal>, TerminalsCommandError> {
-    service.list_for_task(&task_id).map_err(Into::into)
+    service.list_for_workspace(&workspace_id).map_err(Into::into)
 }
 
 #[tauri::command]
@@ -56,11 +56,11 @@ pub fn terminals_create(
     input: NewTerminalInput,
 ) -> Result<Terminal, TerminalsCommandError> {
     let project_id = input.project_id.clone();
-    let task_id = input.task_id.clone();
+    let workspace_id = input.workspace_id.clone();
     let term = service.create(input)?;
     manager.broadcast(UiMutationEvent::TerminalCreated {
         id: term.id.clone(),
-        task_id,
+        workspace_id,
         project_id,
     });
     Ok(term)
@@ -78,7 +78,7 @@ pub fn terminals_rename(
     if let Some(term) = service.get(&id)? {
         manager.broadcast(UiMutationEvent::TerminalUpdated {
             id: term.id,
-            task_id: term.task_id,
+            workspace_id: term.workspace_id,
             project_id: term.project_id,
         });
     }
@@ -99,7 +99,7 @@ pub fn terminals_delete(
     service.delete(&id)?;
     manager.broadcast(UiMutationEvent::TerminalDeleted {
         id: target.id,
-        task_id: target.task_id,
+        workspace_id: target.workspace_id,
         project_id: target.project_id,
     });
     Ok(())

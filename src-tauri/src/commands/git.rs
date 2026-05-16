@@ -1,9 +1,9 @@
 //! Tauri glue for read-only git operations. Most calls map the
-//! renderer's `workspaceId` onto an absolute worktree path looked up
-//! via `TasksService::get` and defer to the `git2`-backed module in
+//! renderer's `workspaceId` onto an absolute on-disk path looked up
+//! via `WorkspacesService::get` and defer to the `git2`-backed module in
 //! `crate::git::ops`. The branch-listing commands also accept a bare
-//! `projectId` (resolved via `ProjectsService`) so the Create Task
-//! modal can list branches before any task workspace exists.
+//! `projectId` (resolved via `ProjectsService`) so the Create Workspace
+//! modal can list branches before any workspace exists.
 //!
 //! Mutating ops (commit/push/pull/stage/revert) are not yet ported.
 
@@ -19,7 +19,7 @@ use crate::git::ops::{
     GitStatusEntry, LocalBranchesPayload, RemoteBranchesPayload,
 };
 use crate::projects::ProjectsService;
-use crate::tasks::TasksService;
+use crate::workspaces::WorkspacesService;
 
 #[derive(Debug, Serialize, Type)]
 pub struct GitCommandError {
@@ -50,14 +50,14 @@ impl From<GitError> for GitCommandError {
 }
 
 fn resolve_workspace_path(
-    service: &TasksService,
+    service: &WorkspacesService,
     workspace_id: &str,
 ) -> Result<PathBuf, GitCommandError> {
     match service.get(workspace_id).map_err(|e| GitCommandError {
         code: GitErrorCode::NotFound,
         message: e.to_string(),
     })? {
-        Some(task) => Ok(PathBuf::from(task.path)),
+        Some(workspace) => Ok(PathBuf::from(workspace.path)),
         None => Err(GitCommandError {
             code: GitErrorCode::NotFound,
             message: format!("workspace not found: {workspace_id}"),
@@ -66,19 +66,19 @@ fn resolve_workspace_path(
 }
 
 /// Resolve the on-disk path the renderer wants to inspect:
-///   - `workspace_id` present → that task's worktree.
+///   - `workspace_id` present → that workspace's path.
 ///   - `workspace_id` absent → the project root.
 ///
-/// The Create Task modal calls the branch lookups before any task
-/// exists, so `workspace_id` is optional from the renderer's side.
+/// The Create Workspace modal calls the branch lookups before any
+/// workspace exists, so `workspace_id` is optional from the renderer's side.
 fn resolve_project_or_workspace_path(
-    tasks: &TasksService,
+    workspaces: &WorkspacesService,
     projects: &ProjectsService,
     project_id: &str,
     workspace_id: Option<&str>,
 ) -> Result<PathBuf, GitCommandError> {
     if let Some(ws) = workspace_id.filter(|s| !s.is_empty()) {
-        return resolve_workspace_path(tasks, ws);
+        return resolve_workspace_path(workspaces, ws);
     }
     match projects.get(project_id).map_err(|e| GitCommandError {
         code: GitErrorCode::NotFound,
@@ -104,7 +104,7 @@ pub struct GitFullStatus {
 #[tauri::command]
 #[specta::specta]
 pub fn git_full_status(
-    service: State<'_, Arc<TasksService>>,
+    service: State<'_, Arc<WorkspacesService>>,
     workspace_id: String,
 ) -> Result<GitFullStatus, GitCommandError> {
     let path = resolve_workspace_path(&service, &workspace_id)?;
@@ -119,7 +119,7 @@ pub fn git_full_status(
 #[tauri::command]
 #[specta::specta]
 pub fn git_changed_files(
-    service: State<'_, Arc<TasksService>>,
+    service: State<'_, Arc<WorkspacesService>>,
     workspace_id: String,
 ) -> Result<Vec<GitStatusEntry>, GitCommandError> {
     let path = resolve_workspace_path(&service, &workspace_id)?;
@@ -129,7 +129,7 @@ pub fn git_changed_files(
 #[tauri::command]
 #[specta::specta]
 pub fn git_current_branch(
-    service: State<'_, Arc<TasksService>>,
+    service: State<'_, Arc<WorkspacesService>>,
     workspace_id: String,
 ) -> Result<Option<String>, GitCommandError> {
     let path = resolve_workspace_path(&service, &workspace_id)?;
@@ -139,7 +139,7 @@ pub fn git_current_branch(
 #[tauri::command]
 #[specta::specta]
 pub fn git_diff_against_head(
-    service: State<'_, Arc<TasksService>>,
+    service: State<'_, Arc<WorkspacesService>>,
     workspace_id: String,
 ) -> Result<String, GitCommandError> {
     let path = resolve_workspace_path(&service, &workspace_id)?;
@@ -149,13 +149,13 @@ pub fn git_diff_against_head(
 #[tauri::command]
 #[specta::specta]
 pub fn git_local_branches(
-    tasks: State<'_, Arc<TasksService>>,
+    workspaces: State<'_, Arc<WorkspacesService>>,
     projects: State<'_, Arc<ProjectsService>>,
     project_id: String,
     workspace_id: Option<String>,
 ) -> Result<LocalBranchesPayload, GitCommandError> {
     let path = resolve_project_or_workspace_path(
-        &tasks,
+        &workspaces,
         &projects,
         &project_id,
         workspace_id.as_deref(),
@@ -166,13 +166,13 @@ pub fn git_local_branches(
 #[tauri::command]
 #[specta::specta]
 pub fn git_remote_branches(
-    tasks: State<'_, Arc<TasksService>>,
+    workspaces: State<'_, Arc<WorkspacesService>>,
     projects: State<'_, Arc<ProjectsService>>,
     project_id: String,
     workspace_id: Option<String>,
 ) -> Result<RemoteBranchesPayload, GitCommandError> {
     let path = resolve_project_or_workspace_path(
-        &tasks,
+        &workspaces,
         &projects,
         &project_id,
         workspace_id.as_deref(),

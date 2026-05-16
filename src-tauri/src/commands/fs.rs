@@ -20,7 +20,7 @@ use specta::Type;
 use tauri::State;
 
 use crate::projects::ProjectsService;
-use crate::tasks::TasksService;
+use crate::workspaces::WorkspacesService;
 
 #[derive(Debug, Serialize, Type)]
 pub struct FsCommandError {
@@ -255,21 +255,20 @@ pub fn fs_read_image(path: String) -> Result<FsImageData, FsCommandError> {
 //
 // The renderer's fs.* calls pass `(projectId, workspaceId, relPath)`.
 // These wrappers resolve the workspace to an absolute root via the
-// tasks table (workspace_id == task_id in v1, with the project root
-// as the fallback when no task matches) then delegate to the
-// absolute-path commands above.
+// workspaces table; for `placement = 'local'`, the workspace path is
+// the project root itself, so the same lookup works uniformly.
 
 fn resolve_workspace_root(
     projects: &ProjectsService,
-    tasks: &TasksService,
+    workspaces: &WorkspacesService,
     project_id: &str,
     workspace_id: &str,
 ) -> Result<PathBuf, FsCommandError> {
-    if let Ok(Some(task)) = tasks.get(workspace_id) {
-        return Ok(PathBuf::from(task.path));
+    if let Ok(Some(workspace)) = workspaces.get(workspace_id) {
+        return Ok(PathBuf::from(workspace.path));
     }
-    // Fall back to the project root (the renderer treats `workspaceId
-    // == projectId` as "no worktree, use the repo directly").
+    // Fall back to the project root (renderer treats `workspaceId == projectId`
+    // as "no workspace yet, use the repo directly").
     let project = projects.get(project_id).map_err(|e| FsCommandError {
         code: FsErrorCode::NotFound,
         message: e.to_string(),
@@ -300,13 +299,13 @@ fn join_workspace(root: &Path, rel: &str) -> Result<PathBuf, FsCommandError> {
 #[specta::specta]
 pub fn fs_ws_read_file(
     projects: State<'_, Arc<ProjectsService>>,
-    tasks: State<'_, Arc<TasksService>>,
+    workspaces: State<'_, Arc<WorkspacesService>>,
     project_id: String,
     workspace_id: String,
     file_path: String,
     max_bytes: Option<f64>,
 ) -> Result<String, FsCommandError> {
-    let root = resolve_workspace_root(&projects, &tasks, &project_id, &workspace_id)?;
+    let root = resolve_workspace_root(&projects, &workspaces, &project_id, &workspace_id)?;
     let abs = join_workspace(&root, &file_path)?;
     fs_read_file(abs.to_string_lossy().into_owned(), max_bytes)
 }
@@ -315,13 +314,13 @@ pub fn fs_ws_read_file(
 #[specta::specta]
 pub fn fs_ws_write_file(
     projects: State<'_, Arc<ProjectsService>>,
-    tasks: State<'_, Arc<TasksService>>,
+    workspaces: State<'_, Arc<WorkspacesService>>,
     project_id: String,
     workspace_id: String,
     file_path: String,
     content: String,
 ) -> Result<(), FsCommandError> {
-    let root = resolve_workspace_root(&projects, &tasks, &project_id, &workspace_id)?;
+    let root = resolve_workspace_root(&projects, &workspaces, &project_id, &workspace_id)?;
     let abs = join_workspace(&root, &file_path)?;
     fs_write_file(abs.to_string_lossy().into_owned(), content)
 }
@@ -330,13 +329,13 @@ pub fn fs_ws_write_file(
 #[specta::specta]
 pub fn fs_ws_list_files(
     projects: State<'_, Arc<ProjectsService>>,
-    tasks: State<'_, Arc<TasksService>>,
+    workspaces: State<'_, Arc<WorkspacesService>>,
     project_id: String,
     workspace_id: String,
     dir_path: String,
     include_hidden: Option<bool>,
 ) -> Result<Vec<FsListEntry>, FsCommandError> {
-    let root = resolve_workspace_root(&projects, &tasks, &project_id, &workspace_id)?;
+    let root = resolve_workspace_root(&projects, &workspaces, &project_id, &workspace_id)?;
     let abs = if dir_path.is_empty() {
         root
     } else {
@@ -349,12 +348,12 @@ pub fn fs_ws_list_files(
 #[specta::specta]
 pub fn fs_ws_read_image(
     projects: State<'_, Arc<ProjectsService>>,
-    tasks: State<'_, Arc<TasksService>>,
+    workspaces: State<'_, Arc<WorkspacesService>>,
     project_id: String,
     workspace_id: String,
     file_path: String,
 ) -> Result<FsImageData, FsCommandError> {
-    let root = resolve_workspace_root(&projects, &tasks, &project_id, &workspace_id)?;
+    let root = resolve_workspace_root(&projects, &workspaces, &project_id, &workspace_id)?;
     let abs = join_workspace(&root, &file_path)?;
     fs_read_image(abs.to_string_lossy().into_owned())
 }
@@ -363,12 +362,12 @@ pub fn fs_ws_read_image(
 #[specta::specta]
 pub fn fs_ws_remove_file(
     projects: State<'_, Arc<ProjectsService>>,
-    tasks: State<'_, Arc<TasksService>>,
+    workspaces: State<'_, Arc<WorkspacesService>>,
     project_id: String,
     workspace_id: String,
     file_path: String,
 ) -> Result<(), FsCommandError> {
-    let root = resolve_workspace_root(&projects, &tasks, &project_id, &workspace_id)?;
+    let root = resolve_workspace_root(&projects, &workspaces, &project_id, &workspace_id)?;
     let abs = join_workspace(&root, &file_path)?;
     fs_remove_file(abs.to_string_lossy().into_owned())
 }
@@ -377,12 +376,12 @@ pub fn fs_ws_remove_file(
 #[specta::specta]
 pub fn fs_ws_file_exists(
     projects: State<'_, Arc<ProjectsService>>,
-    tasks: State<'_, Arc<TasksService>>,
+    workspaces: State<'_, Arc<WorkspacesService>>,
     project_id: String,
     workspace_id: String,
     file_path: String,
 ) -> Result<bool, FsCommandError> {
-    let root = resolve_workspace_root(&projects, &tasks, &project_id, &workspace_id)?;
+    let root = resolve_workspace_root(&projects, &workspaces, &project_id, &workspace_id)?;
     let abs = join_workspace(&root, &file_path)?;
     fs_file_exists(abs.to_string_lossy().into_owned())
 }
@@ -391,12 +390,12 @@ pub fn fs_ws_file_exists(
 #[specta::specta]
 pub fn fs_ws_stat_file(
     projects: State<'_, Arc<ProjectsService>>,
-    tasks: State<'_, Arc<TasksService>>,
+    workspaces: State<'_, Arc<WorkspacesService>>,
     project_id: String,
     workspace_id: String,
     file_path: String,
 ) -> Result<Option<FsListEntry>, FsCommandError> {
-    let root = resolve_workspace_root(&projects, &tasks, &project_id, &workspace_id)?;
+    let root = resolve_workspace_root(&projects, &workspaces, &project_id, &workspace_id)?;
     let abs = join_workspace(&root, &file_path)?;
     fs_stat_file(abs.to_string_lossy().into_owned())
 }

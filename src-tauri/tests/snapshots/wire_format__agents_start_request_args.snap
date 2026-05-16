@@ -1,6 +1,5 @@
 ---
 source: tests/wire_format.rs
-assertion_line: 828
 expression: args
 ---
 {
@@ -9,5 +8,5 @@ expression: args
     "cols": 80,
     "rows": 24
   },
-  "taskId": "task-1"
+  "workspaceId": "ws-1"
 }

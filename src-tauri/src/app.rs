@@ -11,7 +11,7 @@ use emdash_dev::fs_watcher::WatcherRegistry;
 use emdash_dev::projects::ProjectsService;
 use emdash_dev::pty::registry::Registry;
 use emdash_dev::secrets::{master_key::OsKeyringMasterKey, Secrets};
-use emdash_dev::tasks::{TasksService, WorkspaceFsMutationLock};
+use emdash_dev::workspaces::{WorkspaceFsMutationLock, WorkspacesService};
 use emdash_dev::tauri_bindings;
 use emdash_dev::terminals::TerminalsService;
 use emdash_dev::telemetry::{Telemetry, TelemetryConfig};
@@ -102,7 +102,7 @@ pub fn run() {
             let fs_watcher: Arc<WatcherRegistry> = Arc::new(WatcherRegistry::new());
             let workspace_fs_lock: Arc<WorkspaceFsMutationLock> =
                 Arc::new(WorkspaceFsMutationLock::new());
-            let tasks = Arc::new(TasksService::new(db.clone(), workspace_fs_lock.clone()));
+            let workspaces = Arc::new(WorkspacesService::new(db.clone(), workspace_fs_lock.clone()));
             let conversations = Arc::new(ConversationsService::new(db.clone()));
             let terminals = Arc::new(TerminalsService::new(db.clone()));
             // Telemetry::new spawns a Tokio worker; the Tauri setup
@@ -125,7 +125,7 @@ pub fn run() {
             let broadcaster: emdash_dev::agent_hooks::server::EventBroadcaster =
                 Arc::new(move |event| {
                     hook_broadcaster_ui_sync.broadcast(UiMutationEvent::AgentHookEvent {
-                        task_id: event.task_id.clone(),
+                        workspace_id: event.workspace_id.clone(),
                         event,
                     });
                 });
@@ -158,7 +158,7 @@ pub fn run() {
             app.manage(ui_sync);
             app.manage(fs_watcher);
             app.manage(workspace_fs_lock);
-            app.manage(tasks);
+            app.manage(workspaces);
             app.manage(conversations);
             app.manage(terminals);
             app.manage(telemetry);

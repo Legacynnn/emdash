@@ -24,7 +24,7 @@ pub struct AgentsCommandError {
 #[derive(Debug, Serialize, Type)]
 #[serde(rename_all = "snake_case")]
 pub enum AgentsErrorCode {
-    TaskNotFound,
+    WorkspaceNotFound,
     AlreadyRunning,
     SpawnFailed,
     Storage,
@@ -33,10 +33,10 @@ pub enum AgentsErrorCode {
 impl From<AgentsError> for AgentsCommandError {
     fn from(e: AgentsError) -> Self {
         let code = match &e {
-            AgentsError::TaskNotFound(_) => AgentsErrorCode::TaskNotFound,
+            AgentsError::WorkspaceNotFound(_) => AgentsErrorCode::WorkspaceNotFound,
             AgentsError::AlreadyRunning(_) => AgentsErrorCode::AlreadyRunning,
             AgentsError::Pty(_) => AgentsErrorCode::SpawnFailed,
-            AgentsError::Tasks(_) | AgentsError::Db(_) | AgentsError::Sqlite(_) => {
+            AgentsError::Workspaces(_) | AgentsError::Db(_) | AgentsError::Sqlite(_) => {
                 AgentsErrorCode::Storage
             }
         };
@@ -47,7 +47,7 @@ impl From<AgentsError> for AgentsCommandError {
     }
 }
 
-/// Spawn `provider` for `task_id`. Returns the PTY id so the
+/// Spawn `provider` for `workspace_id`. Returns the PTY id so the
 /// renderer can wire `pty_write` / `pty_resize` / `pty_kill` to the
 /// same id without a follow-up lookup.
 #[tauri::command]
@@ -55,13 +55,13 @@ impl From<AgentsError> for AgentsCommandError {
 pub async fn agents_start(
     service: State<'_, Arc<AgentService>>,
     ui_sync: State<'_, Arc<UiSyncManager>>,
-    task_id: String,
+    workspace_id: String,
     provider: AgentProvider,
     size: PtySize,
     on_output: Channel<Vec<u8>>,
 ) -> Result<PtyId, AgentsCommandError> {
     let svc = service.inner().clone();
-    let task_id_clone = task_id.clone();
+    let workspace_id_clone = workspace_id.clone();
     let ui_sync = ui_sync.inner().clone();
 
     // PTY callback fires from the reader thread; clone the channel
@@ -70,16 +70,17 @@ pub async fn agents_start(
         let _ = on_output.send(bytes);
     });
 
-    let result = tokio::task::spawn_blocking(move || svc.start(&task_id, provider, size, cb))
-        .await
-        .map_err(|e| AgentsCommandError {
-            code: AgentsErrorCode::SpawnFailed,
-            message: format!("join: {e}"),
-        })?;
+    let result =
+        tokio::task::spawn_blocking(move || svc.start(&workspace_id, provider, size, cb))
+            .await
+            .map_err(|e| AgentsCommandError {
+                code: AgentsErrorCode::SpawnFailed,
+                message: format!("join: {e}"),
+            })?;
 
     let pty_id = result.map_err(AgentsCommandError::from)?;
     ui_sync.broadcast(UiMutationEvent::AgentStarted {
-        task_id: task_id_clone,
+        workspace_id: workspace_id_clone,
         provider,
     });
     Ok(pty_id)
@@ -90,18 +91,18 @@ pub async fn agents_start(
 pub async fn agents_stop(
     service: State<'_, Arc<AgentService>>,
     ui_sync: State<'_, Arc<UiSyncManager>>,
-    task_id: String,
+    workspace_id: String,
 ) -> Result<(), AgentsCommandError> {
     let svc = service.inner().clone();
-    let tid = task_id.clone();
-    tokio::task::spawn_blocking(move || svc.stop(&task_id))
+    let wid = workspace_id.clone();
+    tokio::task::spawn_blocking(move || svc.stop(&workspace_id))
         .await
         .map_err(|e| AgentsCommandError {
             code: AgentsErrorCode::SpawnFailed,
             message: format!("join: {e}"),
         })??;
     ui_sync.broadcast(UiMutationEvent::AgentExited {
-        task_id: tid,
+        workspace_id: wid,
         exit_code: None,
     });
     Ok(())

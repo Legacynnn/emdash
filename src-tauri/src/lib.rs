@@ -21,7 +21,7 @@ pub mod pty;
 pub mod secrets;
 pub mod shell_env;
 pub mod skills;
-pub mod tasks;
+pub mod workspaces;
 pub mod tauri_bindings;
 pub mod telemetry;
 pub mod terminals;

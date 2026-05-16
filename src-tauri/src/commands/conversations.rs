@@ -1,8 +1,8 @@
 //! Tauri glue for the `conversations` namespace.
 //!
-//! Same pattern as `commands::tasks`: thin wrapper over the domain
+//! Same pattern as `commands::workspaces`: thin wrapper over the domain
 //! service, error envelope, broadcast a `UiMutationEvent` after every
-//! successful write so the renderer's task-view cache invalidates.
+//! successful write so the renderer's workspace-view cache invalidates.
 
 use std::sync::Arc;
 
@@ -25,7 +25,7 @@ pub struct ConversationsCommandError {
 #[serde(rename_all = "snake_case")]
 pub enum ConversationsErrorCode {
     NotFound,
-    TaskNotFound,
+    WorkspaceNotFound,
     EmptyTitle,
     Storage,
 }
@@ -34,7 +34,7 @@ impl From<ConversationsError> for ConversationsCommandError {
     fn from(e: ConversationsError) -> Self {
         let code = match &e {
             ConversationsError::NotFound(_) => ConversationsErrorCode::NotFound,
-            ConversationsError::TaskNotFound(_) => ConversationsErrorCode::TaskNotFound,
+            ConversationsError::WorkspaceNotFound(_) => ConversationsErrorCode::WorkspaceNotFound,
             ConversationsError::EmptyTitle => ConversationsErrorCode::EmptyTitle,
             ConversationsError::Db(_) | ConversationsError::Sqlite(_) => {
                 ConversationsErrorCode::Storage
@@ -49,11 +49,11 @@ impl From<ConversationsError> for ConversationsCommandError {
 
 #[tauri::command]
 #[specta::specta]
-pub fn conversations_list_for_task(
+pub fn conversations_list_for_workspace(
     service: State<'_, Arc<ConversationsService>>,
-    task_id: String,
+    workspace_id: String,
 ) -> Result<Vec<Conversation>, ConversationsCommandError> {
-    service.list_for_task(&task_id).map_err(Into::into)
+    service.list_for_workspace(&workspace_id).map_err(Into::into)
 }
 
 #[tauri::command]
@@ -64,11 +64,11 @@ pub fn conversations_create(
     input: NewConversationInput,
 ) -> Result<Conversation, ConversationsCommandError> {
     let project_id = input.project_id.clone();
-    let task_id = input.task_id.clone();
+    let workspace_id = input.workspace_id.clone();
     let conv = service.create(input)?;
     manager.broadcast(UiMutationEvent::ConversationCreated {
         id: conv.id.clone(),
-        task_id,
+        workspace_id,
         project_id,
     });
     Ok(conv)
@@ -86,7 +86,7 @@ pub fn conversations_rename(
     if let Some(conv) = service.get(&id)? {
         manager.broadcast(UiMutationEvent::ConversationUpdated {
             id: conv.id,
-            task_id: conv.task_id,
+            workspace_id: conv.workspace_id,
             project_id: conv.project_id,
         });
     }
@@ -104,7 +104,7 @@ pub fn conversations_touch(
     if let Some(conv) = service.get(&id)? {
         manager.broadcast(UiMutationEvent::ConversationUpdated {
             id: conv.id,
-            task_id: conv.task_id,
+            workspace_id: conv.workspace_id,
             project_id: conv.project_id,
         });
     }
@@ -125,7 +125,7 @@ pub fn conversations_delete(
     service.delete(&id)?;
     manager.broadcast(UiMutationEvent::ConversationDeleted {
         id: target.id,
-        task_id: target.task_id,
+        workspace_id: target.workspace_id,
         project_id: target.project_id,
     });
     Ok(())

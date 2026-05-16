@@ -1,0 +1,12 @@
+---
+source: tests/wire_format.rs
+expression: "serde_json::to_value(&err).unwrap()"
+---
+{
+  "changed_files": [
+    "src/lib.rs",
+    "Cargo.lock"
+  ],
+  "code": "dirty_tree",
+  "message": "project working tree is dirty"
+}
