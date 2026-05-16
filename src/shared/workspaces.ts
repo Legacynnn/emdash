@@ -55,8 +55,12 @@ export type WorkspaceBootstrapStatus =
   | { status: 'not-started' };
 
 export type CreateWorkspaceStrategy =
+  /** Worktree placement: new branch + new worktree dir. The default. */
   | { kind: 'new-branch'; workspaceBranch: string; pushBranch?: boolean }
-  | { kind: 'checkout-existing' }
+  /** Local placement: create a new branch and `git switch -c` in the project dir. */
+  | { kind: 'new-local'; workspaceBranch: string }
+  /** Local placement: `git switch` to an existing branch in the project dir. */
+  | { kind: 'existing-local'; workspaceBranch: string }
   | {
       kind: 'from-pull-request';
       prNumber: number;
@@ -67,6 +71,7 @@ export type CreateWorkspaceStrategy =
       workspaceBranch?: string;
       pushBranch?: boolean;
     }
+  /** BYOI / no-op placement: skip worktree, defer to the infra provider. */
   | { kind: 'no-worktree' };
 
 export type CreateWorkspaceParams = {

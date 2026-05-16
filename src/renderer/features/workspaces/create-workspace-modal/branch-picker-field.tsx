@@ -5,7 +5,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@renderer/l
 import { ComboboxTrigger, ComboboxValue } from '@renderer/lib/ui/combobox';
 import { Field, FieldLabel } from '@renderer/lib/ui/field';
 import { Switch } from '@renderer/lib/ui/switch';
+import { ToggleGroup, ToggleGroupItem } from '@renderer/lib/ui/toggle-group';
 import { cn } from '@renderer/utils/utils';
+import { type PlacementMode } from './create-workspace-strategy';
 import { type BranchSelectionState } from './use-branch-selection';
 
 interface BranchPickerFieldProps {
@@ -17,6 +19,12 @@ interface BranchPickerFieldProps {
   isUnborn?: boolean;
 }
 
+const PLACEMENT_LABELS: Record<PlacementMode, string> = {
+  worktree: 'New (worktree)',
+  'local-new': 'New (local)',
+  'local-existing': 'Existing local',
+};
+
 export function BranchPickerField({
   state,
   projectId,
@@ -25,22 +33,53 @@ export function BranchPickerField({
   className,
   isUnborn = false,
 }: BranchPickerFieldProps) {
-  const { createBranchAndWorktree, setCreateBranchAndWorktree, pushBranch, setPushBranch } = state;
+  const {
+    createBranchAndWorktree,
+    setCreateBranchAndWorktree,
+    pushBranch,
+    setPushBranch,
+    placementMode,
+    setPlacementMode,
+  } = state;
+  const sourceLabel = placementMode === 'local-existing' ? 'Existing branch' : label;
 
   return (
     <div className={cn('border border-border rounded-md overflow-hidden', className)}>
-      {!createBranchAndWorktree && currentBranch ? (
-        <BranchDisplay label={label} branchName={currentBranch} />
+      <div className="p-2 border-b border-border bg-background-1">
+        <ToggleGroup
+          className="w-full"
+          value={[placementMode]}
+          onValueChange={([value]) => {
+            if (!value) return;
+            const next = value as PlacementMode;
+            if (isUnborn && next === 'local-existing') return;
+            setPlacementMode(next);
+          }}
+        >
+          {(['worktree', 'local-new', 'local-existing'] as PlacementMode[]).map((mode) => (
+            <ToggleGroupItem
+              key={mode}
+              className="flex-1 text-xs"
+              value={mode}
+              disabled={isUnborn && mode === 'local-existing'}
+            >
+              {PLACEMENT_LABELS[mode]}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </div>
+      {!createBranchAndWorktree && currentBranch && placementMode === 'worktree' ? (
+        <BranchDisplay label={sourceLabel} branchName={currentBranch} />
       ) : projectId ? (
         <ProjectBranchSelector
           projectId={projectId}
           value={state.selectedBranch}
           onValueChange={state.setSelectedBranch}
-          showRemoteSelectorFooter
+          showRemoteSelectorFooter={placementMode !== 'local-existing'}
           trigger={
             <ComboboxTrigger className="flex w-full items-center gap-2 justify-between hover:bg-background-1 data-popup-open:bg-background-1 p-2 outline-none">
               <div className="flex flex-col text-left text-sm gap-0.5">
-                <span className="text-foreground-passive text-xs">{label}</span>
+                <span className="text-foreground-passive text-xs">{sourceLabel}</span>
                 <span className="flex items-center gap-1">
                   <GitBranch
                     absoluteStrokeWidth
@@ -56,7 +95,15 @@ export function BranchPickerField({
           }
         />
       ) : null}
-      {!isUnborn && (
+      {placementMode === 'local-existing' ? (
+        <p className="border-t border-border bg-background-1 px-2 py-1 text-xs text-foreground-muted">
+          Switches the project directory to this branch. Workspace shares the project tree.
+        </p>
+      ) : placementMode === 'local-new' ? (
+        <p className="border-t border-border bg-background-1 px-2 py-1 text-xs text-foreground-muted">
+          Creates a new branch off the selected source and switches the project to it. No worktree.
+        </p>
+      ) : !isUnborn ? (
         <Collapsible className="border-t border-border">
           <CollapsibleTrigger className="w-full p-2 hover:bg-background-1 data-open:bg-background-1 flex text-xs text-foreground-muted items-center gap-2 justify-between">
             Should create and push feature branch
@@ -69,7 +116,7 @@ export function BranchPickerField({
                   checked={createBranchAndWorktree}
                   onCheckedChange={setCreateBranchAndWorktree}
                 />
-                <FieldLabel>Create task branch and worktree</FieldLabel>
+                <FieldLabel>Create workspace branch and worktree</FieldLabel>
               </Field>
               {createBranchAndWorktree && (
                 <Field orientation="horizontal">
@@ -80,10 +127,9 @@ export function BranchPickerField({
             </div>
           </CollapsibleContent>
         </Collapsible>
-      )}
-      {isUnborn && (
+      ) : (
         <p className="border-t border-border bg-background-1 px-2 py-1 text-xs text-foreground-muted">
-          Create an initial commit to enable branch-based tasks.
+          Create an initial commit to enable branch-based workspaces.
         </p>
       )}
     </div>

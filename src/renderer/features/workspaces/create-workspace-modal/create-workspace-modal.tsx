@@ -134,7 +134,13 @@ export const CreateWorkspaceModal = observer(function CreateWorkspaceModal({
         const taskStrategy = resolveBranchLikeTaskStrategy({
           isUnborn,
           createBranchAndWorktree: fromBranch.createBranchAndWorktree,
+          placementMode: fromBranch.placementMode,
           workspaceBranch: fromBranch.taskName,
+          existingBranch:
+            fromBranch.placementMode === 'local-existing' &&
+            fromBranch.selectedBranch.type === 'local'
+              ? fromBranch.selectedBranch.branch
+              : undefined,
           pushBranch: fromBranch.pushBranch,
         });
         void projectStore.mountedProject!.taskManager.createTask({
@@ -153,7 +159,13 @@ export const CreateWorkspaceModal = observer(function CreateWorkspaceModal({
         const taskStrategy = resolveBranchLikeTaskStrategy({
           isUnborn,
           createBranchAndWorktree: fromIssue.createBranchAndWorktree,
+          placementMode: fromIssue.placementMode,
           workspaceBranch: fromIssue.taskName,
+          existingBranch:
+            fromIssue.placementMode === 'local-existing' &&
+            fromIssue.selectedBranch.type === 'local'
+              ? fromIssue.selectedBranch.branch
+              : undefined,
           pushBranch: fromIssue.pushBranch,
         });
         void projectStore.mountedProject!.taskManager.createTask({

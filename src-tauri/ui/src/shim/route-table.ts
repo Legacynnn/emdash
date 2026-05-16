@@ -214,22 +214,31 @@ const ROUTES: Record<string, Route> = {
     kind: 'invoke',
     command: 'workspaces_create',
     adapt: ([input]) => {
-      // The renderer passes a strategy object that includes the
-      // explicit branch name for new-branch / from-pull-request
-      // flows. Extract it so the Rust side honors the chosen name
-      // verbatim (no task/ prefix, no UUID suffix).
+      // The renderer passes a strategy object that encodes both the
+      // branch name and the placement mode (worktree vs. local).
+      // `new-local` / `existing-local` route to `placement: 'local'`
+      // in the Rust backend; `new-branch` / `from-pull-request` stay
+      // on `placement: 'worktree'`.
       const obj = (input as Record<string, unknown>) ?? {};
       const strategy = obj.strategy as { kind?: string; workspaceBranch?: string } | undefined;
+      const kind = strategy?.kind;
+      const placement: 'local' | 'worktree' =
+        kind === 'new-local' || kind === 'existing-local' ? 'local' : 'worktree';
+      const existingBranch = kind === 'existing-local';
+      const workspaceBranch =
+        kind === 'new-branch' ||
+        kind === 'from-pull-request' ||
+        kind === 'new-local' ||
+        kind === 'existing-local'
+          ? (strategy?.workspaceBranch ?? null)
+          : null;
       return {
         projectId: obj.projectId,
         name: obj.name,
         sourceBranch: obj.sourceBranch ?? { type: 'local', branch: 'main' },
-        workspaceBranch:
-          strategy?.kind === 'new-branch' || strategy?.kind === 'from-pull-request'
-            ? (strategy.workspaceBranch ?? null)
-            : null,
-        placement: 'worktree',
-        existingBranch: false,
+        workspaceBranch,
+        placement,
+        existingBranch,
       };
     },
   },

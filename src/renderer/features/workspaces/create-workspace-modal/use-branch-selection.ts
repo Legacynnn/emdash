@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import type { Branch } from '@shared/git';
 import { useAppSettingsKey } from '@renderer/features/settings/use-app-settings-key';
+import type { PlacementMode } from './create-workspace-strategy';
 
 export type BranchSelectionState = ReturnType<typeof useBranchSelection>;
 
@@ -18,10 +19,12 @@ export function useBranchSelection(
     boolean | undefined
   >(undefined);
   const [pushBranchOverride, setPushBranchOverride] = useState<boolean | undefined>(undefined);
+  const [placementMode, setPlacementMode] = useState<PlacementMode>('worktree');
   const pushBranch = pushBranchOverride ?? pushOnCreateByDefault;
   const createBranchAndWorktreePreference =
     createBranchAndWorktreeOverride ?? createBranchAndWorktreeByDefault;
-  const createBranchAndWorktree = isUnborn ? false : createBranchAndWorktreePreference;
+  const createBranchAndWorktree =
+    placementMode === 'worktree' && !isUnborn && createBranchAndWorktreePreference;
 
   // Store the user's branch override alongside the project it belongs to.
   // When the project changes the override is for a different project and is
@@ -31,7 +34,7 @@ export function useBranchSelection(
   >(undefined);
 
   const selectedBranch: Branch | undefined =
-    !createBranchAndWorktree && currentBranchName
+    !createBranchAndWorktree && currentBranchName && placementMode !== 'local-existing'
       ? { type: 'local', branch: currentBranchName }
       : branchOverride !== undefined && branchOverride.projectId === selectedProjectId
         ? branchOverride.branch
@@ -65,5 +68,7 @@ export function useBranchSelection(
     setCreateBranchAndWorktree,
     pushBranch,
     setPushBranch,
+    placementMode,
+    setPlacementMode,
   };
 }

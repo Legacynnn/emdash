@@ -63,26 +63,34 @@ Start here. Load only the linked `agents/` docs that are relevant to the task.
 
 ### State Guard Conventions (renderer stores)
 
-`ProjectStore` and `TaskStore` are mutable MobX class instances that transition through states. Use the following layers — do not mix them:
+`ProjectStore` and `WorkspaceStore` are mutable MobX class instances that transition through states. Use the following layers — do not mix them:
 
-**Selectors** (`task-selectors.ts`, `project-selectors.ts`) — pure functions, safe in observer components, effects, and event handlers:
-- `getTaskStore(projectId, taskId)` → `TaskStore | undefined`
-- `asProvisioned(store)` → `ProvisionedTask | undefined` (use with explicit null check, never `!`)
-- `taskViewKind(store, projectId)` → `TaskViewKind`
-- `getTaskManagerStore(projectId)` → `TaskManagerStore | undefined` (use this instead of reaching through project store)
+**Selectors** (`workspace-selectors.ts`, `project-selectors.ts`) — pure functions, safe in observer components, effects, and event handlers:
+- `getWorkspaceStore(projectId, workspaceId)` → `WorkspaceStore | undefined`
+- `asProvisioned(store)` → `ProvisionedWorkspace | undefined` (use with explicit null check, never `!`)
+- `workspaceViewKind(store, projectId)` → `WorkspaceViewKind`
+- `getWorkspaceManagerStore(projectId)` → `WorkspaceManagerStore | undefined` (use this instead of reaching through project store)
 - `getProjectStore(projectId)` → `ProjectStore | undefined`
 - `asMounted(store)` → `MountedProject | undefined` (use with explicit null check, never `!`)
 
-**Hooks** (`task-view-context.tsx`) — for `observer` components inside the task view tree:
-- `useTaskViewKind()` — routing/state-gating
-- `useProvisionedTask()` → `ProvisionedTask | null` — when the component handles a non-provisioned state
-- `useRequireProvisionedTask()` → `ProvisionedTask` — when the component must only render when provisioned (throws with a descriptive error if the invariant is violated)
+**Hooks** (`workspace-view-context.tsx`) — for `observer` components inside the workspace view tree:
+- `useWorkspaceViewKind()` — routing/state-gating
+- `useProvisionedWorkspace()` → `ProvisionedWorkspace | null` — when the component handles a non-provisioned state
+- `useRequireProvisionedWorkspace()` → `ProvisionedWorkspace` — when the component must only render when provisioned (throws with a descriptive error if the invariant is violated)
 
 **Rules:**
 - Never `asProvisioned(...)!` or `asMounted(...)!` — use the hook or an explicit null check
 - State guards must use `kind !== 'ready'`, never enumerate non-ready states (new states would silently fall through)
-- Access task manager via `getTaskManagerStore(projectId)`, not through `project.taskManager`
+- Access workspace manager via `getWorkspaceManagerStore(projectId)`, not through `project.workspaceManager`
 - Access mounted project via `asMounted(getProjectStore(id))`, not via inline `isMountedProject` guards
+
+### Workspaces: worktree vs. local placement
+
+A **workspace** is the unit of work inside a project. Two placement modes:
+- `placement: 'worktree'` — `git worktree add` under `.emdash-worktrees/<branch>/`. The default.
+- `placement: 'local'` — `git switch [-c]` in the project directory itself. At most one active local workspace per project; creating a second is blocked with `LocalSlotTaken`. Creating against a dirty tree is blocked with `DirtyTree { changed_files }`. Deleting a local workspace removes the emdash record but leaves the branch and working tree alone — the user is responsible for `git branch -d` if they want it gone.
+
+The Create Workspace modal exposes the placement through a segmented control at the top of the branch picker: **New (worktree)** (default) / **New (local)** / **Existing local**. The renderer encodes the choice into `CreateWorkspaceStrategy` as `new-branch` / `new-local` / `existing-local`; the route-table adapter at `src-tauri/ui/src/shim/route-table.ts` maps those onto the Rust `workspaces_create(placement, existing_branch)` signature.
 
 ## Tauri 2 + Rust — the only build
 

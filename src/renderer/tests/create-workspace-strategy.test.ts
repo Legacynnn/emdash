@@ -41,6 +41,43 @@ describe('resolveBranchLikeTaskStrategy', () => {
       })
     ).toEqual({ kind: 'no-worktree' });
   });
+
+  it('returns new-local for local-new placement', () => {
+    expect(
+      resolveBranchLikeTaskStrategy({
+        isUnborn: false,
+        createBranchAndWorktree: true,
+        placementMode: 'local-new',
+        workspaceBranch: 'in-place-feature',
+        pushBranch: false,
+      })
+    ).toEqual({ kind: 'new-local', workspaceBranch: 'in-place-feature' });
+  });
+
+  it('returns existing-local for local-existing placement', () => {
+    expect(
+      resolveBranchLikeTaskStrategy({
+        isUnborn: false,
+        createBranchAndWorktree: true,
+        placementMode: 'local-existing',
+        workspaceBranch: 'fallback-name',
+        existingBranch: 'feat/in-progress',
+        pushBranch: false,
+      })
+    ).toEqual({ kind: 'existing-local', workspaceBranch: 'feat/in-progress' });
+  });
+
+  it('falls back to workspaceBranch when existingBranch is absent in local-existing', () => {
+    expect(
+      resolveBranchLikeTaskStrategy({
+        isUnborn: false,
+        createBranchAndWorktree: true,
+        placementMode: 'local-existing',
+        workspaceBranch: 'feat/foo',
+        pushBranch: false,
+      })
+    ).toEqual({ kind: 'existing-local', workspaceBranch: 'feat/foo' });
+  });
 });
 
 describe('resolvePullRequestTaskStrategy', () => {
