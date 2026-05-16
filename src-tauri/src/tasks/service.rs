@@ -125,6 +125,99 @@ impl TasksService {
         Ok(())
     }
 
+    /// Update the user-facing `name` of a task. Does not touch the
+    /// underlying git branch; the renderer keeps display name and
+    /// branch name as separate concerns.
+    pub fn rename(&self, task_id: &str, name: &str) -> Result<Task, TasksError> {
+        let trimmed = name.trim();
+        if trimmed.is_empty() {
+            return Err(TasksError::EmptyName);
+        }
+        let conn = self.db.write()?;
+        let affected = conn.execute(
+            "UPDATE tasks SET name = ?1, updated_at = CURRENT_TIMESTAMP WHERE id = ?2",
+            params![trimmed, task_id],
+        )?;
+        if affected == 0 {
+            return Err(TasksError::NotFound(task_id.to_string()));
+        }
+        drop(conn);
+        self.get(task_id)?
+            .ok_or_else(|| TasksError::NotFound(task_id.to_string()))
+    }
+
+    /// Soft-archive a task. Sets `status = 'archived'` and stamps
+    /// `archived_at` so the list view can filter it out. Worktree
+    /// stays on disk — restore is non-destructive.
+    pub fn archive(&self, task_id: &str) -> Result<Task, TasksError> {
+        let conn = self.db.write()?;
+        let affected = conn.execute(
+            "UPDATE tasks \
+             SET status = 'archived', archived_at = CURRENT_TIMESTAMP, \
+                 status_changed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP \
+             WHERE id = ?1",
+            params![task_id],
+        )?;
+        if affected == 0 {
+            return Err(TasksError::NotFound(task_id.to_string()));
+        }
+        drop(conn);
+        self.get(task_id)?
+            .ok_or_else(|| TasksError::NotFound(task_id.to_string()))
+    }
+
+    /// Reverse of `archive`. Clears `archived_at` and flips status
+    /// back to `active`.
+    pub fn restore(&self, task_id: &str) -> Result<Task, TasksError> {
+        let conn = self.db.write()?;
+        let affected = conn.execute(
+            "UPDATE tasks \
+             SET status = 'active', archived_at = NULL, \
+                 status_changed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP \
+             WHERE id = ?1",
+            params![task_id],
+        )?;
+        if affected == 0 {
+            return Err(TasksError::NotFound(task_id.to_string()));
+        }
+        drop(conn);
+        self.get(task_id)?
+            .ok_or_else(|| TasksError::NotFound(task_id.to_string()))
+    }
+
+    /// Pin / unpin a task. The renderer uses pinning to sort sticky
+    /// tasks above the rest.
+    pub fn set_pinned(&self, task_id: &str, pinned: bool) -> Result<(), TasksError> {
+        let conn = self.db.write()?;
+        let affected = conn.execute(
+            "UPDATE tasks SET is_pinned = ?1, updated_at = CURRENT_TIMESTAMP WHERE id = ?2",
+            params![pinned as i32, task_id],
+        )?;
+        if affected == 0 {
+            return Err(TasksError::NotFound(task_id.to_string()));
+        }
+        Ok(())
+    }
+
+    /// Set or clear the linked-issue payload. The renderer stores
+    /// provider + key (e.g. `linear:EMD-99`) as JSON so we don't
+    /// need a typed Rust shape here.
+    pub fn update_linked_issue(
+        &self,
+        task_id: &str,
+        linked_issue: Option<String>,
+    ) -> Result<(), TasksError> {
+        let conn = self.db.write()?;
+        let affected = conn.execute(
+            "UPDATE tasks SET linked_issue = ?1, updated_at = CURRENT_TIMESTAMP WHERE id = ?2",
+            params![linked_issue, task_id],
+        )?;
+        if affected == 0 {
+            return Err(TasksError::NotFound(task_id.to_string()));
+        }
+        Ok(())
+    }
+
     fn project_path(&self, project_id: &str) -> Result<PathBuf, TasksError> {
         let conn = self.db.read()?;
         let row = conn

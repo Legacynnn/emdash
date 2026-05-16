@@ -82,6 +82,12 @@
     "terminals_list_for_task",
     "terminals_create",
     "terminals_rename",
-    "terminals_delete"
+    "terminals_delete",
+    "tasks_rename",
+    "tasks_archive",
+    "tasks_restore",
+    "tasks_set_pinned",
+    "tasks_update_linked_issue",
+    "tasks_generate_name"
   ]
 }

@@ -157,15 +157,65 @@ const ROUTES: Record<string, Route> = {
     },
   },
   'tasks.deleteTask': { kind: 'invoke', command: 'tasks_delete', adapt: toRecord('id') },
-  // Remaining task surface — TODO: port from src/main/core/tasks.
-  'tasks.archiveTask': STATIC_RESULT_OK_NULL,
-  'tasks.restoreTask': STATIC_RESULT_OK_NULL,
-  'tasks.renameTask': STATIC_RESULT_OK_NULL,
-  'tasks.generateTaskName': { kind: 'static', value: { ok: true, value: 'untitled-task' } },
+  'tasks.archiveTask': {
+    kind: 'invoke',
+    command: 'tasks_archive',
+    adapt: ([id]) => ({ id }),
+    transform: (value) => ({ ok: true, value }),
+  },
+  'tasks.restoreTask': {
+    kind: 'invoke',
+    command: 'tasks_restore',
+    adapt: ([id]) => ({ id }),
+    transform: (value) => ({ ok: true, value }),
+  },
+  'tasks.renameTask': {
+    kind: 'invoke',
+    command: 'tasks_rename',
+    adapt: ([id, name]) => ({ id, name }),
+    transform: (value) => ({ ok: true, value }),
+  },
+  'tasks.generateTaskName': {
+    kind: 'invoke',
+    command: 'tasks_generate_name',
+    adapt: ([description]) => ({ description: description ?? '' }),
+    transform: (value) => ({ ok: true, value }),
+  },
+  // Provisioning is implicit in Tauri's tasks_create (worktree is
+  // created atomically). The renderer's provisionTask is a separate
+  // step on Electron; here it's a no-op success.
   'tasks.provisionTask': STATIC_RESULT_OK_NULL,
-  'tasks.setTaskPinned': STATIC_RESULT_OK_NULL,
-  'tasks.updateTaskStatus': STATIC_RESULT_OK_NULL,
-  'tasks.updateLinkedIssue': STATIC_RESULT_OK_NULL,
+  'tasks.setTaskPinned': {
+    kind: 'invoke',
+    command: 'tasks_set_pinned',
+    adapt: ([id, pinned]) => ({ id, pinned }),
+  },
+  // updateTaskStatus on Electron mutates a richer status enum
+  // (provisioning/running/etc.); Tauri's tasks have only active /
+  // archived, so we route this to archive/restore based on the
+  // status string the caller passes.
+  'tasks.updateTaskStatus': {
+    kind: 'custom',
+    handler: async ([id, status]) => {
+      const next = typeof status === 'string' ? status : '';
+      try {
+        const value = await tauriInvoke(
+          next === 'archived' ? 'tasks_archive' : 'tasks_restore',
+          { id }
+        );
+        return { ok: true, value };
+      } catch (e) {
+        return { ok: false, error: e };
+      }
+    },
+  },
+  'tasks.updateLinkedIssue': {
+    kind: 'invoke',
+    command: 'tasks_update_linked_issue',
+    adapt: ([id, linkedIssue]) => ({ id, linkedIssue }),
+  },
+  // No project_settings.workspace_settings layer in Tauri yet; the
+  // renderer's call site coalesces null into defaults.
   'tasks.getWorkspaceSettings': STATIC_NULL,
 
   // == app ==========================================================

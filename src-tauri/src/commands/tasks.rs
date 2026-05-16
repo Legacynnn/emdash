@@ -100,3 +100,114 @@ pub fn tasks_delete(
     manager.broadcast(UiMutationEvent::TaskDeleted { id, project_id });
     Ok(())
 }
+
+#[tauri::command]
+#[specta::specta]
+pub fn tasks_rename(
+    service: State<'_, Arc<TasksService>>,
+    manager: State<'_, Arc<UiSyncManager>>,
+    id: String,
+    name: String,
+) -> Result<Task, TasksCommandError> {
+    let task = service.rename(&id, &name)?;
+    manager.broadcast(UiMutationEvent::TaskUpdated {
+        id: task.id.clone(),
+        project_id: task.project_id.clone(),
+    });
+    Ok(task)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn tasks_archive(
+    service: State<'_, Arc<TasksService>>,
+    manager: State<'_, Arc<UiSyncManager>>,
+    id: String,
+) -> Result<Task, TasksCommandError> {
+    let task = service.archive(&id)?;
+    manager.broadcast(UiMutationEvent::TaskUpdated {
+        id: task.id.clone(),
+        project_id: task.project_id.clone(),
+    });
+    Ok(task)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn tasks_restore(
+    service: State<'_, Arc<TasksService>>,
+    manager: State<'_, Arc<UiSyncManager>>,
+    id: String,
+) -> Result<Task, TasksCommandError> {
+    let task = service.restore(&id)?;
+    manager.broadcast(UiMutationEvent::TaskUpdated {
+        id: task.id.clone(),
+        project_id: task.project_id.clone(),
+    });
+    Ok(task)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn tasks_set_pinned(
+    service: State<'_, Arc<TasksService>>,
+    manager: State<'_, Arc<UiSyncManager>>,
+    id: String,
+    pinned: bool,
+) -> Result<(), TasksCommandError> {
+    service.set_pinned(&id, pinned)?;
+    if let Some(task) = service.get(&id)? {
+        manager.broadcast(UiMutationEvent::TaskUpdated {
+            id: task.id,
+            project_id: task.project_id,
+        });
+    }
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn tasks_update_linked_issue(
+    service: State<'_, Arc<TasksService>>,
+    manager: State<'_, Arc<UiSyncManager>>,
+    id: String,
+    linked_issue: Option<String>,
+) -> Result<(), TasksCommandError> {
+    service.update_linked_issue(&id, linked_issue)?;
+    if let Some(task) = service.get(&id)? {
+        manager.broadcast(UiMutationEvent::TaskUpdated {
+            id: task.id,
+            project_id: task.project_id,
+        });
+    }
+    Ok(())
+}
+
+/// Compute a short slugged name suggestion. Deterministic — the same
+/// `description` always produces the same suggestion. Useful for the
+/// renderer's "Generate name" button on new-task dialogs.
+#[tauri::command]
+#[specta::specta]
+pub fn tasks_generate_name(description: String) -> String {
+    let trimmed = description.trim();
+    if trimmed.is_empty() {
+        return "untitled-task".into();
+    }
+    let mut out = String::new();
+    let mut last_was_dash = false;
+    for ch in trimmed.chars() {
+        if ch.is_ascii_alphanumeric() {
+            out.push(ch.to_ascii_lowercase());
+            last_was_dash = false;
+        } else if !last_was_dash && !out.is_empty() {
+            out.push('-');
+            last_was_dash = true;
+        }
+    }
+    let cleaned = out.trim_matches('-');
+    if cleaned.is_empty() {
+        "untitled-task".into()
+    } else {
+        cleaned.chars().take(48).collect()
+    }
+}

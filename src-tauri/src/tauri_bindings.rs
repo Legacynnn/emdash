@@ -94,6 +94,12 @@ pub fn build_specta() -> Builder<tauri::Wry> {
         commands::terminals::terminals_create,
         commands::terminals::terminals_rename,
         commands::terminals::terminals_delete,
+        commands::tasks::tasks_rename,
+        commands::tasks::tasks_archive,
+        commands::tasks::tasks_restore,
+        commands::tasks::tasks_set_pinned,
+        commands::tasks::tasks_update_linked_issue,
+        commands::tasks::tasks_generate_name,
     ])
 }
 

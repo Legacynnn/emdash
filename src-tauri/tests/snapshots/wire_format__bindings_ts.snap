@@ -177,6 +177,17 @@ export const commands = {
 	terminalsCreate: (input: NewTerminalInput) => typedError<Terminal, TerminalsCommandError>(__TAURI_INVOKE("terminals_create", { input })),
 	terminalsRename: (id: string, name: string) => typedError<null, TerminalsCommandError>(__TAURI_INVOKE("terminals_rename", { id, name })),
 	terminalsDelete: (id: string) => typedError<null, TerminalsCommandError>(__TAURI_INVOKE("terminals_delete", { id })),
+	tasksRename: (id: string, name: string) => typedError<Task, TasksCommandError>(__TAURI_INVOKE("tasks_rename", { id, name })),
+	tasksArchive: (id: string) => typedError<Task, TasksCommandError>(__TAURI_INVOKE("tasks_archive", { id })),
+	tasksRestore: (id: string) => typedError<Task, TasksCommandError>(__TAURI_INVOKE("tasks_restore", { id })),
+	tasksSetPinned: (id: string, pinned: boolean) => typedError<null, TasksCommandError>(__TAURI_INVOKE("tasks_set_pinned", { id, pinned })),
+	tasksUpdateLinkedIssue: (id: string, linkedIssue: string | null) => typedError<null, TasksCommandError>(__TAURI_INVOKE("tasks_update_linked_issue", { id, linkedIssue })),
+	/**
+	 *  Compute a short slugged name suggestion. Deterministic — the same
+	 *  `description` always produces the same suggestion. Useful for the
+	 *  renderer's "Generate name" button on new-task dialogs.
+	 */
+	tasksGenerateName: (description: string) => __TAURI_INVOKE<string>("tasks_generate_name", { description }),
 };
 
 /* Types */
