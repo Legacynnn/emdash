@@ -6,6 +6,9 @@ interface TaskNameFieldProps {
   state: TaskNameState;
 }
 
+// The typed value here is also the branch name. Anything users type
+// flows to `git worktree add -b <value>` verbatim, so the hint
+// matches the live transformer's allowlist.
 export function TaskNameField({ state }: TaskNameFieldProps) {
   const { taskName, handleTaskNameChange, showSlugHint } = state;
 
@@ -16,10 +19,12 @@ export function TaskNameField({ state }: TaskNameFieldProps) {
         data-autofocus
         value={taskName}
         onChange={(e) => handleTaskNameChange(e.target.value)}
+        placeholder="feat/add-search"
       />
       {showSlugHint && (
         <p className="text-xs text-muted-foreground mt-1">
-          Task names only allow lowercase letters, numbers, and hyphens.
+          Branch names only allow lowercase letters, numbers, and{' '}
+          <code className="rounded bg-muted/60 px-1">- _ / .</code>
         </p>
       )}
     </Field>

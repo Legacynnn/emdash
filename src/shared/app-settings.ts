@@ -19,7 +19,6 @@ export interface LocalProjectSettings {
 
 export interface ProjectSettings {
   pushOnCreate: boolean;
-  branchPrefix: string;
   tmuxByDefault: boolean;
 }
 

@@ -1,11 +1,18 @@
 export const MAX_TASK_NAME_LENGTH = 64;
 
+// Allowed characters: lowercase alphanumerics plus `-`, `_`, `/`, `.`
+// — the subset of git ref-name characters most users actually type.
+// `/` lets people write their own prefixes (feat/x, dan/foo).
+//
+// We intentionally do NOT auto-derive a prefix or apply any AI heuristic;
+// what the user types is what they get as both task name and branch.
 export const liveTransformTaskName = (input: string): string =>
   input
     .toLowerCase()
     .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '')
+    .replace(/[^a-z0-9\-_./]/g, '')
     .replace(/-+/g, '-')
+    .replace(/\/+/g, '/')
     .slice(0, MAX_TASK_NAME_LENGTH);
 
 export const normalizeTaskName = (input: string): string =>
@@ -13,9 +20,13 @@ export const normalizeTaskName = (input: string): string =>
     .trim()
     .toLowerCase()
     .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '')
+    .replace(/[^a-z0-9\-_./]/g, '')
     .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '')
+    .replace(/\/+/g, '/')
+    // Git rejects refs that start or end with `.` or `/` (and `-` is
+    // also a poor leading char). Trim those off so what the user sees
+    // is also a valid ref name.
+    .replace(/^[-./]+|[-./]+$/g, '')
     .slice(0, MAX_TASK_NAME_LENGTH);
 
 export const ensureUniqueTaskName = (

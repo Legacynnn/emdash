@@ -7,10 +7,11 @@
 //! behavior identical to what `git worktree` does in the user's
 //! environment.
 //!
-//! Path layout: `<project_root>/.emdash-worktrees/<task_id>/`. This
-//! sits beside the working tree, hidden by convention (leading dot),
-//! and never collides with a sibling task's path because the segment
-//! is the UUID-v4 `task_id`.
+//! Path layout: `<project_root>/.emdash-worktrees/<branch>/`. The
+//! worktree directory mirrors the branch name (including any `/`
+//! Conventional-Commits-style prefix, which becomes a subdirectory).
+//! That keeps "the branch and the workspace are called the same
+//! thing locally and remotely" as a single invariant.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -20,10 +21,11 @@ use super::model::TasksError;
 pub const WORKTREES_DIR_NAME: &str = ".emdash-worktrees";
 
 /// Path where the task's worktree will live, given the project root
-/// and the new task id. Returns an absolute path with the platform's
-/// canonical separators.
-pub fn worktree_path(project_root: &Path, task_id: &str) -> PathBuf {
-    project_root.join(WORKTREES_DIR_NAME).join(task_id)
+/// and the branch name. Returns an absolute path with the platform's
+/// canonical separators. Embedded `/` in the branch (e.g. `feat/x`)
+/// turns into a nested subdirectory — git handles that fine.
+pub fn worktree_path(project_root: &Path, branch: &str) -> PathBuf {
+    project_root.join(WORKTREES_DIR_NAME).join(branch)
 }
 
 /// `git worktree add -b <task_branch> <path> <source_branch>`.
@@ -146,6 +148,12 @@ mod tests {
     fn worktree_path_under_emdash_worktrees() {
         let p = worktree_path(Path::new("/a/b"), "task-1");
         assert!(p.ends_with(".emdash-worktrees/task-1"));
+    }
+
+    #[test]
+    fn worktree_path_nests_slashes_from_branch() {
+        let p = worktree_path(Path::new("/a/b"), "feat/add-search");
+        assert!(p.ends_with(".emdash-worktrees/feat/add-search"));
     }
 
     #[test]

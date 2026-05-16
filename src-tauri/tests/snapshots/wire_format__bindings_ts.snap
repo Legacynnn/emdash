@@ -25,7 +25,7 @@ export const commands = {
 	fsWatcherSubscribe: (id: string, path: string, onEvent: Channel<WatchEvent>) => typedError<WatcherFallback, FsWatcherCommandError>(__TAURI_INVOKE("fs_watcher_subscribe", { id, path, onEvent })),
 	fsWatcherUnsubscribe: (id: string) => typedError<boolean, FsWatcherCommandError>(__TAURI_INVOKE("fs_watcher_unsubscribe", { id })),
 	tasksList: (projectId: string) => typedError<Task[], TasksCommandError>(__TAURI_INVOKE("tasks_list", { projectId })),
-	tasksCreate: (projectId: string, name: string, sourceBranch: TaskSourceBranch) => typedError<Task, TasksCommandError>(__TAURI_INVOKE("tasks_create", { projectId, name, sourceBranch })),
+	tasksCreate: (projectId: string, name: string, sourceBranch: TaskSourceBranch, taskBranch: string | null) => typedError<Task, TasksCommandError>(__TAURI_INVOKE("tasks_create", { projectId, name, sourceBranch, taskBranch })),
 	tasksDelete: (id: string) => typedError<null, TasksCommandError>(__TAURI_INVOKE("tasks_delete", { id })),
 	telemetryGetEnabled: () => typedError<boolean, TelemetryCommandError>(__TAURI_INVOKE("telemetry_get_enabled")),
 	telemetrySetEnabled: (enabled: boolean) => typedError<null, TelemetryCommandError>(__TAURI_INVOKE("telemetry_set_enabled", { enabled })),
@@ -193,7 +193,8 @@ export const commands = {
 	gitChangedFiles: (workspaceId: string) => typedError<GitStatusEntry[], GitCommandError>(__TAURI_INVOKE("git_changed_files", { workspaceId })),
 	gitCurrentBranch: (workspaceId: string) => typedError<string | null, GitCommandError>(__TAURI_INVOKE("git_current_branch", { workspaceId })),
 	gitDiffAgainstHead: (workspaceId: string) => typedError<string, GitCommandError>(__TAURI_INVOKE("git_diff_against_head", { workspaceId })),
-	gitListBranches: (workspaceId: string) => typedError<string[], GitCommandError>(__TAURI_INVOKE("git_list_branches", { workspaceId })),
+	gitLocalBranches: (projectId: string, workspaceId: string | null) => typedError<LocalBranchesPayload, GitCommandError>(__TAURI_INVOKE("git_local_branches", { projectId, workspaceId })),
+	gitRemoteBranches: (projectId: string, workspaceId: string | null) => typedError<RemoteBranchesPayload, GitCommandError>(__TAURI_INVOKE("git_remote_branches", { projectId, workspaceId })),
 	fsWsReadFile: (projectId: string, workspaceId: string, filePath: string, maxBytes: number | null) => typedError<string, FsCommandError>(__TAURI_INVOKE("fs_ws_read_file", { projectId, workspaceId, filePath, maxBytes })),
 	fsWsWriteFile: (projectId: string, workspaceId: string, filePath: string, content: string) => typedError<null, FsCommandError>(__TAURI_INVOKE("fs_ws_write_file", { projectId, workspaceId, filePath, content })),
 	fsWsListFiles: (projectId: string, workspaceId: string, dirPath: string, includeHidden: boolean | null) => typedError<FsListEntry[], FsCommandError>(__TAURI_INVOKE("fs_ws_list_files", { projectId, workspaceId, dirPath, includeHidden })),
@@ -312,6 +313,8 @@ export type AppCommandError = {
 };
 
 export type AppErrorCode = "io" | "unsupported" | "cancelled";
+
+export type BranchRef = { type: "local"; branch: string } | { type: "remote"; branch: string; remote: GitRemote };
 
 export type CatalogIndex = CatalogIndex_Serialize | CatalogIndex_Deserialize;
 
@@ -526,6 +529,11 @@ export type GitFullStatus = {
 	changes: GitStatusEntry[],
 };
 
+export type GitRemote = {
+	name: string,
+	url: string,
+};
+
 export type GitStatusEntry = {
 	path: string,
 	bits: number,
@@ -659,6 +667,12 @@ export type LinearWorkflowState = {
 	/**  One of: `triage`, `backlog`, `unstarted`, `started`, `completed`, `canceled`. */
 	state_type: string,
 	color: string,
+};
+
+export type LocalBranchesPayload = {
+	localBranches: BranchRef[],
+	currentBranch: string | null,
+	isUnborn: boolean,
 };
 
 export type McpCatalogEntry = {
@@ -842,6 +856,12 @@ export type PullRequestSummary = {
 	updated_at: string,
 };
 
+export type RemoteBranchesPayload = {
+	remoteBranches: BranchRef[],
+	remotes: GitRemote[],
+	gitDefaultBranch: string,
+};
+
 export type RepoSummary = {
 	owner: string,
 	name: string,
@@ -941,7 +961,7 @@ export type TasksCommandError = {
 	message: string,
 };
 
-export type TasksErrorCode = "empty_name" | "project_not_found" | "project_path_invalid" | "not_found" | "worktree_path_exists" | "worktree_failed" | "git" | "storage" | "malformed";
+export type TasksErrorCode = "empty_name" | "empty_branch" | "branch_already_exists" | "project_not_found" | "project_path_invalid" | "not_found" | "worktree_path_exists" | "worktree_failed" | "git" | "storage" | "malformed";
 
 export type TelemetryCommandError = {
 	code: TelemetryErrorCode,

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { getIssueTaskName } from './issue-task-name';
 
 describe('getIssueTaskName', () => {
-  it('normalizes a Linear branch name into a task name', () => {
+  it('preserves Linear branch name verbatim (slashes included)', () => {
     expect(
       getIssueTaskName({
         provider: 'linear',
@@ -11,7 +11,7 @@ describe('getIssueTaskName', () => {
         identifier: 'GEN-626',
         branchName: 'jona/gen-626-linear-issue-branch-name-creation',
       })
-    ).toBe('jona-gen-626-linear-issue-branch-name-creation');
+    ).toBe('jona/gen-626-linear-issue-branch-name-creation');
   });
 
   it('returns null for non-Linear issues', () => {

@@ -62,6 +62,13 @@ impl TasksService {
     /// `git worktree add` succeeds — a partially-created worktree on
     /// the filesystem with no matching DB row is easier to clean up
     /// than the inverse.
+    ///
+    /// Branch + worktree share a name. If the renderer passes an
+    /// explicit `task_branch` it is used verbatim (e.g. `feat/add-x`);
+    /// otherwise the name is slugified. A collision on the local
+    /// branch name, the remote-tracking name, or the worktree
+    /// directory produces `BranchAlreadyExists` so the renderer can
+    /// surface a rename prompt.
     pub fn create(&self, input: NewTaskInput) -> Result<Task, TasksError> {
         let name = input.name.trim();
         if name.is_empty() {
@@ -69,14 +76,17 @@ impl TasksService {
         }
         let project_path = self.project_path(&input.project_id)?;
 
-        let task_id = Uuid::new_v4().to_string();
-        let task_path = worktree::worktree_path(&project_path, &task_id);
-        if task_path.exists() {
-            return Err(TasksError::WorktreePathExists(
-                task_path.display().to_string(),
-            ));
+        let task_branch = resolve_task_branch(&input.task_branch, name)?;
+        if branch_exists(&project_path, &task_branch)? {
+            return Err(TasksError::BranchAlreadyExists(task_branch));
         }
-        let task_branch = derive_task_branch(name, &task_id);
+
+        let task_path = worktree::worktree_path(&project_path, &task_branch);
+        if task_path.exists() {
+            return Err(TasksError::BranchAlreadyExists(task_branch));
+        }
+
+        let task_id = Uuid::new_v4().to_string();
         let source = input.source_branch.checkout_target();
 
         let mutex = self.fs_lock.lock_for(&task_id);
@@ -262,28 +272,78 @@ impl TasksService {
     }
 }
 
-fn derive_task_branch(name: &str, task_id: &str) -> String {
-    // 8-char task-id suffix is enough to avoid collisions and short
-    // enough to keep the branch name readable.
-    let slug: String = name
+/// Branch the worktree will check out. Honors the renderer's explicit
+/// choice (already pre-slugged and optionally prefixed) and falls back
+/// to slugifying `name` when none was provided. Slashes are allowed
+/// inside the slug so a renderer-supplied `feat/add-x` survives intact.
+fn resolve_task_branch(explicit: &Option<String>, name: &str) -> Result<String, TasksError> {
+    if let Some(b) = explicit.as_ref() {
+        let trimmed = b.trim().trim_matches('/').to_string();
+        if trimmed.is_empty() {
+            return Err(TasksError::EmptyBranch);
+        }
+        return Ok(trimmed);
+    }
+    let slug = slug_branch(name);
+    if slug.is_empty() {
+        return Err(TasksError::EmptyBranch);
+    }
+    Ok(slug)
+}
+
+fn slug_branch(name: &str) -> String {
+    let s: String = name
         .chars()
         .map(|c| {
             if c.is_ascii_alphanumeric() {
                 c.to_ascii_lowercase()
-            } else if c == '_' || c == '-' {
+            } else if c == '_' || c == '-' || c == '/' {
                 c
             } else {
                 '-'
             }
         })
         .collect();
-    let trimmed = slug.trim_matches('-');
-    let suffix = &task_id[..8.min(task_id.len())];
-    if trimmed.is_empty() {
-        format!("task/{suffix}")
-    } else {
-        format!("task/{trimmed}-{suffix}")
+    s.trim_matches('-').to_string()
+}
+
+/// True if a branch with this name already exists locally or as a
+/// remote-tracking ref (e.g. `refs/remotes/origin/<name>`). Both
+/// would cause `git worktree add -b <name>` to fail; surfacing the
+/// collision up front gives the renderer a clean rename prompt.
+fn branch_exists(project_root: &Path, branch: &str) -> Result<bool, TasksError> {
+    use git2::{BranchType, Repository};
+
+    let repo = match Repository::open(project_root) {
+        Ok(r) => r,
+        Err(e) if e.code() == git2::ErrorCode::NotFound => return Ok(false),
+        Err(e) => return Err(TasksError::Git(e.into())),
+    };
+    if repo
+        .find_branch(branch, BranchType::Local)
+        .map(|_| true)
+        .or_else(|e| match e.code() {
+            git2::ErrorCode::NotFound => Ok(false),
+            _ => Err(e),
+        })
+        .map_err(|e| TasksError::Git(e.into()))?
+    {
+        return Ok(true);
     }
+    // Walk remotes looking for `<remote>/<branch>`. libgit2 stores
+    // remote-tracking refs under `refs/remotes/<remote>/...`.
+    for remote in repo
+        .remotes()
+        .map_err(|e| TasksError::Git(e.into()))?
+        .iter()
+        .flatten()
+    {
+        let qualified = format!("{remote}/{branch}");
+        if repo.find_branch(&qualified, BranchType::Remote).is_ok() {
+            return Ok(true);
+        }
+    }
+    Ok(false)
 }
 
 /// Intermediate struct: every field except `source_branch` is loaded
@@ -415,14 +475,15 @@ mod tests {
                 source_branch: TaskSourceBranch::Local {
                     branch: "main".to_string(),
                 },
+                task_branch: None,
             })
             .unwrap();
 
         assert_eq!(task.project_id, project_id);
         assert_eq!(task.name, "Feature X");
-        assert!(task
-            .path
-            .ends_with(&format!(".emdash-worktrees/{}", task.id)));
+        // Worktree path mirrors the branch — slug only, no UUID, no
+        // `task/` prefix.
+        assert!(task.path.ends_with(".emdash-worktrees/feature-x"));
         assert!(std::path::Path::new(&task.path).is_dir());
         assert!(matches!(task.status, TaskStatus::Active));
         assert!(task.pty_id.is_none());
@@ -437,6 +498,54 @@ mod tests {
     }
 
     #[test]
+    fn create_honors_explicit_task_branch_verbatim() {
+        let (_p, _d, _db, svc, project_id) = setup();
+        let task = svc
+            .create(NewTaskInput {
+                project_id: project_id.clone(),
+                name: "Add search palette".to_string(),
+                source_branch: TaskSourceBranch::Local {
+                    branch: "main".to_string(),
+                },
+                task_branch: Some("feat/add-search".to_string()),
+            })
+            .unwrap();
+
+        // Branch and worktree path mirror exactly — slashes preserved.
+        assert!(task.path.ends_with(".emdash-worktrees/feat/add-search"));
+        assert!(std::path::Path::new(&task.path).is_dir());
+    }
+
+    #[test]
+    fn create_rejects_duplicate_branch() {
+        let (_p, _d, _db, svc, project_id) = setup();
+        svc.create(NewTaskInput {
+            project_id: project_id.clone(),
+            name: "first".to_string(),
+            source_branch: TaskSourceBranch::Local {
+                branch: "main".to_string(),
+            },
+            task_branch: Some("feat/clash".to_string()),
+        })
+        .unwrap();
+
+        let err = svc
+            .create(NewTaskInput {
+                project_id: project_id.clone(),
+                name: "second".to_string(),
+                source_branch: TaskSourceBranch::Local {
+                    branch: "main".to_string(),
+                },
+                task_branch: Some("feat/clash".to_string()),
+            })
+            .unwrap_err();
+        assert!(
+            matches!(err, TasksError::BranchAlreadyExists(ref b) if b == "feat/clash"),
+            "expected BranchAlreadyExists, got {err:?}"
+        );
+    }
+
+    #[test]
     fn delete_removes_worktree_and_row() {
         let (_p, _d, _db, svc, project_id) = setup();
         let task = svc
@@ -446,6 +555,7 @@ mod tests {
                 source_branch: TaskSourceBranch::Local {
                     branch: "main".to_string(),
                 },
+                task_branch: None,
             })
             .unwrap();
         let path = std::path::PathBuf::from(&task.path);
@@ -472,6 +582,7 @@ mod tests {
                 source_branch: TaskSourceBranch::Local {
                     branch: "main".to_string(),
                 },
+                task_branch: None,
             })
             .unwrap_err();
         assert!(matches!(err, TasksError::EmptyName));
@@ -487,6 +598,7 @@ mod tests {
                 source_branch: TaskSourceBranch::Local {
                     branch: "main".to_string(),
                 },
+                task_branch: None,
             })
             .unwrap_err();
         assert!(matches!(err, TasksError::ProjectNotFound(_)));
@@ -512,6 +624,7 @@ mod tests {
             source_branch: TaskSourceBranch::Local {
                 branch: "main".to_string(),
             },
+            task_branch: None,
         })
         .unwrap();
 
@@ -520,11 +633,33 @@ mod tests {
     }
 
     #[test]
-    fn derive_task_branch_makes_safe_slug() {
-        assert_eq!(
-            derive_task_branch("Hello World!", "abcd1234efgh5678"),
-            "task/hello-world-abcd1234"
-        );
-        assert_eq!(derive_task_branch("***", "abcd1234"), "task/abcd1234");
+    fn slug_branch_strips_non_alnum() {
+        assert_eq!(slug_branch("Hello World!"), "hello-world");
+        assert_eq!(slug_branch("***"), "");
+        assert_eq!(slug_branch("feat/already-prefixed"), "feat/already-prefixed");
+    }
+
+    #[test]
+    fn resolve_task_branch_prefers_explicit() {
+        let chosen = resolve_task_branch(&Some("feat/x".to_string()), "ignored").unwrap();
+        assert_eq!(chosen, "feat/x");
+    }
+
+    #[test]
+    fn resolve_task_branch_falls_back_to_slug() {
+        let chosen = resolve_task_branch(&None, "Add Search").unwrap();
+        assert_eq!(chosen, "add-search");
+    }
+
+    #[test]
+    fn resolve_task_branch_rejects_empty_explicit_and_empty_slug() {
+        assert!(matches!(
+            resolve_task_branch(&Some("   ".to_string()), "x"),
+            Err(TasksError::EmptyBranch)
+        ));
+        assert!(matches!(
+            resolve_task_branch(&None, "***"),
+            Err(TasksError::EmptyBranch)
+        ));
     }
 }

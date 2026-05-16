@@ -214,12 +214,20 @@ const ROUTES: Record<string, Route> = {
     kind: 'invoke',
     command: 'tasks_create',
     adapt: ([input]) => {
-      // Electron likely passes { projectId, name, sourceBranch }.
+      // The renderer passes a strategy object that includes the
+      // explicit branch name for new-branch / from-pull-request
+      // flows. Extract it so the Rust side honors the chosen name
+      // verbatim (no task/ prefix, no UUID suffix).
       const obj = (input as Record<string, unknown>) ?? {};
+      const strategy = obj.strategy as { kind?: string; taskBranch?: string } | undefined;
       return {
         projectId: obj.projectId,
         name: obj.name,
         sourceBranch: obj.sourceBranch ?? { type: 'local', branch: 'main' },
+        taskBranch:
+          strategy?.kind === 'new-branch' || strategy?.kind === 'from-pull-request'
+            ? (strategy.taskBranch ?? null)
+            : null,
       };
     },
   },
@@ -586,10 +594,14 @@ const ROUTES: Record<string, Route> = {
   'repository.addRemote': STATIC_RESULT_OK_NULL,
   'repository.getLocalBranches': {
     kind: 'invoke',
-    command: 'git_list_branches',
-    adapt: ([, workspaceId]) => ({ workspaceId }),
+    command: 'git_local_branches',
+    adapt: ([projectId, workspaceId]) => ({ projectId, workspaceId }),
   },
-  'repository.getRemoteBranches': STATIC_EMPTY_ARRAY,
+  'repository.getRemoteBranches': {
+    kind: 'invoke',
+    command: 'git_remote_branches',
+    adapt: ([projectId, workspaceId]) => ({ projectId, workspaceId }),
+  },
 
   // == pullRequests =================================================
   // Read-side wired to real (currently empty) Rust commands; mutation

@@ -22,6 +22,8 @@ pub struct TasksCommandError {
 #[serde(rename_all = "snake_case")]
 pub enum TasksErrorCode {
     EmptyName,
+    EmptyBranch,
+    BranchAlreadyExists,
     ProjectNotFound,
     ProjectPathInvalid,
     NotFound,
@@ -37,6 +39,8 @@ impl From<TasksError> for TasksCommandError {
         let message = e.to_string();
         let code = match e {
             TasksError::EmptyName => TasksErrorCode::EmptyName,
+            TasksError::EmptyBranch => TasksErrorCode::EmptyBranch,
+            TasksError::BranchAlreadyExists(_) => TasksErrorCode::BranchAlreadyExists,
             TasksError::ProjectNotFound(_) => TasksErrorCode::ProjectNotFound,
             TasksError::ProjectPathInvalid(_) => TasksErrorCode::ProjectPathInvalid,
             TasksError::NotFound(_) => TasksErrorCode::NotFound,
@@ -67,11 +71,13 @@ pub fn tasks_create(
     project_id: String,
     name: String,
     source_branch: TaskSourceBranch,
+    task_branch: Option<String>,
 ) -> Result<Task, TasksCommandError> {
     let task = service.create(NewTaskInput {
         project_id: project_id.clone(),
         name,
         source_branch,
+        task_branch,
     })?;
     manager.broadcast(UiMutationEvent::TaskCreated {
         id: task.id.clone(),

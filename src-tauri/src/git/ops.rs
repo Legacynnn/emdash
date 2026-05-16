@@ -123,6 +123,152 @@ pub fn list_branches(path: &Path) -> Result<Vec<String>, GitError> {
     Ok(out)
 }
 
+#[derive(Clone, Debug, Serialize, Type, PartialEq, Eq)]
+pub struct GitRemote {
+    pub name: String,
+    pub url: String,
+}
+
+#[derive(Clone, Debug, Serialize, Type, PartialEq, Eq)]
+#[serde(tag = "type", rename_all = "lowercase")]
+pub enum BranchRef {
+    Local {
+        branch: String,
+    },
+    Remote {
+        branch: String,
+        remote: GitRemote,
+    },
+}
+
+#[derive(Clone, Debug, Serialize, Type, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalBranchesPayload {
+    pub local_branches: Vec<BranchRef>,
+    pub current_branch: Option<String>,
+    pub is_unborn: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Type, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct RemoteBranchesPayload {
+    pub remote_branches: Vec<BranchRef>,
+    pub remotes: Vec<GitRemote>,
+    pub git_default_branch: String,
+}
+
+pub fn local_branches(path: &Path) -> Result<LocalBranchesPayload, GitError> {
+    let repo = open(path)?;
+
+    let (current_branch, is_unborn) = match repo.head() {
+        Ok(h) => (h.shorthand().map(|s| s.to_string()), false),
+        Err(e) if e.code() == git2::ErrorCode::UnbornBranch => {
+            // libgit2 doesn't expose the unborn HEAD's target name
+            // directly; fall back to parsing the HEAD ref.
+            let target = repo
+                .find_reference("HEAD")
+                .ok()
+                .and_then(|r| r.symbolic_target().map(|s| s.to_string()))
+                .and_then(|s| s.strip_prefix("refs/heads/").map(|s| s.to_string()));
+            (target, true)
+        }
+        Err(e) => return Err(GitError::Git2(e)),
+    };
+
+    let mut names = Vec::new();
+    for entry in repo.branches(Some(BranchType::Local))? {
+        let (branch, _) = entry?;
+        if let Some(name) = branch.name()? {
+            names.push(name.to_string());
+        }
+    }
+    names.sort();
+    let local = names
+        .into_iter()
+        .map(|branch| BranchRef::Local { branch })
+        .collect();
+
+    Ok(LocalBranchesPayload {
+        local_branches: local,
+        current_branch,
+        is_unborn,
+    })
+}
+
+pub fn remote_branches(path: &Path) -> Result<RemoteBranchesPayload, GitError> {
+    let repo = open(path)?;
+
+    let mut remotes: Vec<GitRemote> = Vec::new();
+    for name in repo.remotes()?.iter().flatten() {
+        if let Ok(r) = repo.find_remote(name) {
+            remotes.push(GitRemote {
+                name: name.to_string(),
+                url: r.url().unwrap_or_default().to_string(),
+            });
+        }
+    }
+    remotes.sort_by(|a, b| a.name.cmp(&b.name));
+
+    let mut remote_branches: Vec<BranchRef> = Vec::new();
+    for entry in repo.branches(Some(BranchType::Remote))? {
+        let (branch, _) = entry?;
+        let full = match branch.name()? {
+            Some(n) => n.to_string(),
+            None => continue,
+        };
+        // Names from libgit2 look like "origin/main". The remote-tracking
+        // pointer for `origin/HEAD` is reported as `origin/HEAD` — skip
+        // it so the UI doesn't list a phantom branch.
+        let (remote_name, branch_name) = match full.split_once('/') {
+            Some((r, b)) => (r.to_string(), b.to_string()),
+            None => continue,
+        };
+        if branch_name == "HEAD" {
+            continue;
+        }
+        let url = remotes
+            .iter()
+            .find(|r| r.name == remote_name)
+            .map(|r| r.url.clone())
+            .unwrap_or_default();
+        remote_branches.push(BranchRef::Remote {
+            branch: branch_name,
+            remote: GitRemote {
+                name: remote_name,
+                url,
+            },
+        });
+    }
+    remote_branches.sort_by(|a, b| match (a, b) {
+        (
+            BranchRef::Remote {
+                branch: ab,
+                remote: ar,
+            },
+            BranchRef::Remote {
+                branch: bb,
+                remote: br,
+            },
+        ) => ar.name.cmp(&br.name).then_with(|| ab.cmp(bb)),
+        _ => std::cmp::Ordering::Equal,
+    });
+
+    // Best-effort: derive the default branch from origin/HEAD if present,
+    // otherwise leave empty (renderer falls back to its own resolver).
+    let git_default_branch = repo
+        .find_reference("refs/remotes/origin/HEAD")
+        .ok()
+        .and_then(|r| r.symbolic_target().map(|s| s.to_string()))
+        .and_then(|s| s.strip_prefix("refs/remotes/origin/").map(|s| s.to_string()))
+        .unwrap_or_default();
+
+    Ok(RemoteBranchesPayload {
+        remote_branches,
+        remotes,
+        git_default_branch,
+    })
+}
+
 pub fn list_refs(path: &Path) -> Result<Vec<GitRef>, GitError> {
     let repo = open(path)?;
     let mut out = Vec::new();
@@ -255,5 +401,74 @@ mod tests {
         let diff = diff_against_head(&path).unwrap();
         assert!(diff.contains("-hi"));
         assert!(diff.contains("+bye"));
+    }
+
+    #[test]
+    fn local_branches_returns_payload_with_current_branch() {
+        let (_dir, path) = init_repo();
+        run(&path, &["branch", "feature/a"]);
+        run(&path, &["branch", "feature/b"]);
+
+        let payload = local_branches(&path).unwrap();
+        assert_eq!(payload.current_branch.as_deref(), Some("main"));
+        assert!(!payload.is_unborn);
+        assert_eq!(payload.local_branches.len(), 3);
+        let names: Vec<&str> = payload
+            .local_branches
+            .iter()
+            .map(|b| match b {
+                BranchRef::Local { branch } => branch.as_str(),
+                _ => unreachable!("local_branches must only contain Local"),
+            })
+            .collect();
+        assert_eq!(names, vec!["feature/a", "feature/b", "main"]);
+    }
+
+    #[test]
+    fn local_branches_reports_unborn_for_fresh_repo() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().to_path_buf();
+        run(&path, &["init", "-q", "-b", "main"]);
+
+        let payload = local_branches(&path).unwrap();
+        assert!(payload.is_unborn);
+        assert_eq!(payload.current_branch.as_deref(), Some("main"));
+        assert!(payload.local_branches.is_empty());
+    }
+
+    #[test]
+    fn remote_branches_lists_origin_branches() {
+        let (_origin_dir, origin) = init_repo();
+        run(&origin, &["branch", "feature/x"]);
+
+        let clone_dir = tempfile::tempdir().unwrap();
+        let clone_path = clone_dir.path().join("clone");
+        let out = Command::new("git")
+            .args([
+                "clone",
+                "-q",
+                origin.to_str().unwrap(),
+                clone_path.to_str().unwrap(),
+            ])
+            .output()
+            .unwrap();
+        assert!(out.status.success());
+
+        let payload = remote_branches(&clone_path).unwrap();
+        assert_eq!(payload.remotes.len(), 1);
+        assert_eq!(payload.remotes[0].name, "origin");
+
+        let names: Vec<&str> = payload
+            .remote_branches
+            .iter()
+            .map(|b| match b {
+                BranchRef::Remote { branch, .. } => branch.as_str(),
+                _ => unreachable!("remote_branches must only contain Remote"),
+            })
+            .collect();
+        assert!(names.contains(&"main"));
+        assert!(names.contains(&"feature/x"));
+        // The synthetic origin/HEAD pointer must not surface as a branch.
+        assert!(!names.contains(&"HEAD"));
     }
 }

@@ -59,6 +59,10 @@ pub struct NewTaskInput {
     pub project_id: String,
     pub name: String,
     pub source_branch: TaskSourceBranch,
+    /// Branch name chosen by the renderer (e.g. "feat/add-search").
+    /// `None` falls back to a slug derived from `name`. Either way,
+    /// no `task/` prefix and no UUID suffix are added by the service.
+    pub task_branch: Option<String>,
 }
 
 #[derive(Debug, Error)]
@@ -73,6 +77,10 @@ pub enum TasksError {
     ProjectPathInvalid(String),
     #[error("worktree path already exists: {0}")]
     WorktreePathExists(String),
+    #[error("branch already exists: {0}")]
+    BranchAlreadyExists(String),
+    #[error("branch name is empty")]
+    EmptyBranch,
     #[error("git worktree command failed: {0}")]
     WorktreeFailed(String),
     #[error("git error: {0}")]

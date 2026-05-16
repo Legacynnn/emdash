@@ -35,7 +35,9 @@ export function useTaskName(opts?: {
   const handleTaskNameChange = useCallback((value: string) => {
     const transformed = liveTransformTaskName(value);
     setTaskName(transformed);
-    const hasDroppedChars = /[^a-z0-9\s-]/i.test(value);
+    // Only flag characters the transformer actually drops — slashes,
+    // underscores, and dots are allowed now.
+    const hasDroppedChars = /[^a-z0-9\s\-_./]/i.test(value);
     setShowSlugHint(hasDroppedChars);
   }, []);
 

@@ -11,6 +11,6 @@ export function getIssueTaskName(issue: Issue | null | undefined): string | null
     return null;
   }
 
-  const normalized = normalizeTaskName(branchName.replace(/\//g, '-'));
+  const normalized = normalizeTaskName(branchName);
   return normalized || null;
 }
