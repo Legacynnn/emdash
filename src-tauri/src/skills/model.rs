@@ -48,7 +48,11 @@ pub struct CatalogSkill {
     pub default_prompt: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub skill_md_content: Option<String>,
+    #[serde(default)]
     pub frontmatter: SkillFrontmatter,
+    /// Computed at runtime from disk scan. Missing in the bundled
+    /// catalog JSON, so default to `false` during deserialize.
+    #[serde(default)]
     pub installed: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub local_path: Option<String>,

@@ -280,6 +280,34 @@ fn make_symlink(source: &Path, dest: &Path) -> std::io::Result<()> {
     std::os::windows::fs::symlink_dir(source, dest)
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn bundled_catalog_deserializes() {
+        // Regression guard: the JSON dropped at `resources/skills-catalog.json`
+        // doesn't carry `installed` / `localPath` (those get computed from disk),
+        // so the CatalogSkill struct must mark them as `#[serde(default)]`.
+        let svc = SkillsService::new();
+        let parsed = svc.load_bundled().expect("bundled catalog must parse");
+        assert!(
+            !parsed.skills.is_empty(),
+            "bundled catalog should contain at least one skill"
+        );
+        let first = &parsed.skills[0];
+        assert!(!first.id.is_empty());
+        assert!(!first.installed, "installed must default to false");
+    }
+
+    #[test]
+    fn get_catalog_returns_merged_data() {
+        let svc = SkillsService::new();
+        let catalog = svc.get_catalog().expect("catalog must merge");
+        assert!(catalog.skills.len() >= 1);
+    }
+}
+
 fn remove_skill_link(dest: &Path) -> std::io::Result<()> {
     match fs::symlink_metadata(dest) {
         Ok(meta) => {

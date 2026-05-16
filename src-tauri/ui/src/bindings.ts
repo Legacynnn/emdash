@@ -222,6 +222,10 @@ export const commands = {
 	defaultPrompt?: string | null,
 	skillMdContent?: string | null,
 	frontmatter: SkillFrontmatter_Serialize,
+	/**
+	 *  Computed at runtime from disk scan. Missing in the bundled
+	 *  catalog JSON, so default to `false` during deserialize.
+	 */
 	installed: boolean,
 	localPath?: string | null,
 } | null, SkillsCommandError>(__TAURI_INVOKE("skills_get_detail", { id })),
@@ -331,8 +335,12 @@ export type CatalogSkill_Deserialize = {
 	brandColor?: string | null,
 	defaultPrompt?: string | null,
 	skillMdContent?: string | null,
-	frontmatter: SkillFrontmatter_Deserialize,
-	installed: boolean,
+	frontmatter?: SkillFrontmatter_Deserialize,
+	/**
+	 *  Computed at runtime from disk scan. Missing in the bundled
+	 *  catalog JSON, so default to `false` during deserialize.
+	 */
+	installed?: boolean,
 	localPath?: string | null,
 };
 
@@ -347,6 +355,10 @@ export type CatalogSkill_Serialize = {
 	defaultPrompt?: string | null,
 	skillMdContent?: string | null,
 	frontmatter: SkillFrontmatter_Serialize,
+	/**
+	 *  Computed at runtime from disk scan. Missing in the bundled
+	 *  catalog JSON, so default to `false` during deserialize.
+	 */
 	installed: boolean,
 	localPath?: string | null,
 };
