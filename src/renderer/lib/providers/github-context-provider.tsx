@@ -14,7 +14,6 @@ import type {
 import { events, rpc } from '@renderer/lib/ipc';
 import { log } from '@renderer/utils/logger';
 import { useToast } from '../hooks/use-toast';
-import { useAccountSession, useFetchAccountHealth } from '../hooks/useAccount';
 import { useModalContext } from '../modal/modal-provider';
 
 type GithubContextValue = {
@@ -43,9 +42,6 @@ export function GithubContextProvider({ children }: { children: React.ReactNode 
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { showModal } = useModalContext();
-  const { data: accountSession } = useAccountSession();
-  const hasAccount = accountSession?.hasAccount === true;
-  const fetchAccountHealth = useFetchAccountHealth();
 
   const [githubLoading, setGithubLoading] = useState(false);
   const [githubStatusMessage, setGithubStatusMessage] = useState<string | undefined>();
@@ -207,25 +203,6 @@ export function GithubContextProvider({ children }: { children: React.ReactNode 
         return;
       }
 
-      const isServerUp = hasAccount && (await fetchAccountHealth());
-      if (hasAccount && isServerUp) {
-        setGithubStatusMessage('Connecting via Emdash account...');
-        const oauthResult = await rpc.github.connectOAuth();
-        if (oauthResult?.success) {
-          await checkStatus();
-          void queryClient.invalidateQueries({ queryKey: ISSUE_CONNECTION_STATUS_QUERY_KEY });
-          if (oauthResult.user) {
-            toast({
-              title: 'Connected to GitHub',
-              description: `Signed in as ${oauthResult.user.login || oauthResult.user.name || 'user'}`,
-            });
-          }
-          setGithubLoading(false);
-          setGithubStatusMessage(undefined);
-          return;
-        }
-      }
-
       setGithubLoading(false);
       setGithubStatusMessage(undefined);
 
@@ -243,16 +220,7 @@ export function GithubContextProvider({ children }: { children: React.ReactNode 
         variant: 'destructive',
       });
     }
-  }, [
-    toast,
-    checkStatus,
-    login,
-    showModal,
-    handleDeviceFlowError,
-    hasAccount,
-    fetchAccountHealth,
-    queryClient,
-  ]);
+  }, [toast, checkStatus, login, showModal, handleDeviceFlowError]);
 
   const cancelGithubConnect = useCallback(() => {
     const flowLabel = githubStatusMessage ? 'OAuth flow' : 'Device flow';

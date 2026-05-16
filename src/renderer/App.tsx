@@ -5,7 +5,6 @@ import { WelcomeScreen } from './app/welcome';
 import { Workspace } from './app/workspace';
 import { IntegrationsProvider } from './features/integrations/integrations-provider';
 import { Onboarding } from './features/onboarding/onboarding';
-import { useAccountSession } from './lib/hooks/useAccount';
 import { useLegacyPortStatus } from './lib/hooks/useLegacyPort';
 import { WorkspaceLayoutContextProvider } from './lib/layout/layout-provider';
 import { WorkspaceViewProvider } from './lib/layout/provider';
@@ -20,17 +19,16 @@ import { TooltipProvider } from './lib/ui/tooltip';
 export const HAS_SEEN_ONBOARDING = 'emdash:has-seen-onboarding:v1';
 
 type AppView = 'onboarding' | 'welcome' | 'workspace';
-type OnboardingStep = 'sign-in' | 'import';
+type OnboardingStep = 'import';
 
 function AppContent() {
   const [view, setView] = useState<AppView>(() =>
     localStorage.getItem(HAS_SEEN_ONBOARDING) === 'true' ? 'workspace' : 'onboarding'
   );
 
-  const { data: session, isLoading: sessionLoading } = useAccountSession();
   const { data: legacyStatus, isLoading: legacyLoading } = useLegacyPortStatus();
 
-  const isLoading = sessionLoading || legacyLoading;
+  const isLoading = legacyLoading;
 
   // Computed once when queries first resolve while in onboarding. Never updated
   // after that so query refetches mid-onboarding (e.g. legacyPortStatus after
@@ -40,12 +38,11 @@ function AppContent() {
   useEffect(() => {
     if (!isLoading && view === 'onboarding' && frozenSteps === null) {
       const computed: OnboardingStep[] = [];
-      if (!session?.isSignedIn) computed.push('sign-in');
       const needsImport = legacyStatus?.hasImportSources && !legacyStatus.portStatus;
       if (needsImport) computed.push('import');
       setFrozenSteps(computed); // eslint-disable-line react-hooks/set-state-in-effect
     }
-  }, [view, isLoading, frozenSteps, session, legacyStatus]);
+  }, [view, isLoading, frozenSteps, legacyStatus]);
 
   const stepsNeeded = frozenSteps ?? [];
 

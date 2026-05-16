@@ -431,7 +431,6 @@ const ROUTES: Record<string, Route> = {
   'github.cloneRepository': STATIC_RESULT_OK_NULL,
   'github.createRepository': STATIC_RESULT_OK_NULL,
   'github.initializeProject': STATIC_RESULT_OK_NULL,
-  'github.connectOAuth': STATIC_RESULT_OK_NULL, // ADR-0010: account backend deferred
   // Cancel is renderer-only: the device-flow modal stops listening on
   // unmount and the Rust poll runs harmlessly until the code expires.
   'github.authCancel': STATIC_VOID,
@@ -444,11 +443,9 @@ const ROUTES: Record<string, Route> = {
   },
   'linear.clearToken': { kind: 'invoke', command: 'linear_sign_out' },
 
-  // == account ======================================================
-  'account.getSession': STATIC_NULL,
-  'account.checkHealth': { kind: 'static', value: { ok: true } },
-  'account.signIn': STATIC_RESULT_OK_NULL,
-  'account.signOut': STATIC_VOID,
+  // The `account.*` family is intentionally absent — ADR-0010 deferred
+  // the Emdash account subsystem indefinitely. Renderer talks to GitHub
+  // directly via the device-flow and gh-CLI paths above.
 
   // == appSettings ==================================================
   // TODO: port from src/main/core/settings. Returning an empty

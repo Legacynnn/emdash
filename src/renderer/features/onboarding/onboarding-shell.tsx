@@ -1,18 +1,13 @@
 import { useState } from 'react';
 import { cn } from '@renderer/utils/utils';
 import { ImportStep } from './import-step';
-import { SignInStep } from './sign-in-step';
 
-type OnboardingStep = 'sign-in' | 'import';
+type OnboardingStep = 'import';
 
 const stepConfig: Record<
   OnboardingStep,
   { label: string; component: React.ComponentType<{ onComplete: () => void }> }
 > = {
-  'sign-in': {
-    label: 'Sign in',
-    component: SignInStep,
-  },
   import: {
     label: 'Import',
     component: ImportStep,

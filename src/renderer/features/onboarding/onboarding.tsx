@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { OnboardingShell } from './onboarding-shell';
 
-type OnboardingStep = 'sign-in' | 'import';
+type OnboardingStep = 'import';
 
 export function Onboarding({
   steps: initialSteps,

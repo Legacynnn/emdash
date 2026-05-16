@@ -100,7 +100,7 @@ export function SettingsPage({
     },
     account: {
       title: 'Account',
-      description: 'Manage your Emdash account.',
+      description: 'Your signed-in GitHub identity. Add more providers in Integrations.',
       sections: [{ component: <AccountTab /> }],
     },
     'clis-models': {
