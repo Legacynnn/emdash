@@ -1,5 +1,3 @@
-import { type IpcMain } from 'electron';
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ProcedureMap = Record<string, (...args: any[]) => unknown>;
 
@@ -11,15 +9,6 @@ type RouterMap = Record<string, ProcedureMap>;
 
 export function createRPCRouter<T extends RouterMap>(routers: T): T {
   return routers;
-}
-
-export function registerRPCRouter(router: RouterMap, ipcMain: IpcMain): void {
-  for (const [ns, handlers] of Object.entries(router)) {
-    for (const [key, fn] of Object.entries(handlers)) {
-      const channel = `${ns}.${key}`;
-      ipcMain.handle(channel, (_event, ...args: unknown[]) => fn(...args));
-    }
-  }
 }
 
 type IpcClient<R extends RouterMap> = {

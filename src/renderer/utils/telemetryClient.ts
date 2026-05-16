@@ -18,7 +18,7 @@ async function getSessionId(): Promise<string | null> {
     .getStatus()
     .then((result) => {
       cachedSessionId = result.status?.session_id ?? null;
-      return cachedSessionId;
+      return cachedSessionId ?? null;
     })
     .catch(() => {
       return null;

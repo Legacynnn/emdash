@@ -6,6 +6,7 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
+    "noImplicitAny": false,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
@@ -14,24 +15,14 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
-    "types": ["react", "react-dom", "electron-vite/node", "node"],
+    "types": ["react", "react-dom", "node", "vite/client"],
     "paths": {
       "@renderer/*": ["./src/renderer/*"],
-      "@main/*": ["./src/main/*"],
       "@shared/*": ["./src/shared/*"],
       "@root/*": ["./*"],
-      "@/*": ["./src/*"],
-      "@tooling/*": ["./tooling/*"]
+      "@/*": ["./src/*"]
     }
   },
-  "include": [
-    "src/main/**/*",
-    "src/renderer/**/*",
-    "src/preload/**/*",
-    "src/shared/**/*",
-    "src/types/**/*",
-    "src/test/**/*",
-    "tooling/**/*"
-  ],
+  "include": ["src/renderer/**/*", "src/shared/**/*", "src/assets/**/*"],
   "exclude": ["node_modules", "dist", "out", "**/_*/**"]
 }

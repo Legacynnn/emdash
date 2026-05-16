@@ -75,19 +75,18 @@ export default tseslint.config(
     },
   },
 
-  // Prevent @tooling imports leaking into production code.
-  // Test files are exempt — they legitimately use openFixture() and other tooling helpers.
+  // Prevent stale Electron-side aliases from creeping back in once
+  // src/main, src/preload and tooling/ are gone.
   {
-    files: ['src/main/**/*.{ts,tsx}', 'src/renderer/**/*.{ts,tsx}', 'src/preload/**/*.{ts,tsx}'],
-    ignores: ['**/*.test.{ts,tsx}'],
+    files: ['src/renderer/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
           patterns: [
             {
-              group: ['@tooling', '@tooling/*'],
-              message: '@tooling imports are only allowed in test files.',
+              group: ['@main', '@main/*', '@preload', '@preload/*', '@tooling', '@tooling/*'],
+              message: 'Electron-side aliases are removed; import from @shared or use Tauri commands.',
             },
           ],
         },

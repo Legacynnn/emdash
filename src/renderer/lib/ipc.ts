@@ -1,6 +1,6 @@
 import { createEventEmitter, type EmitterAdapter } from '@shared/ipc/events';
 import { createRPCClient } from '@shared/ipc/rpc';
-import type { RpcRouter } from '@main/rpc';
+import type { RpcRouter } from '@shared/rpc-router';
 
 export const rpc = createRPCClient<RpcRouter>(window.electronAPI.invoke);
 
