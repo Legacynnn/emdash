@@ -78,6 +78,10 @@
     "conversations_create",
     "conversations_rename",
     "conversations_touch",
-    "conversations_delete"
+    "conversations_delete",
+    "terminals_list_for_task",
+    "terminals_create",
+    "terminals_rename",
+    "terminals_delete"
   ]
 }

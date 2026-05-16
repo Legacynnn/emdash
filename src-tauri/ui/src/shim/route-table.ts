@@ -359,10 +359,30 @@ const ROUTES: Record<string, Route> = {
   },
 
   // == terminals ====================================================
-  'terminals.getTerminalsForTask': STATIC_EMPTY_ARRAY,
-  'terminals.createTerminal': STATIC_RESULT_OK_NULL,
-  'terminals.deleteTerminal': STATIC_VOID,
-  'terminals.renameTerminal': STATIC_VOID,
+  // Tauri-side service in `src/terminals` + glue in
+  // `commands/terminals`.
+  'terminals.getTerminalsForTask': {
+    kind: 'invoke',
+    command: 'terminals_list_for_task',
+    adapt: ([taskId]) => ({ taskId }),
+    transform: (value) => ({ ok: true, value }),
+  },
+  'terminals.createTerminal': {
+    kind: 'invoke',
+    command: 'terminals_create',
+    adapt: ([params]) => ({ input: params }),
+    transform: (value) => ({ ok: true, value }),
+  },
+  'terminals.deleteTerminal': {
+    kind: 'invoke',
+    command: 'terminals_delete',
+    adapt: ([id]) => ({ id }),
+  },
+  'terminals.renameTerminal': {
+    kind: 'invoke',
+    command: 'terminals_rename',
+    adapt: ([id, name]) => ({ id, name }),
+  },
 
   // == git ==========================================================
   // TODO: port from src/main/core/git. Returning empty/idle states

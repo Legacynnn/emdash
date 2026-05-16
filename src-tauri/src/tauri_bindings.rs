@@ -90,6 +90,10 @@ pub fn build_specta() -> Builder<tauri::Wry> {
         commands::conversations::conversations_rename,
         commands::conversations::conversations_touch,
         commands::conversations::conversations_delete,
+        commands::terminals::terminals_list_for_task,
+        commands::terminals::terminals_create,
+        commands::terminals::terminals_rename,
+        commands::terminals::terminals_delete,
     ])
 }
 

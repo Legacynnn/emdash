@@ -169,6 +169,10 @@ export const commands = {
 	conversationsRename: (id: string, title: string) => typedError<null, ConversationsCommandError>(__TAURI_INVOKE("conversations_rename", { id, title })),
 	conversationsTouch: (id: string) => typedError<null, ConversationsCommandError>(__TAURI_INVOKE("conversations_touch", { id })),
 	conversationsDelete: (id: string) => typedError<null, ConversationsCommandError>(__TAURI_INVOKE("conversations_delete", { id })),
+	terminalsListForTask: (taskId: string) => typedError<Terminal[], TerminalsCommandError>(__TAURI_INVOKE("terminals_list_for_task", { taskId })),
+	terminalsCreate: (input: NewTerminalInput) => typedError<Terminal, TerminalsCommandError>(__TAURI_INVOKE("terminals_create", { input })),
+	terminalsRename: (id: string, name: string) => typedError<null, TerminalsCommandError>(__TAURI_INVOKE("terminals_rename", { id, name })),
+	terminalsDelete: (id: string) => typedError<null, TerminalsCommandError>(__TAURI_INVOKE("terminals_delete", { id })),
 };
 
 /* Types */
@@ -481,6 +485,13 @@ export type NewConversationInput = {
 	is_initial_conversation: boolean | null,
 };
 
+export type NewTerminalInput = {
+	project_id: string,
+	task_id: string,
+	name: string,
+	ssh: boolean | null,
+};
+
 export type NotificationKind = "general" | "permission_prompt" | "tool_use" | "status" | 
 /**  EMD-23+: agent is idle / awaiting input (e.g. ready prompt). */
 "idle_prompt" | 
@@ -632,6 +643,23 @@ export type TelemetryErrorCode = "storage" | "invalid";
  *  ignore unknown names so a stale collector won't drop a release.
  */
 export type TelemetryEvent = "app_focus" | "app_unfocus" | "app_dau_ping" | "user_identify";
+
+export type Terminal = {
+	id: string,
+	project_id: string,
+	task_id: string,
+	name: string,
+	ssh: boolean,
+	created_at: string,
+	updated_at: string,
+};
+
+export type TerminalsCommandError = {
+	code: TerminalsErrorCode,
+	message: string,
+};
+
+export type TerminalsErrorCode = "not_found" | "task_not_found" | "empty_name" | "storage";
 
 export type UiMutationEvent = { kind: "project_created"; id: string } | { kind: "project_updated"; id: string } | { kind: "project_deleted"; id: string } | { kind: "task_created"; id: string; project_id: string } | { kind: "task_updated"; id: string; project_id: string } | { kind: "task_deleted"; id: string; project_id: string } | 
 /**

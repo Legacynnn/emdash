@@ -13,6 +13,7 @@ use emdash_dev::pty::registry::Registry;
 use emdash_dev::secrets::{master_key::OsKeyringMasterKey, Secrets};
 use emdash_dev::tasks::{TasksService, WorkspaceFsMutationLock};
 use emdash_dev::tauri_bindings;
+use emdash_dev::terminals::TerminalsService;
 use emdash_dev::telemetry::{Telemetry, TelemetryConfig};
 use emdash_dev::ui_sync::{UiMutationEvent, UiSyncManager};
 use emdash_dev::updater::UpdateManager;
@@ -103,6 +104,7 @@ pub fn run() {
                 Arc::new(WorkspaceFsMutationLock::new());
             let tasks = Arc::new(TasksService::new(db.clone(), workspace_fs_lock.clone()));
             let conversations = Arc::new(ConversationsService::new(db.clone()));
+            let terminals = Arc::new(TerminalsService::new(db.clone()));
             // Telemetry::new spawns a Tokio worker; the Tauri setup
             // callback isn't inside a runtime context, so enter Tauri's
             // own runtime to host the spawn (same pattern as the
@@ -153,6 +155,7 @@ pub fn run() {
             app.manage(workspace_fs_lock);
             app.manage(tasks);
             app.manage(conversations);
+            app.manage(terminals);
             app.manage(telemetry);
             app.manage(updater);
             app.manage(classifier_registry);

@@ -21,6 +21,7 @@ const DOMAIN_MODULES: &[&str] = &[
     "shell_env",
     "tasks",
     "telemetry",
+    "terminals",
     "ui_sync",
     "updater",
     "view_state",

@@ -15,6 +15,7 @@ pub mod pty;
 pub mod secrets;
 pub mod tasks;
 pub mod telemetry;
+pub mod terminals;
 pub mod ui_sync;
 pub mod updater;
 pub mod view_state;
