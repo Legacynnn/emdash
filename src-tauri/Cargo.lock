@@ -1005,6 +1005,7 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.18",
  "tokio",
+ "toml 0.8.2",
  "tower",
  "url",
  "uuid",
@@ -4222,6 +4223,7 @@ checksum = "38f9a30cbcbb7011f1da7d73483983bf838af123883e45f2b36ed76328df9c50"
 dependencies = [
  "paste",
  "rustc_version",
+ "serde_json",
  "specta-macros",
 ]
 

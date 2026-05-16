@@ -106,4 +106,14 @@ pub enum UiMutationEvent {
     },
     /// The skills catalog was refreshed from upstream / disk.
     SkillsCatalogRefreshed,
+    /// An MCP server config was created or updated.
+    McpServerSaved {
+        name: String,
+    },
+    /// An MCP server config was removed across all targeted agents.
+    McpServerRemoved {
+        name: String,
+    },
+    /// The MCP provider-installed snapshot was re-probed.
+    McpProvidersRefreshed,
 }

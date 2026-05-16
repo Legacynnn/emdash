@@ -137,6 +137,8 @@ pub fn run() {
 
             let skills_service: Arc<emdash_dev::skills::SkillsService> =
                 Arc::new(emdash_dev::skills::SkillsService::new());
+            let mcp_service: Arc<emdash_dev::mcp::McpService> =
+                Arc::new(emdash_dev::mcp::McpService::new());
 
             let pty_registry: Arc<Registry> = Arc::new(Registry::new());
             // EMD-27 / ADR-0024: agent-spawn service. Constructed
@@ -165,6 +167,7 @@ pub fn run() {
             app.manage(hook_handle);
             app.manage(agent_service);
             app.manage(skills_service);
+            app.manage(mcp_service);
             app.manage(pty_registry);
             Ok(())
         })

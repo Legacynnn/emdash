@@ -14,6 +14,7 @@ pub mod editor_buffers;
 pub mod fs_watcher;
 pub mod git;
 pub mod greeting;
+pub mod mcp;
 pub mod projects;
 pub mod providers;
 pub mod pty;

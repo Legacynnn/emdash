@@ -234,8 +234,11 @@ export const commands = {
 	skillsInstall: (skillId: string) => typedError<CatalogSkill_Serialize, SkillsCommandError>(__TAURI_INVOKE("skills_install", { skillId })),
 	skillsUninstall: (skillId: string) => typedError<null, SkillsCommandError>(__TAURI_INVOKE("skills_uninstall", { skillId })),
 	skillsCreate: (name: string, description: string, content: string | null) => typedError<CatalogSkill_Serialize, SkillsCommandError>(__TAURI_INVOKE("skills_create", { name, description, content })),
-	mcpLoadAll: () => __TAURI_INVOKE<McpServer[]>("mcp_load_all"),
-	mcpGetProviders: () => __TAURI_INVOKE<McpProvider[]>("mcp_get_providers"),
+	mcpLoadAll: () => typedError<McpLoadAllResponse_Serialize, McpCommandError>(__TAURI_INVOKE("mcp_load_all")),
+	mcpGetProviders: () => __TAURI_INVOKE<McpProviderInfo[]>("mcp_get_providers"),
+	mcpRefreshProviders: () => __TAURI_INVOKE<McpProviderInfo[]>("mcp_refresh_providers"),
+	mcpSaveServer: (server: McpServer_Deserialize) => typedError<null, McpCommandError>(__TAURI_INVOKE("mcp_save_server", { server })),
+	mcpRemoveServer: (serverName: string) => typedError<null, McpCommandError>(__TAURI_INVOKE("mcp_remove_server", { serverName })),
 	sshGetConnections: () => __TAURI_INVOKE<SshConnection[]>("ssh_get_connections"),
 	sshGetConnectionState: () => __TAURI_INVOKE<{ [key in string]: string }>("ssh_get_connection_state"),
 	sshGetHealthStates: () => __TAURI_INVOKE<{ [key in string]: string }>("ssh_get_health_states"),
@@ -398,6 +401,11 @@ export type ConversationsCommandError = {
 };
 
 export type ConversationsErrorCode = "not_found" | "task_not_found" | "empty_title" | "storage";
+
+export type CredentialKey = {
+	key: string,
+	required: boolean,
+};
 
 export type DependencyEntry = {
 	id: string,
@@ -641,18 +649,72 @@ export type LinearWorkflowState = {
 	color: string,
 };
 
-export type McpProvider = {
-	id: string,
+export type McpCatalogEntry = {
+	key: string,
 	name: string,
-	servers: McpServer[],
+	description: string,
+	docsUrl: string,
+	/**
+	 *  JSON-encoded raw server config. The renderer parses this with
+	 *  `JSON.parse` to recover a `Record<string, unknown>`. Stored as
+	 *  a string so specta doesn't have to express `serde_json::Value`
+	 *  (which trips its BigInt guard on `Number(i64)`).
+	 */
+	defaultConfig: string,
+	credentialKeys: CredentialKey[],
 };
 
-export type McpServer = {
+export type McpCommandError = {
+	code: McpErrorCode,
+	message: string,
+};
+
+export type McpErrorCode = "invalid_name" | "io" | "catalog" | "config_parse" | "partial_write";
+
+export type McpLoadAllResponse = McpLoadAllResponse_Serialize | McpLoadAllResponse_Deserialize;
+
+export type McpLoadAllResponse_Deserialize = {
+	installed: McpServer_Deserialize[],
+	catalog: McpCatalogEntry[],
+};
+
+export type McpLoadAllResponse_Serialize = {
+	installed: McpServer_Serialize[],
+	catalog: McpCatalogEntry[],
+};
+
+export type McpProviderInfo = {
 	id: string,
 	name: string,
-	command: string,
-	args: string[],
+	installed: boolean,
+	supportsHttp: boolean,
 };
+
+export type McpServer = McpServer_Serialize | McpServer_Deserialize;
+
+export type McpServer_Deserialize = {
+	name: string,
+	transport: McpTransport,
+	command?: string | null,
+	args?: string[] | null,
+	url?: string | null,
+	headers?: { [key in string]: string } | null,
+	env?: { [key in string]: string } | null,
+	providers: string[],
+};
+
+export type McpServer_Serialize = {
+	name: string,
+	transport: McpTransport,
+	command?: string | null,
+	args?: string[] | null,
+	url?: string | null,
+	headers?: { [key in string]: string } | null,
+	env?: { [key in string]: string } | null,
+	providers: string[],
+};
+
+export type McpTransport = "stdio" | "http";
 
 export type NewConversationInput = {
 	project_id: string,
@@ -943,7 +1005,13 @@ export type UiMutationEvent = { kind: "project_created"; id: string } | { kind: 
 /**  A skill was uninstalled. */
 { kind: "skill_uninstalled"; id: string } | 
 /**  The skills catalog was refreshed from upstream / disk. */
-{ kind: "skills_catalog_refreshed" };
+{ kind: "skills_catalog_refreshed" } | 
+/**  An MCP server config was created or updated. */
+{ kind: "mcp_server_saved"; name: string } | 
+/**  An MCP server config was removed across all targeted agents. */
+{ kind: "mcp_server_removed"; name: string } | 
+/**  The MCP provider-installed snapshot was re-probed. */
+{ kind: "mcp_providers_refreshed" };
 
 /**
  *  Stable machine-readable error code. The renderer matches on this

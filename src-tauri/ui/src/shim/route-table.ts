@@ -829,11 +829,45 @@ const ROUTES: Record<string, Route> = {
   },
 
   // == mcp ==========================================================
-  'mcp.loadAll': { kind: 'invoke', command: 'mcp_load_all', adapt: noArgs },
-  'mcp.getProviders': { kind: 'invoke', command: 'mcp_get_providers', adapt: noArgs },
-  'mcp.refreshProviders': STATIC_VOID,
-  'mcp.saveServer': STATIC_RESULT_OK_NULL,
-  'mcp.removeServer': STATIC_VOID,
+  // The renderer (`useMcps.ts`) consumes the `{ success, data?, error? }`
+  // envelope. The Rust `McpCatalogEntry.defaultConfig` is JSON-stringified
+  // (see `mcp::model::McpCatalogEntry`) because specta can't express
+  // `serde_json::Value` without tripping its BigInt guard; the loader
+  // here parses each entry back into a `Record<string, unknown>`.
+  'mcp.loadAll': {
+    kind: 'custom',
+    handler: () =>
+      skillsEnvelope(async () => {
+        const raw = (await tauriInvoke('mcp_load_all')) as {
+          installed: unknown[];
+          catalog: Array<{ defaultConfig: string; [k: string]: unknown }>;
+        };
+        return {
+          installed: raw.installed,
+          catalog: raw.catalog.map((entry) => ({
+            ...entry,
+            defaultConfig: safeParseJsonObject(entry.defaultConfig),
+          })),
+        };
+      }),
+  },
+  'mcp.getProviders': {
+    kind: 'custom',
+    handler: () => skillsEnvelope(() => tauriInvoke('mcp_get_providers')),
+  },
+  'mcp.refreshProviders': {
+    kind: 'custom',
+    handler: () => skillsEnvelope(() => tauriInvoke('mcp_refresh_providers')),
+  },
+  'mcp.saveServer': {
+    kind: 'custom',
+    handler: ([server]) => skillsEnvelope(() => tauriInvoke('mcp_save_server', { server })),
+  },
+  'mcp.removeServer': {
+    kind: 'custom',
+    handler: ([serverName]) =>
+      skillsEnvelope(() => tauriInvoke('mcp_remove_server', { serverName })),
+  },
 
   // == ssh ==========================================================
   // Tauri's SSH layer is unported — host returns empty registries so
@@ -938,6 +972,18 @@ interface TauriDependencyEntry {
   id: string;
   installed: boolean;
   resolvedPath: string | null;
+}
+
+function safeParseJsonObject(raw: unknown): Record<string, unknown> {
+  if (typeof raw !== 'string' || raw.length === 0) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
 }
 
 // Wrap a Tauri invoke into the `{ success, data, error }` envelope the

@@ -14,6 +14,7 @@ const DOMAIN_MODULES: &[&str] = &[
     "fs_watcher",
     "git",
     "greeting",
+    "mcp",
     "projects",
     "providers",
     "pty",
