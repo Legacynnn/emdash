@@ -17,6 +17,35 @@ const KEY_ID: &str = "github.identity.id";
 const KEY_NAME: &str = "github.identity.name";
 const KEY_EMAIL: &str = "github.identity.email";
 const KEY_AVATAR: &str = "github.identity.avatar_url";
+const KEY_TOKEN_SOURCE: &str = "github.identity.token_source";
+
+/// Where the stored access token came from. Surfaced to the renderer so
+/// the UI can show "Run `gh auth logout` to disconnect" when the token
+/// was sourced from the user's external `gh` install (we can't revoke
+/// that from inside the app).
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum TokenSource {
+    SecureStorage,
+    Cli,
+}
+
+impl TokenSource {
+    fn as_str(self) -> &'static str {
+        match self {
+            TokenSource::SecureStorage => "secure_storage",
+            TokenSource::Cli => "cli",
+        }
+    }
+
+    fn parse(value: &str) -> Option<Self> {
+        match value {
+            "secure_storage" => Some(TokenSource::SecureStorage),
+            "cli" => Some(TokenSource::Cli),
+            _ => None,
+        }
+    }
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Type)]
 pub struct IdentityRecord {
@@ -25,6 +54,7 @@ pub struct IdentityRecord {
     pub name: Option<String>,
     pub email: Option<String>,
     pub avatar_url: Option<String>,
+    pub token_source: TokenSource,
 }
 
 fn read_key(db: &Arc<Db>, key: &str) -> Result<Option<String>, DbError> {
@@ -66,12 +96,19 @@ pub fn get_identity(db: &Arc<Db>) -> Result<Option<IdentityRecord>, DbError> {
     let name = read_key(db, KEY_NAME)?.filter(|v| !v.is_empty());
     let email = read_key(db, KEY_EMAIL)?.filter(|v| !v.is_empty());
     let avatar_url = read_key(db, KEY_AVATAR)?.filter(|v| !v.is_empty());
+    // Pre-existing rows from before the token_source field existed
+    // default to SecureStorage — the only path that wrote identity then.
+    let token_source = read_key(db, KEY_TOKEN_SOURCE)?
+        .as_deref()
+        .and_then(TokenSource::parse)
+        .unwrap_or(TokenSource::SecureStorage);
     Ok(Some(IdentityRecord {
         login,
         id,
         name,
         email,
         avatar_url,
+        token_source,
     }))
 }
 
@@ -81,11 +118,22 @@ pub fn set_identity(db: &Arc<Db>, identity: &IdentityRecord) -> Result<(), DbErr
     write_key(db, KEY_NAME, identity.name.as_deref().unwrap_or(""))?;
     write_key(db, KEY_EMAIL, identity.email.as_deref().unwrap_or(""))?;
     write_key(db, KEY_AVATAR, identity.avatar_url.as_deref().unwrap_or(""))?;
+    write_key(db, KEY_TOKEN_SOURCE, identity.token_source.as_str())?;
     Ok(())
 }
 
 pub fn clear_identity(db: &Arc<Db>) -> Result<(), DbError> {
-    delete_keys(db, &[KEY_LOGIN, KEY_ID, KEY_NAME, KEY_EMAIL, KEY_AVATAR])
+    delete_keys(
+        db,
+        &[
+            KEY_LOGIN,
+            KEY_ID,
+            KEY_NAME,
+            KEY_EMAIL,
+            KEY_AVATAR,
+            KEY_TOKEN_SOURCE,
+        ],
+    )
 }
 
 #[cfg(test)]
@@ -108,9 +156,38 @@ mod tests {
             name: Some("Octo Cat".into()),
             email: Some("octo@example.com".into()),
             avatar_url: Some("https://example.com/a.png".into()),
+            token_source: TokenSource::SecureStorage,
         };
         set_identity(&db, &rec).unwrap();
         assert_eq!(get_identity(&db).unwrap(), Some(rec));
+    }
+
+    #[test]
+    fn round_trips_cli_token_source() {
+        let (_d, db) = open_temp_db();
+        let rec = IdentityRecord {
+            login: "octocat".into(),
+            id: "1".into(),
+            name: None,
+            email: None,
+            avatar_url: None,
+            token_source: TokenSource::Cli,
+        };
+        set_identity(&db, &rec).unwrap();
+        assert_eq!(
+            get_identity(&db).unwrap().map(|r| r.token_source),
+            Some(TokenSource::Cli)
+        );
+    }
+
+    #[test]
+    fn missing_token_source_defaults_to_secure_storage() {
+        // Simulates a pre-migration row written before the field existed.
+        let (_d, db) = open_temp_db();
+        write_key(&db, KEY_LOGIN, "octocat").unwrap();
+        write_key(&db, KEY_ID, "1").unwrap();
+        let identity = get_identity(&db).unwrap().expect("identity present");
+        assert_eq!(identity.token_source, TokenSource::SecureStorage);
     }
 
     #[test]
@@ -124,6 +201,7 @@ mod tests {
                 name: None,
                 email: None,
                 avatar_url: None,
+                token_source: TokenSource::SecureStorage,
             },
         )
         .unwrap();

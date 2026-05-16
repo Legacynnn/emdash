@@ -11,7 +11,7 @@ use tauri::State;
 use crate::db::Db;
 use crate::providers::github::{
     self, client, identity, DeviceFlow, DeviceFlowStart, GithubError, IdentityRecord,
-    PullRequestSummary, RepoSummary, TOKEN_SECRET_KEY,
+    PullRequestSummary, RepoSummary, TokenSource, TOKEN_SECRET_KEY,
 };
 use crate::secrets::Secrets;
 use crate::ui_sync::{UiMutationEvent, UiSyncManager};
@@ -77,6 +77,7 @@ async fn refresh_identity(
     secrets: &Arc<Secrets>,
     db: &Arc<Db>,
     ui_sync: &Arc<UiSyncManager>,
+    token_source: TokenSource,
 ) -> Result<IdentityRecord, GithubCommandError> {
     let token = secrets
         .get(TOKEN_SECRET_KEY)
@@ -101,6 +102,7 @@ async fn refresh_identity(
         name: viewer.name,
         email: viewer.email,
         avatar_url: viewer.avatar_url,
+        token_source,
     };
     identity::set_identity(db, &record).map_err(|e| GithubCommandError {
         code: GithubErrorCode::Storage,
@@ -129,7 +131,13 @@ pub async fn github_sign_in_device_flow_poll(
     github::device_flow_poll(secrets.inner().clone(), &flow)
         .await
         .map_err(map_oauth_error)?;
-    refresh_identity(secrets.inner(), db.inner(), ui_sync.inner()).await
+    refresh_identity(
+        secrets.inner(),
+        db.inner(),
+        ui_sync.inner(),
+        TokenSource::SecureStorage,
+    )
+    .await
 }
 
 #[tauri::command]
@@ -141,7 +149,13 @@ pub async fn github_sign_in_via_gh_cli(
 ) -> Result<IdentityRecord, GithubCommandError> {
     let token = github::gh_cli_token().map_err(map_oauth_error)?;
     github::sign_in_with_token(secrets.inner(), &token).map_err(map_oauth_error)?;
-    refresh_identity(secrets.inner(), db.inner(), ui_sync.inner()).await
+    refresh_identity(
+        secrets.inner(),
+        db.inner(),
+        ui_sync.inner(),
+        TokenSource::Cli,
+    )
+    .await
 }
 
 #[tauri::command]

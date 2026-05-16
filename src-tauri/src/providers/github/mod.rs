@@ -20,7 +20,7 @@ pub use auth::{
     DeviceFlowError, DeviceFlowStart, OauthScope,
 };
 pub use client::{client_for_token, GithubError};
-pub use identity::{get_identity, IdentityRecord};
+pub use identity::{get_identity, IdentityRecord, TokenSource};
 pub use model::{PullRequestSummary, RepoSummary, ViewerProfile};
 
 /// Stored secrets keys for the GitHub token. Re-exported so the

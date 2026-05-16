@@ -1,6 +1,5 @@
 ---
 source: tests/wire_format.rs
-assertion_line: 314
 expression: "serde_json::to_value(&id).unwrap()"
 ---
 {
@@ -8,5 +7,6 @@ expression: "serde_json::to_value(&id).unwrap()"
   "email": "octo@example.com",
   "id": "1",
   "login": "octocat",
-  "name": "Octo Cat"
+  "name": "Octo Cat",
+  "token_source": "secure_storage"
 }

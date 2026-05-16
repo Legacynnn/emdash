@@ -20,6 +20,7 @@
 // the missing route is loud, not silent.
 
 import { invoke as tauriInvoke } from '@tauri-apps/api/core';
+import { emitToBus } from './event-bridge';
 import { ptySessionMap } from './pty-session-map';
 
 export type ElectronArgs = unknown[];
@@ -67,6 +68,62 @@ const STATIC_RESULT_OK_NULL: Route = {
   kind: 'static',
   value: { ok: true, value: null },
 };
+
+// -- GitHub auth wiring ---------------------------------------------
+
+// Channel names must match `src/shared/events/githubEvents.ts`.
+const GITHUB_AUTH_DEVICE_CODE_CHANNEL = 'github:auth:device-code';
+const GITHUB_AUTH_SUCCESS_CHANNEL = 'github:auth:success';
+const GITHUB_AUTH_ERROR_CHANNEL = 'github:auth:error';
+
+// Subset of the Rust `DeviceFlowStart` struct we read. Keep snake_case
+// so the cast from `tauriInvoke` doesn't need a transform layer.
+interface DeviceFlowStartPayload {
+  user_code: string;
+  verification_uri: string;
+  device_code: string;
+  polling_interval_seconds: number;
+  expires_in_seconds: number;
+}
+
+interface IdentityRecord {
+  login: string;
+  id: string;
+  name: string | null;
+  email: string | null;
+  avatar_url: string | null;
+  token_source: 'secure_storage' | 'cli';
+}
+
+function identityToGitHubUser(identity: IdentityRecord): {
+  id: number;
+  login: string;
+  name: string;
+  email: string;
+  avatar_url: string;
+} {
+  const parsedId = Number(identity.id);
+  return {
+    id: Number.isFinite(parsedId) ? parsedId : 0,
+    login: identity.login,
+    name: identity.name ?? identity.login,
+    email: identity.email ?? '',
+    avatar_url: identity.avatar_url ?? '',
+  };
+}
+
+function normalizeGithubCommandError(err: unknown): { code: string; message: string } {
+  if (err && typeof err === 'object') {
+    const e = err as { code?: unknown; message?: unknown };
+    if (typeof e.code === 'string' || typeof e.message === 'string') {
+      return {
+        code: typeof e.code === 'string' ? e.code : 'unknown',
+        message: typeof e.message === 'string' ? e.message : String(err),
+      };
+    }
+  }
+  return { code: 'unknown', message: err instanceof Error ? err.message : String(err) };
+}
 
 // -- Routes ----------------------------------------------------------
 
@@ -311,27 +368,72 @@ const ROUTES: Record<string, Route> = {
   },
 
   // == github =======================================================
-  // The Tauri side ships a narrower API than the Electron one. Map
-  // what's available; stub the rest so the GitHub surface degrades to
-  // "signed out".
+  // Two auth paths are wired: device flow (`github.auth`) and the
+  // gh-CLI fast path (`github.signInViaGhCli`). OAuth via Emdash
+  // account stays stubbed per ADR-0010 — the backend doesn't exist.
   'github.getStatus': {
     kind: 'custom',
     handler: async () => {
       try {
-        const me = (await tauriInvoke('github_me')) as Record<string, unknown> | null;
-        return me ? { signedIn: true, user: me } : { signedIn: false };
+        const me = (await tauriInvoke('github_me')) as IdentityRecord | null;
+        if (!me) {
+          return { authenticated: false, user: null, tokenSource: null };
+        }
+        return {
+          authenticated: true,
+          user: identityToGitHubUser(me),
+          tokenSource: me.token_source,
+        };
       } catch {
-        return { signedIn: false };
+        return { authenticated: false, user: null, tokenSource: null };
       }
     },
   },
+  'github.auth': {
+    kind: 'custom',
+    handler: async () => {
+      // Device-flow driver. The Rust poll command blocks until token
+      // or terminal error, so the renderer awaits one call instead of
+      // running its own timer. We emit synthetic events so the modal +
+      // context provider can react via their existing channel
+      // subscriptions.
+      try {
+        const start = (await tauriInvoke(
+          'github_sign_in_device_flow_start'
+        )) as DeviceFlowStartPayload;
+        emitToBus(GITHUB_AUTH_DEVICE_CODE_CHANNEL, {
+          userCode: start.user_code,
+          verificationUri: start.verification_uri,
+          expiresIn: start.expires_in_seconds,
+          interval: start.polling_interval_seconds,
+        });
+        const identity = (await tauriInvoke('github_sign_in_device_flow_poll', {
+          flow: {
+            device_code: start.device_code,
+            polling_interval_seconds: start.polling_interval_seconds,
+          },
+        })) as IdentityRecord;
+        emitToBus(GITHUB_AUTH_SUCCESS_CHANNEL, {
+          token: '',
+          user: identityToGitHubUser(identity),
+        });
+        return { ok: true, value: null };
+      } catch (err) {
+        const { code, message } = normalizeGithubCommandError(err);
+        emitToBus(GITHUB_AUTH_ERROR_CHANNEL, { error: code, message });
+        return { ok: false, error: { code, message } };
+      }
+    },
+  },
+  'github.signInViaGhCli': { kind: 'invoke', command: 'github_sign_in_via_gh_cli' },
   'github.logout': { kind: 'invoke', command: 'github_sign_out' },
   'github.getOwners': STATIC_EMPTY_ARRAY,
   'github.cloneRepository': STATIC_RESULT_OK_NULL,
   'github.createRepository': STATIC_RESULT_OK_NULL,
   'github.initializeProject': STATIC_RESULT_OK_NULL,
-  'github.connectOAuth': STATIC_RESULT_OK_NULL,
-  'github.auth': STATIC_RESULT_OK_NULL,
+  'github.connectOAuth': STATIC_RESULT_OK_NULL, // ADR-0010: account backend deferred
+  // Cancel is renderer-only: the device-flow modal stops listening on
+  // unmount and the Rust poll runs harmlessly until the code expires.
   'github.authCancel': STATIC_VOID,
 
   // == linear =======================================================

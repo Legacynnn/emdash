@@ -41,7 +41,8 @@ export function GithubDeviceFlowModalOverlay({
 
 export function GithubDeviceFlowModal({ onClose, onError }: GithubDeviceFlowModalProps) {
   const { toast } = useToast();
-  const { cancelGithubConnect } = useGithubContext();
+  const { cancelGithubConnect, signInViaGhCli } = useGithubContext();
+  const [ghCliPending, setGhCliPending] = useState(false);
 
   // Presentational state - updated via IPC events from main process
   const [userCode, setUserCode] = useState<string>('');
@@ -146,6 +147,25 @@ export function GithubDeviceFlowModal({ onClose, onError }: GithubDeviceFlowModa
       void rpc.app.openExternal(verificationUri);
     }
   }, [verificationUri]);
+
+  const handleGhCliSignIn = useCallback(async () => {
+    if (ghCliPending) return;
+    setGhCliPending(true);
+    try {
+      await signInViaGhCli();
+      authSucceededRef.current = true;
+      setSuccess(true);
+      setTimeout(() => onClose(), 1000);
+    } catch (err) {
+      const message =
+        err && typeof err === 'object' && 'message' in err
+          ? String((err as { message: unknown }).message)
+          : 'Failed to sign in via gh CLI';
+      setError(message);
+    } finally {
+      setGhCliPending(false);
+    }
+  }, [ghCliPending, signInViaGhCli, onClose]);
 
   // Subscribe to auth events from main process
   useEffect(() => {
@@ -368,7 +388,18 @@ export function GithubDeviceFlowModal({ onClose, onError }: GithubDeviceFlowModa
               </Button>
             )}
 
-            <div className="w-full border-t pt-4">
+            <div className="w-full space-y-2 border-t pt-4">
+              <p className="text-center text-xs text-muted-foreground">
+                Already signed in with{' '}
+                <code className="rounded bg-muted px-1 py-0.5 text-[10px]">gh</code>?{' '}
+                <button
+                  onClick={() => void handleGhCliSignIn()}
+                  disabled={ghCliPending}
+                  className="text-primary hover:underline focus:underline focus:outline-none disabled:opacity-50"
+                >
+                  {ghCliPending ? 'Signing in…' : 'Use that token instead'}
+                </button>
+              </p>
               <p className="text-center text-xs text-muted-foreground">
                 Having{' '}
                 <button

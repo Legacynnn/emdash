@@ -68,6 +68,7 @@ export const commands = {
 	name: string | null,
 	email: string | null,
 	avatar_url: string | null,
+	token_source: TokenSource,
 } | null, GithubCommandError>(__TAURI_INVOKE("github_me")),
 	githubListRepos: () => typedError<RepoSummary[], GithubCommandError>(__TAURI_INVOKE("github_list_repos")),
 	githubListPulls: (owner: string, repo: string) => typedError<PullRequestSummary[], GithubCommandError>(__TAURI_INVOKE("github_list_pulls", { owner, repo })),
@@ -458,6 +459,7 @@ export type IdentityRecord = {
 	name: string | null,
 	email: string | null,
 	avatar_url: string | null,
+	token_source: TokenSource,
 };
 
 export type LinearCommandError = {
@@ -809,6 +811,14 @@ export type TerminalsCommandError = {
 };
 
 export type TerminalsErrorCode = "not_found" | "task_not_found" | "empty_name" | "storage";
+
+/**
+ *  Where the stored access token came from. Surfaced to the renderer so
+ *  the UI can show "Run `gh auth logout` to disconnect" when the token
+ *  was sourced from the user's external `gh` install (we can't revoke
+ *  that from inside the app).
+ */
+export type TokenSource = "secure_storage" | "cli";
 
 export type UiMutationEvent = { kind: "project_created"; id: string } | { kind: "project_updated"; id: string } | { kind: "project_deleted"; id: string } | { kind: "task_created"; id: string; project_id: string } | { kind: "task_updated"; id: string; project_id: string } | { kind: "task_deleted"; id: string; project_id: string } | 
 /**

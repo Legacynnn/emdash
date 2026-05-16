@@ -381,15 +381,33 @@ fn github_sign_in_device_flow_start_response_shape() {
 
 #[test]
 fn github_identity_response_shape() {
-    use emdash_dev::providers::github::IdentityRecord;
+    use emdash_dev::providers::github::{IdentityRecord, TokenSource};
     let id = IdentityRecord {
         login: "octocat".into(),
         id: "1".into(),
         name: Some("Octo Cat".into()),
         email: Some("octo@example.com".into()),
         avatar_url: Some("https://avatars.githubusercontent.com/u/1?v=4".into()),
+        token_source: TokenSource::SecureStorage,
     };
     insta::assert_json_snapshot!("github_identity", serde_json::to_value(&id).unwrap());
+}
+
+#[test]
+fn github_identity_cli_token_source_shape() {
+    use emdash_dev::providers::github::{IdentityRecord, TokenSource};
+    let id = IdentityRecord {
+        login: "octocat".into(),
+        id: "1".into(),
+        name: None,
+        email: None,
+        avatar_url: None,
+        token_source: TokenSource::Cli,
+    };
+    insta::assert_json_snapshot!(
+        "github_identity_cli",
+        serde_json::to_value(&id).unwrap()
+    );
 }
 
 #[test]

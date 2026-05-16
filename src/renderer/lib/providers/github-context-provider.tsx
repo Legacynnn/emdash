@@ -30,6 +30,7 @@ type GithubContextValue = {
   cancelGithubConnect: () => void;
   login: () => Promise<GitHubAuthResponse>;
   logout: () => Promise<void>;
+  signInViaGhCli: () => Promise<void>;
   checkStatus: () => Promise<GitHubStatusResponse>;
 };
 
@@ -91,7 +92,19 @@ export function GithubContextProvider({ children }: { children: React.ReactNode 
     },
   });
 
-  const isLoading = isFetching || loginMutation.isPending || logoutMutation.isPending;
+  const ghCliSignInMutation = useMutation({
+    mutationFn: () => rpc.github.signInViaGhCli(),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: GITHUB_STATUS_KEY });
+      void queryClient.invalidateQueries({ queryKey: ISSUE_CONNECTION_STATUS_QUERY_KEY });
+    },
+  });
+
+  const isLoading =
+    isFetching ||
+    loginMutation.isPending ||
+    logoutMutation.isPending ||
+    ghCliSignInMutation.isPending;
 
   const checkStatus = useCallback(async () => {
     return queryClient.fetchQuery<GitHubStatusResponse>({
@@ -106,6 +119,30 @@ export function GithubContextProvider({ children }: { children: React.ReactNode 
   const logout = useCallback(async () => {
     await logoutMutation.mutateAsync();
   }, [logoutMutation]);
+
+  const signInViaGhCli = useCallback(async () => {
+    try {
+      const result = await ghCliSignInMutation.mutateAsync();
+      const u = (result as GitHubUser | null) ?? null;
+      toast({
+        title: 'Connected to GitHub',
+        description: u
+          ? `Signed in as ${u.login || u.name || 'user'} via gh CLI`
+          : 'Signed in via gh CLI',
+      });
+    } catch (error) {
+      const message =
+        error && typeof error === 'object' && 'message' in error
+          ? String((error as { message: unknown }).message)
+          : 'Failed to sign in via gh CLI';
+      toast({
+        title: 'gh CLI sign-in failed',
+        description: message,
+        variant: 'destructive',
+      });
+      throw error;
+    }
+  }, [ghCliSignInMutation, toast]);
 
   const handleDeviceFlowSuccess = useCallback(
     async (flowUser: GitHubUser) => {
@@ -241,6 +278,7 @@ export function GithubContextProvider({ children }: { children: React.ReactNode 
     cancelGithubConnect,
     login,
     logout,
+    signInViaGhCli,
     checkStatus,
   };
 

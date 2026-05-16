@@ -1,0 +1,12 @@
+---
+source: tests/wire_format.rs
+expression: "serde_json::to_value(&id).unwrap()"
+---
+{
+  "avatar_url": null,
+  "email": null,
+  "id": "1",
+  "login": "octocat",
+  "name": null,
+  "token_source": "cli"
+}

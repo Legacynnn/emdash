@@ -51,6 +51,15 @@ function emit(channel: string, data: unknown): void {
   }
 }
 
+// Re-exported so custom route handlers (`route-table.ts`) can push
+// synthetic events into the same in-memory bus that
+// `subscribe_ui_mutations` feeds. Used today by `github.auth` to drive
+// the device-flow modal via `githubAuth*Channel` events that have no
+// `UiMutationEvent` counterpart on the Rust side.
+export function emitToBus(channel: string, data: unknown): void {
+  emit(channel, data);
+}
+
 // -- UiMutationEvent translation --------------------------------------
 
 // The exact channel names below must match `src/shared/events/*.ts`.
@@ -121,6 +130,10 @@ function translateUiMutation(event: UiMutationEvent): void {
 
     case 'github_identity_changed':
       emit('github.identity-changed', event);
+      // The renderer's GitHub context provider listens on this channel
+      // and calls `checkStatus()` to refresh React Query. Payload is
+      // ignored by the listener so we forward the raw event.
+      emit('github:auth:user-updated', event);
       break;
     case 'github_data_changed':
       emit('github.data-changed', event);
