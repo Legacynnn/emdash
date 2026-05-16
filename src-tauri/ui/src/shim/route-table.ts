@@ -818,21 +818,18 @@ const ROUTES: Record<string, Route> = {
   'ssh.deleteConnection': STATIC_VOID,
 
   // == dependencies =================================================
-  // PATH-based probe of known agent CLIs. The renderer's store maps
-  // the array into a per-id record for its UI display.
+  // PATH-based probe of known agent CLIs. The Rust DependencyEntry
+  // shape (`{ id, installed, resolvedPath }`) is narrower than the
+  // renderer's DependencyState (`{ id, category, status, version,
+  // path, checkedAt, error? }`), so the transform reshapes each entry
+  // into a DependencyState. Rust doesn't probe versions yet, so
+  // `version` is always null. Category is derived from a small set of
+  // known core deps; anything else is treated as an agent CLI.
   'dependencies.getAll': {
     kind: 'invoke',
     command: 'dependencies_get_all',
     adapt: noArgs,
-    transform: (entries) => {
-      const arr = Array.isArray(entries) ? entries : [];
-      const out: Record<string, unknown> = {};
-      for (const e of arr) {
-        const entry = e as { id?: string };
-        if (entry && typeof entry.id === 'string') out[entry.id] = e;
-      }
-      return out;
-    },
+    transform: (entries) => mapDependencyEntries(entries),
   },
   'dependencies.probeAll': {
     kind: 'invoke',
@@ -895,6 +892,35 @@ function toRendererProject(p: TauriProject): Record<string, unknown> {
     createdAt: p.created_at,
     updatedAt: p.updated_at,
   };
+}
+
+// Renderer's DependencyState (see @shared/dependencies). Keep in sync
+// with src/shared/dependencies.ts:DependencyCategory.
+const CORE_DEPENDENCY_IDS = new Set(['git', 'gh', 'tmux', 'ssh', 'node']);
+
+interface TauriDependencyEntry {
+  id: string;
+  installed: boolean;
+  resolvedPath: string | null;
+}
+
+export function mapDependencyEntries(entries: unknown): Record<string, unknown> {
+  const arr = Array.isArray(entries) ? entries : [];
+  const checkedAt = Date.now();
+  const out: Record<string, unknown> = {};
+  for (const raw of arr) {
+    const entry = raw as Partial<TauriDependencyEntry> | null;
+    if (!entry || typeof entry.id !== 'string') continue;
+    out[entry.id] = {
+      id: entry.id,
+      category: CORE_DEPENDENCY_IDS.has(entry.id) ? 'core' : 'agent',
+      status: entry.installed ? 'available' : 'missing',
+      version: null,
+      path: entry.resolvedPath ?? null,
+      checkedAt,
+    };
+  }
+  return out;
 }
 
 export function resolveRoute(channel: string): Route | null {
