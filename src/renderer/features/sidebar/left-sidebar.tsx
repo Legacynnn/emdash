@@ -1,4 +1,4 @@
-import { FolderInput, FolderPlus, MessageSquareShare, Plug, Puzzle, Settings } from 'lucide-react';
+import { FolderInput, FolderPlus, Plug, Puzzle, Settings } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 import React from 'react';
 import {
@@ -22,7 +22,6 @@ import {
 } from './sidebar-primitives';
 import { SidebarSpace } from './sidebar-space';
 import { SidebarVirtualList } from './sidebar-virtual-list';
-import { UpdateSection } from './update-section';
 import { useSidebarDrop } from './use-sidebar-drop';
 
 export const LeftSidebar: React.FC = observer(function LeftSidebar() {
@@ -30,7 +29,6 @@ export const LeftSidebar: React.FC = observer(function LeftSidebar() {
   const { currentView } = useWorkspaceSlots();
 
   const showAddProjectModal = useShowModal('addProjectModal');
-  const showFeedbackModal = useShowModal('feedbackModal');
   const { isDragOver, onDragOver, onDragEnter, onDragLeave, onDrop } = useSidebarDrop();
 
   return (
@@ -109,17 +107,6 @@ export const LeftSidebar: React.FC = observer(function LeftSidebar() {
             </SidebarMenuButton>
           </SidebarMenu>
         </SidebarFooter>
-        <div className="flex items-center gap-2 justify-between px-3 py-2 border-t border-border">
-          <button
-            type="button"
-            className="flex h-6 items-center min-w-0 w-full cursor-pointer gap-2 rounded-lg px-3 text-sm text-foreground-muted focus:outline-none focus-visible:outline-none"
-            onClick={() => showFeedbackModal({})}
-          >
-            <MessageSquareShare className="size-4 shrink-0" />
-            <span className="truncate">Give feedback</span>
-          </button>
-          <UpdateSection />
-        </div>
       </SidebarContainer>
     </div>
   );
