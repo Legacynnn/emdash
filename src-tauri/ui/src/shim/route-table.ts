@@ -193,7 +193,11 @@ const ROUTES: Record<string, Route> = {
   // The rest of the projects surface (settings, inspection, sharing,
   // open-in-new-window, connection updates) needs Rust ports. Stubs
   // keep the renderer alive when these are called; UI may degrade.
-  'projects.openProject': STATIC_VOID,
+  // openProject uses a `{ success, error }` envelope (not the standard
+  // Result); the renderer mounts the project optimistically and reads
+  // no other fields off the success branch, so an empty success is
+  // safe until a real Tauri-side open/validate command lands.
+  'projects.openProject': { kind: 'static', value: { success: true } },
   'projects.inspectProjectPath': STATIC_RESULT_OK_NULL,
   'projects.getProjectSettingsPage': STATIC_NULL,
   'projects.updateProjectSettings': STATIC_RESULT_OK_NULL,
