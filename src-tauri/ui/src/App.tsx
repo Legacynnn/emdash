@@ -35,7 +35,7 @@ export const App = observer(function App() {
     ready && selectedProjectId
       ? (ready.projects.find((p) => p.id === selectedProjectId) ?? null)
       : null;
-  const taskStore = selectedProject ? stores.getOrCreateTaskStore(selectedProject.id) : null;
+  const taskStore = selectedProject ? stores.getOrCreateWorkspaceStore(selectedProject.id) : null;
 
   const [name, setName] = useState('');
   const [greeting, setGreeting] = useState<string | null>(null);

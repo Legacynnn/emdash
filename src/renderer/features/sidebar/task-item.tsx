@@ -1,15 +1,15 @@
 import { observer } from 'mobx-react-lite';
 import { selectCurrentPr } from '@shared/pull-requests';
 import { TaskSidebarAgentStatus } from '@renderer/features/sidebar/task-sidebar-agent-status';
-import { TaskContextMenu } from '@renderer/features/tasks/components/task-context-menu';
-import { TaskGitDiffStats } from '@renderer/features/tasks/components/task-git-diff-stats';
+import { WorkspaceContextMenu } from '@renderer/features/workspaces/components/workspace-context-menu';
+import { WorkspaceGitDiffStats } from '@renderer/features/workspaces/components/workspace-git-diff-stats';
 import {
   getTaskGitStore,
-  getTaskManagerStore,
-  getTaskStore,
   getWorkspaceForTask,
-} from '@renderer/features/tasks/stores/task-selectors';
-import { type TaskStore } from '@renderer/features/tasks/stores/task-store';
+  getWorkspaceManagerStore,
+  getWorkspaceStore,
+} from '@renderer/features/workspaces/stores/workspace-selectors';
+import { type WorkspaceStore } from '@renderer/features/workspaces/stores/workspace-store';
 import { useWorkspaceLayoutContext } from '@renderer/lib/layout/layout-provider';
 import {
   useNavigate,
@@ -22,29 +22,31 @@ import { PrBadge } from '../../lib/components/pr-badge';
 import { SidebarMenuRow } from './sidebar-primitives';
 
 interface SidebarTaskItemProps {
-  taskId: string;
+  workspaceId: string;
   projectId: string;
   /** Pinned strip uses tighter padding than tasks nested under a project. */
   rowVariant?: 'underProject' | 'pinned';
 }
 
 export const SidebarTaskItem = observer(function SidebarTaskItem({
-  taskId,
+  workspaceId,
   projectId,
   rowVariant = 'underProject',
 }: SidebarTaskItemProps) {
   const { navigate } = useNavigate();
   const { setCollapsed } = useWorkspaceLayoutContext();
-  const showRename = useShowModal('renameTaskModal');
+  const showRename = useShowModal('renameWorkspaceModal');
   const showConfirm = useShowModal('confirmActionModal');
 
   const { currentView } = useWorkspaceSlots();
-  const { params } = useParams('task');
+  const { params } = useParams('workspace');
   const isActive =
-    currentView === 'task' && params.taskId === taskId && params.projectId === projectId;
+    currentView === 'workspace' &&
+    params.workspaceId === workspaceId &&
+    params.projectId === projectId;
 
-  const task = getTaskStore(projectId, taskId)!;
-  const taskManager = getTaskManagerStore(projectId);
+  const task = getWorkspaceStore(projectId, workspaceId)!;
+  const taskManager = getWorkspaceManagerStore(projectId);
 
   const isBootstrapping =
     task.state === 'unregistered' ||
@@ -55,15 +57,15 @@ export const SidebarTaskItem = observer(function SidebarTaskItem({
 
   const handleProvision = () => {
     if (task.state !== 'unprovisioned' || task.phase !== 'idle') return;
-    void taskManager?.provisionTask(taskId);
+    void taskManager?.provisionWorkspace(workspaceId);
   };
 
   const handleArchive = () => {
     if (isActive) navigate('project', { projectId });
-    void taskManager?.archiveTask(taskId);
+    void taskManager?.archiveWorkspace(workspaceId);
   };
 
-  const handleRename = () => showRename({ projectId, taskId, currentName: taskName });
+  const handleRename = () => showRename({ projectId, workspaceId, currentName: taskName });
 
   const handleDelete = () =>
     showConfirm({
@@ -71,22 +73,22 @@ export const SidebarTaskItem = observer(function SidebarTaskItem({
       description: `"${taskName}" will be permanently deleted. This action cannot be undone.`,
       confirmLabel: 'Delete',
       onSuccess: () => {
-        void taskManager?.deleteTask(taskId);
+        void taskManager?.deleteWorkspace(workspaceId);
         if (isActive) navigate('project', { projectId });
       },
     });
 
   const canPin = task.state !== 'unregistered';
 
-  const workspaceStore = getWorkspaceForTask(projectId, taskId);
-  const git = getTaskGitStore(projectId, taskId);
+  const workspaceStore = getWorkspaceForTask(projectId, workspaceId);
+  const git = getTaskGitStore(projectId, workspaceId);
   const branchName =
-    git?.branchName ?? ('taskBranch' in task.data ? task.data.taskBranch : undefined);
+    git?.branchName ?? ('workspaceBranch' in task.data ? task.data.workspaceBranch : undefined);
   const handleReconnect =
     workspaceStore?.connectionState != null ? () => workspaceStore.reconnect() : undefined;
 
   return (
-    <TaskContextMenu
+    <WorkspaceContextMenu
       isPinned={task.data.isPinned}
       canPin={canPin}
       isArchived={false}
@@ -107,7 +109,7 @@ export const SidebarTaskItem = observer(function SidebarTaskItem({
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => {
           handleProvision();
-          navigate('task', { projectId, taskId });
+          navigate('workspace', { projectId, workspaceId });
         }}
         onDoubleClick={() => setCollapsed('left', true)}
       >
@@ -120,16 +122,19 @@ export const SidebarTaskItem = observer(function SidebarTaskItem({
           >
             {taskName}
           </span>
-          <TaskGitDiffStats task={task} className="h-full shrink-0 flex items-center pl-1 pr-1" />
+          <WorkspaceGitDiffStats
+            task={task}
+            className="h-full shrink-0 flex items-center pl-1 pr-1"
+          />
           <RenderPrBadge task={task} />
         </div>
         <TaskSidebarAgentStatus task={task} />
       </SidebarMenuRow>
-    </TaskContextMenu>
+    </WorkspaceContextMenu>
   );
 });
 
-const RenderPrBadge = observer(function RenderPrBadge({ task }: { task: TaskStore }) {
+const RenderPrBadge = observer(function RenderPrBadge({ task }: { task: WorkspaceStore }) {
   if (!('prs' in task.data)) return null;
   const pr = selectCurrentPr(task.data.prs);
   return pr ? <PrBadge variant="compact" pr={pr} hoverDelay={100} /> : null;

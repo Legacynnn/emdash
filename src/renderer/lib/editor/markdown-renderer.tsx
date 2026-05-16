@@ -2,10 +2,10 @@ import { Eye, Pencil } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 import { useCallback } from 'react';
 import {
+  useInfraId,
   useTaskViewContext,
-  useWorkspaceId,
   useWorkspaceViewModel,
-} from '@renderer/features/tasks/task-view-context';
+} from '@renderer/features/workspaces/workspace-view-context';
 import { rpc } from '@renderer/lib/ipc';
 import { modelRegistry } from '@renderer/lib/monaco/monaco-model-registry';
 import { buildMonacoModelPath } from '@renderer/lib/monaco/monacoModelPath';
@@ -24,9 +24,9 @@ export const MarkdownEditorRenderer = observer(function MarkdownEditorRenderer({
   filePath,
 }: MarkdownEditorRendererProps) {
   const { projectId } = useTaskViewContext();
-  const workspaceId = useWorkspaceId();
-  const taskView = useWorkspaceViewModel();
-  const { editorView, tabManager } = taskView;
+  const infraId = useInfraId();
+  const workspaceView = useWorkspaceViewModel();
+  const { editorView, tabManager } = workspaceView;
   const bufferUri = buildMonacoModelPath(editorView.modelRootPath, filePath);
   // Reading bufferVersions creates a MobX tracking dependency so this observer()
   // component re-renders whenever the buffer content changes or is first populated.
@@ -38,10 +38,10 @@ export const MarkdownEditorRenderer = observer(function MarkdownEditorRenderer({
   const resolveImage = useCallback(
     async (src: string): Promise<string | null> => {
       const imagePath = fileDir ? `${fileDir}/${src}` : src;
-      const result = await rpc.fs.readImage(projectId, workspaceId, imagePath);
+      const result = await rpc.fs.readImage(projectId, infraId, imagePath);
       return result.success ? (result.data?.dataUrl ?? null) : null;
     },
-    [projectId, workspaceId, fileDir]
+    [projectId, infraId, fileDir]
   );
 
   return (

@@ -10,13 +10,13 @@ const scope: TelemetryScope = {
 
 export function setTelemetryTaskScope({
   projectId,
-  taskId,
+  workspaceId,
 }: {
   projectId: string;
-  taskId: string;
+  workspaceId: string;
 }): void {
   scope.project_id = projectId;
-  scope.task_id = taskId;
+  scope.task_id = workspaceId;
   scope.conversation_id = undefined;
 }
 

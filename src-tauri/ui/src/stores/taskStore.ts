@@ -1,24 +1,30 @@
 /**
- * MobX store for the tasks of one project. One `TaskStore` instance
+ * MobX store for the workspaces of one project. One `WorkspaceStore` instance
  * per project; the parent renderer (e.g. a project detail view) is
  * responsible for `dispose()`ing it when the user navigates away —
  * `dispose()` is cheap (clear the array) and idempotent.
  *
  * State-guard conventions mirror `ProjectStore`: callers use the
- * `taskStoreKind` / `asReady` selectors instead of poking at the
+ * `workspaceStoreKind` / `asReady` selectors instead of poking at the
  * variant fields directly.
  */
 import { makeAutoObservable, runInAction } from 'mobx';
-import { commands, type Task, type TasksCommandError, type TaskSourceBranch } from '../bindings';
+import {
+  commands,
+  type Workspace,
+  type WorkspacePlacement,
+  type WorkspacesCommandError_Serialize,
+  type WorkspaceSourceBranch,
+} from '../bindings';
 
-export type TasksStoreState =
+export type WorkspacesStoreState =
   | { kind: 'idle' }
   | { kind: 'loading' }
-  | { kind: 'ready'; tasks: Task[] }
-  | { kind: 'error'; error: TasksCommandError };
+  | { kind: 'ready'; workspaces: Workspace[] }
+  | { kind: 'error'; error: WorkspacesCommandError_Serialize };
 
-export class TaskStore {
-  state: TasksStoreState = { kind: 'idle' };
+export class WorkspaceStore {
+  state: WorkspacesStoreState = { kind: 'idle' };
   readonly projectId: string;
 
   constructor(projectId: string) {
@@ -29,43 +35,56 @@ export class TaskStore {
   async load(): Promise<void> {
     if (this.state.kind === 'loading') return;
     this.state = { kind: 'loading' };
-    const result = await commands.tasksList(this.projectId);
+    const result = await commands.workspacesList(this.projectId);
     runInAction(() => {
       if (result.status === 'ok') {
-        this.state = { kind: 'ready', tasks: result.data };
+        this.state = { kind: 'ready', workspaces: result.data };
       } else {
         this.state = { kind: 'error', error: result.error };
       }
     });
   }
 
-  async create(name: string, sourceBranch: TaskSourceBranch): Promise<Task | TasksCommandError> {
-    const result = await commands.tasksCreate(this.projectId, name, sourceBranch);
+  async create(
+    name: string,
+    sourceBranch: WorkspaceSourceBranch,
+    workspaceBranch: string | null = null,
+    placement: WorkspacePlacement = 'worktree',
+    existingBranch: boolean = false
+  ): Promise<Workspace | WorkspacesCommandError_Serialize> {
+    const result = await commands.workspacesCreate(
+      this.projectId,
+      name,
+      sourceBranch,
+      workspaceBranch,
+      placement,
+      existingBranch
+    );
     return result.status === 'ok' ? result.data : result.error;
   }
 
-  async delete(id: string): Promise<null | TasksCommandError> {
-    const result = await commands.tasksDelete(id);
+  async delete(id: string): Promise<null | WorkspacesCommandError_Serialize> {
+    const result = await commands.workspacesDelete(id);
     return result.status === 'ok' ? null : result.error;
   }
 
   /**
-   * Drop a task from the in-memory list. The bridge calls this on
-   * `task_deleted` so the UI updates without a server round-trip.
+   * Drop a workspace from the in-memory list. The bridge calls this on
+   * `workspace_deleted` so the UI updates without a server round-trip.
    */
   applyDeleted(id: string): void {
     if (this.state.kind !== 'ready') return;
     this.state = {
       kind: 'ready',
-      tasks: this.state.tasks.filter((t) => t.id !== id),
+      workspaces: this.state.workspaces.filter((t) => t.id !== id),
     };
   }
 }
 
-export function asReady(store: TaskStore): { tasks: Task[] } | undefined {
-  return store.state.kind === 'ready' ? { tasks: store.state.tasks } : undefined;
+export function asReady(store: WorkspaceStore): { workspaces: Workspace[] } | undefined {
+  return store.state.kind === 'ready' ? { workspaces: store.state.workspaces } : undefined;
 }
 
-export function taskStoreKind(store: TaskStore): TasksStoreState['kind'] {
+export function workspaceStoreKind(store: WorkspaceStore): WorkspacesStoreState['kind'] {
   return store.state.kind;
 }

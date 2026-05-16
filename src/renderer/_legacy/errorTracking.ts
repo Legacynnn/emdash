@@ -18,7 +18,7 @@ interface ErrorContext {
   error_type?: string;
   severity?: 'low' | 'medium' | 'high' | 'critical';
 
-  // Task/Project context
+  // Workspace/Project context
   task_id?: string;
   project_id?: string;
   provider?: string;
@@ -72,7 +72,7 @@ class RendererErrorTracking {
         operation: context?.operation,
         endpoint: context?.endpoint,
 
-        // Task/Project context
+        // Workspace/Project context
         task_id: context?.task_id,
         project_id: context?.project_id,
         provider: context?.provider,

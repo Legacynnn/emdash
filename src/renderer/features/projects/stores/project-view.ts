@@ -6,7 +6,7 @@ export type ProjectView = 'tasks' | 'pull-request' | 'settings';
 
 export class ProjectViewStore implements Snapshottable<ProjectViewSnapshot> {
   activeView: ProjectView = 'tasks';
-  taskView: TaskViewStore = new TaskViewStore();
+  workspaceView: TaskViewStore = new TaskViewStore();
 
   constructor() {
     makeAutoObservable(this);
@@ -19,13 +19,13 @@ export class ProjectViewStore implements Snapshottable<ProjectViewSnapshot> {
   get snapshot(): ProjectViewSnapshot {
     return {
       activeView: this.activeView,
-      taskViewTab: this.taskView.tab,
+      taskViewTab: this.workspaceView.tab,
     };
   }
 
   restoreSnapshot(snapshot: Partial<ProjectViewSnapshot>): void {
     if (snapshot.activeView) this.activeView = snapshot.activeView as ProjectView;
-    if (snapshot.taskViewTab) this.taskView.setTab(snapshot.taskViewTab);
+    if (snapshot.taskViewTab) this.workspaceView.setTab(snapshot.taskViewTab);
   }
 }
 

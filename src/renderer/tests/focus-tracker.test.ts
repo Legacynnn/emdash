@@ -8,7 +8,7 @@ describe('FocusTracker', () => {
     tracker.setTransitionEmitter(emit);
 
     tracker.initialize({ view: 'home', mainPanel: null, focusedRegion: null });
-    tracker.transition({ view: 'task', mainPanel: 'agents' }, 'navigation');
+    tracker.transition({ view: 'workspace', mainPanel: 'agents' }, 'navigation');
 
     expect(emit).toHaveBeenCalledTimes(1);
     const payload = emit.mock.calls[0][0] as Record<string, unknown>;

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { DraftCommentsStore } from '@renderer/features/tasks/diff-view/stores/draft-comments-store';
+import { DraftCommentsStore } from '@renderer/features/workspaces/diff-view/stores/draft-comments-store';
 
 describe('DraftCommentsStore', () => {
   beforeEach(() => {

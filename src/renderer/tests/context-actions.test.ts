@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import type { Issue } from '@shared/tasks';
+import type { Issue } from '@shared/workspaces';
 import {
   buildDraftCommentsContextAction,
   buildLinkedIssueContextAction,
   buildReviewPromptContextAction,
   buildTaskContextActions,
-} from '@renderer/features/tasks/conversations/context-actions';
+} from '@renderer/features/workspaces/conversations/context-actions';
 
 function makeIssue(overrides: Partial<Issue> = {}): Issue {
   return {

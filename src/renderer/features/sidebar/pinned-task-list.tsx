@@ -14,11 +14,11 @@ export const SidebarPinnedTaskList = observer(function SidebarPinnedTaskList() {
         <MicroLabel className="text-foreground-tertiary-passive">Pinned</MicroLabel>
       </div>
       <SidebarMenu className="px-3 pb-2">
-        {entries.map(({ projectId, taskId }) => (
+        {entries.map(({ projectId, workspaceId }) => (
           <SidebarTaskItem
-            key={`${projectId}:${taskId}`}
+            key={`${projectId}:${workspaceId}`}
             projectId={projectId}
-            taskId={taskId}
+            workspaceId={workspaceId}
             rowVariant="pinned"
           />
         ))}

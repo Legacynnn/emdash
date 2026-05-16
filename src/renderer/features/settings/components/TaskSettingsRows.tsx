@@ -1,7 +1,7 @@
 import { Info } from 'lucide-react';
 import React from 'react';
 import { useAppSettingsKey } from '@renderer/features/settings/use-app-settings-key';
-import { useTaskSettings } from '@renderer/features/tasks/hooks/useTaskSettings';
+import { useTaskSettings } from '@renderer/features/workspaces/hooks/useTaskSettings';
 import { Switch } from '@renderer/lib/ui/switch';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@renderer/lib/ui/tooltip';
 import { ResetToDefaultButton } from './ResetToDefaultButton';

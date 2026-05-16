@@ -1,6 +1,6 @@
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
-import { getTaskView } from '@renderer/features/tasks/stores/task-selectors';
+import { getWorkspaceView } from '@renderer/features/workspaces/stores/workspace-selectors';
 import { appState } from '@renderer/lib/stores/app-state';
 import type { HistoryEntry } from '@renderer/lib/stores/navigation-history-store';
 import { Button } from '@renderer/lib/ui/button';
@@ -11,11 +11,11 @@ export function applyHistoryEntry(entry: HistoryEntry): void {
   if (entry.kind === 'view') {
     appState.navigation._applyNavigation(entry.viewId, entry.params);
   } else {
-    appState.navigation._applyNavigation('task', {
+    appState.navigation._applyNavigation('workspace', {
       projectId: entry.projectId,
-      taskId: entry.taskId,
+      workspaceId: entry.workspaceId,
     });
-    getTaskView(entry.projectId, entry.taskId)?.tabManager.setActiveTab(entry.tabId);
+    getWorkspaceView(entry.projectId, entry.workspaceId)?.tabManager.setActiveTab(entry.tabId);
   }
 }
 

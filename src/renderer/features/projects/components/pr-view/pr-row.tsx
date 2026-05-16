@@ -18,7 +18,7 @@ export const PrRow = memo(function PrRow({
   pr: PullRequest;
   projectId: string;
 }) {
-  const showCreateTaskModal = useShowModal('taskModal');
+  const showCreateTaskModal = useShowModal('workspaceModal');
 
   return (
     <div className="flex relative items-start gap-3 rounded-lg p-3 py-4 hover:bg-background-1 transition-colors group">
@@ -62,7 +62,7 @@ export const PrRow = memo(function PrRow({
           }
         >
           <ScanSearch className="size-3.5" />
-          Review in Task
+          Review in Workspace
         </Button>
       </div>
     </div>

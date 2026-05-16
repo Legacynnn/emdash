@@ -25,20 +25,20 @@ export function dispatchUiMutation(stores: Stores, event: UiMutationEvent): void
       return;
     case 'project_deleted':
       stores.projects.applyDeleted(event.id);
-      // A deleted project takes its tasks with it (ON DELETE CASCADE on the
-      // DB side); drop the corresponding TaskStore so subsequent navigations
+      // A deleted project takes its workspaces with it (ON DELETE CASCADE on the
+      // DB side); drop the corresponding WorkspaceStore so subsequent navigations
       // don't surface stale state.
-      stores.tasksByProject.delete(event.id);
+      stores.workspacesByProject.delete(event.id);
       return;
-    case 'task_created':
-    case 'task_updated': {
-      const taskStore = stores.tasksByProject.get(event.project_id);
-      if (taskStore) void taskStore.load();
+    case 'workspace_created':
+    case 'workspace_updated': {
+      const workspaceStore = stores.workspacesByProject.get(event.project_id);
+      if (workspaceStore) void workspaceStore.load();
       return;
     }
-    case 'task_deleted': {
-      const taskStore = stores.tasksByProject.get(event.project_id);
-      taskStore?.applyDeleted(event.id);
+    case 'workspace_deleted': {
+      const workspaceStore = stores.workspacesByProject.get(event.project_id);
+      workspaceStore?.applyDeleted(event.id);
       return;
     }
     case 'agent_hook_event':
@@ -70,11 +70,23 @@ export function dispatchUiMutation(stores: Stores, event: UiMutationEvent): void
     case 'terminal_created':
     case 'terminal_updated':
     case 'terminal_deleted':
-      // Per-task conversation / terminal CRUD. The renderer-side store
+      // Per-workspace conversation / terminal CRUD. The renderer-side store
       // (Electron renderer) reloads via the `conversation.changed`
       // and `terminal.changed` event-bus topics that the shim emits;
       // the dispatch arm exists to keep the exhaustiveness check
-      // honest until a Tauri-native task store consumes these.
+      // honest until a Tauri-native workspace store consumes these.
+      return;
+    case 'skill_installed':
+    case 'skill_uninstalled':
+    case 'skills_catalog_refreshed':
+      // Skills CRUD/catalog refresh. Consumer renderer-side store reloads
+      // via the `skills.changed` event-bus topic emitted by the shim.
+      return;
+    case 'mcp_server_saved':
+    case 'mcp_server_removed':
+    case 'mcp_providers_refreshed':
+      // MCP server config / provider snapshot changes. Consumed by
+      // renderer-side stores via `mcp.changed` event-bus topics.
       return;
   }
   // Exhaustiveness check: a new variant added to UiMutationEvent without a

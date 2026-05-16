@@ -40,7 +40,7 @@ export const APP_COMMAND_DEFS = defineCommandDefs([
   },
   {
     id: 'app.newTask',
-    label: 'New Task',
+    label: 'New Workspace',
     description: 'Create a new task in this project',
     scope: 'app',
     shortcutKey: 'newTask',
@@ -165,15 +165,15 @@ export const TASK_COMMAND_DEFS = defineCommandDefs([
   },
   {
     id: 'task.pin',
-    label: 'Pin Task',
+    label: 'Pin Workspace',
     description: 'Pin this task to keep it at the top',
     scope: 'task',
-    group: 'Task',
+    group: 'Workspace',
     iconKey: 'pin',
   },
   {
     id: 'task.nextTask',
-    label: 'Next Task',
+    label: 'Next Workspace',
     description: 'Switch to the next task',
     scope: 'task',
     group: 'Navigation',
@@ -181,7 +181,7 @@ export const TASK_COMMAND_DEFS = defineCommandDefs([
   },
   {
     id: 'task.prevTask',
-    label: 'Previous Task',
+    label: 'Previous Workspace',
     description: 'Switch to the previous task',
     scope: 'task',
     group: 'Navigation',

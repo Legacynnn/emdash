@@ -44,7 +44,7 @@ type Props = BaseModalProps<ShareProjectConfigModalResult> & ShareProjectConfigM
 
 export function projectConfigTargetValue(target: ProjectSettingsWriteTargetOption): string {
   if (target.type === 'project') return 'project:repository';
-  if (target.type === 'task') return `task:${target.taskId}`;
+  if (target.type === 'task') return `task:${target.workspaceId}`;
   return `workspace:${target.workspaceId}`;
 }
 
@@ -53,7 +53,7 @@ function parseTargetValue(
 ): ProjectSettingsWriteTarget | null {
   if (!target) return null;
   if (target.type === 'project') return { type: 'project' };
-  if (target.type === 'task') return { type: 'task', taskId: target.taskId };
+  if (target.type === 'task') return { type: 'task', workspaceId: target.workspaceId };
   return { type: 'workspace', workspaceId: target.workspaceId };
 }
 

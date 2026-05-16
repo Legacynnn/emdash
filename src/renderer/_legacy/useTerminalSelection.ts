@@ -38,15 +38,15 @@ export function parseTerminalValue(value: string): { mode: SelectedMode; id: str
  */
 export function resolveSelection(params: {
   currentValue: string;
-  taskId: string | null;
+  workspaceId: string | null;
   prevTaskId: string | null;
   taskTerminals: { terminals: { id: string }[]; activeTerminalId: string | null };
   globalTerminals: { terminals: { id: string }[]; activeTerminalId: string | null };
 }): string | null {
-  const { currentValue, taskId, prevTaskId, taskTerminals, globalTerminals } = params;
+  const { currentValue, workspaceId, prevTaskId, taskTerminals, globalTerminals } = params;
 
-  // 1. Task switch — always reset to worktree 1
-  if (taskId !== prevTaskId) {
+  // 1. Workspace switch — always reset to worktree 1
+  if (workspaceId !== prevTaskId) {
     if (taskTerminals.terminals.length > 0) {
       return `task::${taskTerminals.terminals[0].id}`;
     }
@@ -71,7 +71,7 @@ export function resolveSelection(params: {
   if (!parsed) return '';
 
   // 3. No task but mode is task — switch to global
-  if (!taskId && parsed.mode === 'task') {
+  if (!workspaceId && parsed.mode === 'task') {
     if (globalTerminals.terminals.length > 0) {
       return `global::${globalTerminals.terminals[0].id}`;
     }
@@ -127,7 +127,7 @@ export function useTerminalSelection(options: UseTerminalSelectionOptions): Term
     const prevTaskId = prevTaskIdRef.current;
     const newValue = resolveSelection({
       currentValue: selectedValue,
-      taskId: task?.id ?? null,
+      workspaceId: task?.id ?? null,
       prevTaskId,
       taskTerminals,
       globalTerminals,

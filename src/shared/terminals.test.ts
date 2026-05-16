@@ -36,7 +36,7 @@ describe('createScriptTerminalId', () => {
     expect(taskScoped).not.toBe(workspaceScoped);
   });
 
-  it('keeps backward compatibility with legacy taskId argument', async () => {
+  it('keeps backward compatibility with legacy workspaceId argument', async () => {
     const viaScopeId = await createScriptTerminalId({
       projectId: 'project-1',
       scopeId: 'task-1',
@@ -45,7 +45,7 @@ describe('createScriptTerminalId', () => {
     });
     const viaTaskId = await createScriptTerminalId({
       projectId: 'project-1',
-      taskId: 'task-1',
+      workspaceId: 'task-1',
       type: 'teardown',
       script: 'echo done',
     });

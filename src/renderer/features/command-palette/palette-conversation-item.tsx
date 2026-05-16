@@ -1,8 +1,8 @@
 import { Command } from 'cmdk';
 import { observer } from 'mobx-react-lite';
-import { AgentStatusIndicator } from '@renderer/features/tasks/components/agent-status-indicator';
-import type { ConversationStore } from '@renderer/features/tasks/conversations/conversation-manager';
-import { formatConversationTitleForDisplay } from '@renderer/features/tasks/conversations/conversation-title-utils';
+import { AgentStatusIndicator } from '@renderer/features/workspaces/components/agent-status-indicator';
+import type { ConversationStore } from '@renderer/features/workspaces/conversations/conversation-manager';
+import { formatConversationTitleForDisplay } from '@renderer/features/workspaces/conversations/conversation-title-utils';
 import AgentLogo from '@renderer/lib/components/agent-logo';
 import { agentConfig } from '@renderer/utils/agentConfig';
 

@@ -40,7 +40,7 @@ export class ProjectStore {
    * project on success.
    */
   async add(path: string): Promise<Project | ProjectsCommandError> {
-    const result = await commands.projectsAdd(path);
+    const result = await commands.projectsAdd(path, null);
     if (result.status === 'ok') {
       return result.data;
     }

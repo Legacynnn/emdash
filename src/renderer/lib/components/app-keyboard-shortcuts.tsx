@@ -1,7 +1,7 @@
 import { useHotkey } from '@tanstack/react-hotkeys';
 import { useObserver } from 'mobx-react-lite';
 import { useAppSettingsKey } from '@renderer/features/settings/use-app-settings-key';
-import { getRegisteredTaskData } from '@renderer/features/tasks/stores/task-selectors';
+import { getRegisteredTaskData } from '@renderer/features/workspaces/stores/workspace-selectors';
 import {
   getEffectiveHotkey,
   getHotkeyRegistration,
@@ -29,16 +29,16 @@ export function AppKeyboardShortcuts() {
   const toggleThemeHotkey = getEffectiveHotkey('toggleTheme', keyboard);
 
   const { currentView, lastNonSettingsView } = useWorkspaceSlots();
-  const { params: taskParams } = useParams('task');
+  const { params: taskParams } = useParams('workspace');
   const { params: projectParams } = useParams('project');
 
   const currentProjectId =
-    currentView === 'task'
+    currentView === 'workspace'
       ? taskParams.projectId
       : currentView === 'project'
         ? projectParams.projectId
         : undefined;
-  const currentTaskId = currentView === 'task' ? taskParams.taskId : undefined;
+  const currentTaskId = currentView === 'workspace' ? taskParams.workspaceId : undefined;
 
   const currentWorkspaceId = useObserver(() => {
     if (!currentProjectId || !currentTaskId) return undefined;
@@ -50,8 +50,8 @@ export function AppKeyboardShortcuts() {
     () =>
       showCommandPalette({
         projectId: currentProjectId,
-        taskId: currentTaskId,
-        workspaceId: currentWorkspaceId,
+        workspaceId: currentTaskId,
+        infraId: currentWorkspaceId,
       }),
     { enabled: commandPaletteHotkey !== null }
   );

@@ -24,7 +24,7 @@ export interface AgentEvent {
   ptyId?: string;
   providerId?: string;
   projectId: string;
-  taskId: string;
+  workspaceId: string;
   conversationId: string;
   timestamp: number;
   payload: {
@@ -49,9 +49,9 @@ export interface AgentSessionExited {
   projectId: string;
   sessionId: string;
   conversationId: string;
-  taskId: string;
+  workspaceId: string;
   exitCode: number | undefined;
 }
 
-/** Emitted when an agent PTY session exits. Topic = taskId. */
+/** Emitted when an agent PTY session exits. Topic = workspaceId. */
 export const agentSessionExitedChannel = defineEvent<AgentSessionExited>('agent:session-exited');

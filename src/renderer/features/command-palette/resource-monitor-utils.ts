@@ -4,7 +4,7 @@ import type {
   ResourcePtyEntry,
   ResourceSnapshot,
 } from '@shared/resource-monitor';
-import { conversationRegistry } from '@renderer/features/tasks/stores/conversation-registry';
+import { conversationRegistry } from '@renderer/features/workspaces/stores/conversation-registry';
 import { agentMeta } from '@renderer/lib/providers/meta';
 import { appState } from '@renderer/lib/stores/app-state';
 import { formatBytes } from '@renderer/utils/formatBytes';

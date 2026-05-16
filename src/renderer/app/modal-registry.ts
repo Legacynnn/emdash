@@ -4,12 +4,12 @@ import { McpModal } from '@renderer/features/mcp/components/McpModal';
 import { AddProjectModal } from '@renderer/features/projects/components/add-project-modal/add-project-modal';
 import { ShareProjectConfigModal } from '@renderer/features/projects/components/settings-view/share-project-config-modal';
 import { CreateSkillModal } from '@renderer/features/skills/components/CreateSkillModal';
-import { AddRemoteModal } from '@renderer/features/tasks/add-remote-modal';
-import { CreateConversationModal } from '@renderer/features/tasks/conversations/create-conversation-modal';
-import { CreateTaskModal } from '@renderer/features/tasks/create-task-modal/create-task-modal';
-import { CreatePrModal } from '@renderer/features/tasks/diff-view/changes-panel/components/pr-entry/create-pr-modal';
-import { ConflictDialog } from '@renderer/features/tasks/editor/conflict-dialog';
-import { RenameTaskModal } from '@renderer/features/tasks/rename-task-modal';
+import { AddRemoteModal } from '@renderer/features/workspaces/add-remote-modal';
+import { CreateConversationModal } from '@renderer/features/workspaces/conversations/create-conversation-modal';
+import { CreateWorkspaceModal } from '@renderer/features/workspaces/create-workspace-modal/create-workspace-modal';
+import { CreatePrModal } from '@renderer/features/workspaces/diff-view/changes-panel/components/pr-entry/create-pr-modal';
+import { ConflictDialog } from '@renderer/features/workspaces/editor/conflict-dialog';
+import { RenameWorkspaceModal } from '@renderer/features/workspaces/rename-workspace-modal';
 import { AddSshConnModal } from '@renderer/lib/components/add-ssh-conn-modal';
 import { ChangeProjectConnectionModal } from '@renderer/lib/components/change-project-connection-modal';
 import { ConfirmActionDialog } from '@renderer/lib/components/confirm-action-dialog';
@@ -36,7 +36,7 @@ export function createModal<TProps, TResult>(
 
 export const modalRegistry = {
   commandPaletteModal: createModal(CommandPaletteModal, { size: 'md' }),
-  taskModal: createModal(CreateTaskModal),
+  workspaceModal: createModal(CreateWorkspaceModal),
   addProjectModal: createModal(AddProjectModal),
   addSshConnModal: createModal(AddSshConnModal),
   changeProjectConnectionModal: createModal(ChangeProjectConnectionModal, { size: 'sm' }),
@@ -49,7 +49,7 @@ export const modalRegistry = {
   createSkillModal: createModal(CreateSkillModal),
   conflictDialog: createModal(ConflictDialog, { size: 'sm' }),
   createPrModal: createModal(CreatePrModal, { size: 'md' }),
-  renameTaskModal: createModal(RenameTaskModal, { size: 'xs' }),
+  renameWorkspaceModal: createModal(RenameWorkspaceModal, { size: 'xs' }),
   shareProjectConfigModal: createModal(ShareProjectConfigModal, { size: 'md' }),
   integrationSetupModal: createModal(IntegrationSetupModal, { size: 'md' }),
   addRemoteModal: createModal(AddRemoteModal),

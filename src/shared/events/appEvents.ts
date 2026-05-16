@@ -20,7 +20,7 @@ export const gitStatusChangedChannel = defineEvent<{
 
 export const notificationFocusTaskChannel = defineEvent<{
   projectId: string;
-  taskId: string;
+  workspaceId: string;
   conversationId?: string;
 }>('notification:focus-task');
 
@@ -45,7 +45,7 @@ export const ptyExitChannel = defineEvent<{
   signal?: number;
 }>('pty:exit');
 
-/** Emitted by main process when a PTY is definitively killed (e.g. on deleteTask/deleteConversation). */
+/** Emitted by main process when a PTY is definitively killed (e.g. on deleteWorkspace/deleteConversation). */
 export const ptyKilledChannel = defineEvent<{ id: string }>('pty:killed');
 
 /** Emitted by main process when a lifecycle/dev-server shell session is created.
@@ -53,7 +53,7 @@ export const ptyKilledChannel = defineEvent<{ id: string }>('pty:killed');
  *  The renderer uses sessionId (not conversationId) to connect to the PTY terminal.
  */
 export const shellSessionStartedChannel = defineEvent<{
-  taskId: string;
+  workspaceId: string;
   /** Opaque UUID identifying this PTY session — not a DB conversationId. */
   sessionId: string;
   ptyId: string;

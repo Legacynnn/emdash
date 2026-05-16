@@ -1,4 +1,4 @@
-import type { Issue } from './tasks';
+import type { Issue } from './workspaces';
 
 export type IssueProviderType = Issue['provider'];
 

@@ -4,7 +4,7 @@ export interface GeneralSession {
 }
 
 export interface GeneralSessionConfig {
-  taskId?: string;
+  workspaceId?: string;
   cwd: string;
   projectPath?: string;
   shellSetup?: string;

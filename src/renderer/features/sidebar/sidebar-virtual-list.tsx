@@ -26,7 +26,7 @@ import { observer } from 'mobx-react-lite';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { type SidebarRow } from '@renderer/features/sidebar/sidebar-store';
-import { getTaskStore } from '@renderer/features/tasks/stores/task-selectors';
+import { getWorkspaceStore } from '@renderer/features/workspaces/stores/workspace-selectors';
 import { useParams, useWorkspaceSlots } from '@renderer/lib/layout/navigation-provider';
 import { sidebarStore } from '@renderer/lib/stores/app-state';
 import { SidebarProjectItem } from './project-item';
@@ -37,7 +37,7 @@ const ROW_HEIGHT = 32;
 export const SidebarVirtualList = observer(function SidebarVirtualList() {
   const rows = sidebarStore.sidebarRows;
   const { currentView } = useWorkspaceSlots();
-  const { params: taskParams } = useParams('task');
+  const { params: taskParams } = useParams('workspace');
   const { params: projectParams } = useParams('project');
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -48,7 +48,7 @@ export const SidebarVirtualList = observer(function SidebarVirtualList() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const activeTaskProjectExpanded =
-    currentView === 'task' && taskParams.projectId
+    currentView === 'workspace' && taskParams.projectId
       ? sidebarStore.expandedProjectIds.has(taskParams.projectId)
       : null;
   const allDndIds = useMemo(() => rows.map(rowToDndId), [rows]);
@@ -63,14 +63,14 @@ export const SidebarVirtualList = observer(function SidebarVirtualList() {
   // Expand the parent project when navigating to a task (not when `rows` changes —
   // otherwise collapsing while staying on that task would immediately re-expand).
   useEffect(() => {
-    if (currentView !== 'task') return;
+    if (currentView !== 'workspace') return;
     const targetProjectId = taskParams.projectId;
-    const targetTaskId = taskParams.taskId;
+    const targetTaskId = taskParams.workspaceId;
     if (!targetProjectId || !targetTaskId) return;
-    const activeTask = getTaskStore(targetProjectId, targetTaskId);
+    const activeTask = getWorkspaceStore(targetProjectId, targetTaskId);
     if (activeTask?.data.isPinned) return;
     sidebarStore.ensureProjectExpanded(targetProjectId);
-  }, [currentView, taskParams.projectId, taskParams.taskId]);
+  }, [currentView, taskParams.projectId, taskParams.workspaceId]);
 
   // Scroll the active project/task into view only when the navigation target itself
   // changes, plus the active task's project expansion state. Re-running on every
@@ -83,9 +83,9 @@ export const SidebarVirtualList = observer(function SidebarVirtualList() {
     let targetProjectId: string | null = null;
     let targetTaskId: string | null = null;
 
-    if (currentView === 'task') {
+    if (currentView === 'workspace') {
       targetProjectId = taskParams.projectId;
-      targetTaskId = taskParams.taskId;
+      targetTaskId = taskParams.workspaceId;
     } else if (currentView === 'project') {
       targetProjectId = projectParams.projectId;
     }
@@ -93,7 +93,7 @@ export const SidebarVirtualList = observer(function SidebarVirtualList() {
     if (!targetProjectId) return;
 
     if (targetTaskId) {
-      const activeTask = getTaskStore(targetProjectId, targetTaskId);
+      const activeTask = getWorkspaceStore(targetProjectId, targetTaskId);
       if (activeTask?.data.isPinned) {
         return;
       }
@@ -102,7 +102,9 @@ export const SidebarVirtualList = observer(function SidebarVirtualList() {
     const activeIndex = rowsRef.current.findIndex((row) => {
       if (targetTaskId) {
         return (
-          row.kind === 'task' && row.taskId === targetTaskId && row.projectId === targetProjectId
+          row.kind === 'task' &&
+          row.workspaceId === targetTaskId &&
+          row.projectId === targetProjectId
         );
       }
       return row.kind === 'project' && row.projectId === targetProjectId;
@@ -114,7 +116,7 @@ export const SidebarVirtualList = observer(function SidebarVirtualList() {
   }, [
     currentView,
     taskParams.projectId,
-    taskParams.taskId,
+    taskParams.workspaceId,
     projectParams.projectId,
     activeTaskProjectExpanded,
     virtualizer,
@@ -176,9 +178,9 @@ export const SidebarVirtualList = observer(function SidebarVirtualList() {
           (r): r is Extract<SidebarRow, { kind: 'task' }> =>
             r.kind === 'task' && r.projectId === projectId
         )
-        .map((r) => r.taskId);
-      const oldIdx = taskIds.indexOf(aParsed.taskId);
-      const overTaskIdx = taskIds.indexOf(oParsed.taskId);
+        .map((r) => r.workspaceId);
+      const oldIdx = taskIds.indexOf(aParsed.workspaceId);
+      const overTaskIdx = taskIds.indexOf(oParsed.workspaceId);
       if (oldIdx === -1 || overTaskIdx === -1) return;
       let newIdx = isAbove ? overTaskIdx : overTaskIdx + 1;
       if (newIdx > oldIdx) newIdx -= 1;
@@ -220,8 +222,12 @@ export const SidebarVirtualList = observer(function SidebarVirtualList() {
                 );
               }
               return (
-                <SortableRow key={`${row.projectId}:${row.taskId}`} dndId={dndId} style={vStyle}>
-                  <SidebarTaskItem projectId={row.projectId} taskId={row.taskId} />
+                <SortableRow
+                  key={`${row.projectId}:${row.workspaceId}`}
+                  dndId={dndId}
+                  style={vStyle}
+                >
+                  <SidebarTaskItem projectId={row.projectId} workspaceId={row.workspaceId} />
                 </SortableRow>
               );
             })}
@@ -237,29 +243,30 @@ export const SidebarVirtualList = observer(function SidebarVirtualList() {
 });
 
 const toProjectDndId = (id: string) => `proj::${id}`;
-const toTaskDndId = (projectId: string, taskId: string) => `task::${projectId}::${taskId}`;
+const toTaskDndId = (projectId: string, workspaceId: string) =>
+  `task::${projectId}::${workspaceId}`;
 
 type SidebarDndId =
   | { kind: 'project'; projectId: string }
-  | { kind: 'task'; projectId: string; taskId: string };
+  | { kind: 'task'; projectId: string; workspaceId: string };
 
 function rowToDndId(row: SidebarRow): string {
   if (row.kind === 'project') return toProjectDndId(row.projectId);
-  return toTaskDndId(row.projectId, row.taskId);
+  return toTaskDndId(row.projectId, row.workspaceId);
 }
 
 function parseDndId(id: string): SidebarDndId | null {
   if (id.startsWith('proj::')) return { kind: 'project', projectId: id.slice(6) };
   if (id.startsWith('task::')) {
-    const [, projectId, taskId] = id.split('::');
-    if (projectId && taskId) return { kind: 'task', projectId, taskId };
+    const [, projectId, workspaceId] = id.split('::');
+    if (projectId && workspaceId) return { kind: 'task', projectId, workspaceId };
   }
   return null;
 }
 
 // Project drags consider every visible row so dropping over a task maps to its
 // owning project in onDragEnd without changing the virtualized list mid-drag.
-// Task drags stay restricted to their own project's tasks.
+// Workspace drags stay restricted to their own project's tasks.
 const sidebarCollision: CollisionDetection = (args) => {
   const activeId = String(args.active.id);
   const parsed = parseDndId(activeId);
@@ -310,7 +317,7 @@ function DragOverlayContent() {
         {parsed.kind === 'project' ? (
           <SidebarProjectItem projectId={parsed.projectId} />
         ) : (
-          <SidebarTaskItem projectId={parsed.projectId} taskId={parsed.taskId} />
+          <SidebarTaskItem projectId={parsed.projectId} workspaceId={parsed.workspaceId} />
         )}
       </div>
     </div>

@@ -5,22 +5,22 @@ const MAX_STACK_SIZE = 50;
 
 export type HistoryEntry =
   | { kind: 'view'; viewId: ViewId; params: WrapParams<ViewId> }
-  | { kind: 'tab'; projectId: string; taskId: string; tabId: string };
+  | { kind: 'tab'; projectId: string; workspaceId: string; tabId: string };
 
 function entriesEqual(a: HistoryEntry, b: HistoryEntry): boolean {
   if (a.kind !== b.kind) return false;
   if (a.kind === 'view' && b.kind === 'view') {
     if (a.viewId !== b.viewId) return false;
-    // Task view is parameterized by taskId — different tasks are distinct entries.
-    if (a.viewId === 'task') {
-      const ap = a.params as { taskId?: string };
-      const bp = b.params as { taskId?: string };
-      return ap.taskId === bp.taskId;
+    // Workspace view is parameterized by workspaceId — different tasks are distinct entries.
+    if (a.viewId === 'workspace') {
+      const ap = a.params as { workspaceId?: string };
+      const bp = b.params as { workspaceId?: string };
+      return ap.workspaceId === bp.workspaceId;
     }
     return true;
   }
   if (a.kind === 'tab' && b.kind === 'tab') {
-    return a.tabId === b.tabId && a.taskId === b.taskId;
+    return a.tabId === b.tabId && a.workspaceId === b.workspaceId;
   }
   return false;
 }

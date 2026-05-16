@@ -1,7 +1,7 @@
 import { makeAutoObservable, observable } from 'mobx';
 import type { LocalProject, SshProject } from '@shared/projects';
 import type { ProjectViewSnapshot } from '@shared/view-state';
-import { TaskManagerStore } from '@renderer/features/tasks/stores/task-manager';
+import { WorkspaceManagerStore } from '@renderer/features/workspaces/stores/workspace-manager';
 import { snapshotRegistry } from '@renderer/lib/stores/snapshot-registry';
 import { PrSyncStore } from './pr-sync-store';
 import { ProjectSettingsStore } from './project-settings-store';
@@ -23,7 +23,7 @@ export type ProjectMode = 'pick' | 'clone' | 'new';
  * ProjectStore.transitionToMounted and disposed on unmount or deletion.
  */
 export class MountedProject {
-  readonly taskManager: TaskManagerStore;
+  readonly taskManager: WorkspaceManagerStore;
   readonly view: ProjectViewStore;
   readonly settings: ProjectSettingsStore;
   readonly repository: RepositoryStore;
@@ -35,7 +35,7 @@ export class MountedProject {
   get snapshot(): ProjectViewSnapshot {
     return {
       activeView: this.view.activeView,
-      taskViewTab: this.view.taskView.tab,
+      taskViewTab: this.view.workspaceView.tab,
     };
   }
 
@@ -45,7 +45,12 @@ export class MountedProject {
     this.settings = new ProjectSettingsStore(data.id);
     this.repository = new RepositoryStore(data.id, this.settings, data.baseRef);
     this.prSync = new PrSyncStore(data.id);
-    this.taskManager = new TaskManagerStore(data.id, this.repository, this.settings, data.baseRef);
+    this.taskManager = new WorkspaceManagerStore(
+      data.id,
+      this.repository,
+      this.settings,
+      data.baseRef
+    );
 
     if (savedSnapshot) this.view.restoreSnapshot(savedSnapshot);
 

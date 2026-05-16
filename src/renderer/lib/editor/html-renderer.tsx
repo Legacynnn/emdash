@@ -1,10 +1,10 @@
 import { observer } from 'mobx-react-lite';
 import { useEffect, useRef, useState } from 'react';
 import {
+  useInfraId,
   useTaskViewContext,
-  useWorkspaceId,
   useWorkspaceViewModel,
-} from '@renderer/features/tasks/task-view-context';
+} from '@renderer/features/workspaces/workspace-view-context';
 import { HTML_EXTS } from '@renderer/lib/editor/fileKind';
 import { PreviewSourceToggle } from '@renderer/lib/editor/preview-source-toggle';
 import { rpc } from '@renderer/lib/ipc';
@@ -35,9 +35,9 @@ const LINK_INTERCEPT_SCRIPT = `
 
 export const HtmlRenderer = observer(function HtmlRenderer({ filePath }: HtmlRendererProps) {
   const { projectId } = useTaskViewContext();
-  const workspaceId = useWorkspaceId();
-  const taskView = useWorkspaceViewModel();
-  const { editorView, tabManager } = taskView;
+  const infraId = useInfraId();
+  const workspaceView = useWorkspaceViewModel();
+  const { editorView, tabManager } = workspaceView;
   const bufferUri = buildMonacoModelPath(editorView.modelRootPath, filePath);
 
   // Touch bufferVersions so this observer re-renders when the buffer is first
@@ -61,7 +61,7 @@ export const HtmlRenderer = observer(function HtmlRenderer({ filePath }: HtmlRen
     }
     let cancelled = false;
     setIsProcessing(true);
-    void processHtmlForPreview(rawContent, fileDir, projectId, workspaceId)
+    void processHtmlForPreview(rawContent, fileDir, projectId, infraId)
       .then((html) => {
         if (!cancelled) setProcessedHtml(html);
       })
@@ -74,7 +74,7 @@ export const HtmlRenderer = observer(function HtmlRenderer({ filePath }: HtmlRen
     return () => {
       cancelled = true;
     };
-  }, [rawContent, fileDir, projectId, workspaceId]);
+  }, [rawContent, fileDir, projectId, infraId]);
 
   // Route link clicks postMessaged from the sandbox into the tab manager so
   // sibling HTML files open as new tabs.

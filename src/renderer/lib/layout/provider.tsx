@@ -11,18 +11,18 @@ import { captureTelemetry } from '@renderer/utils/telemetryClient';
 type ViewParamsStore = Partial<{ [K in ViewId]: WrapParams<K> }>;
 
 function syncTelemetryScope(currentViewId: ViewId, viewParamsStore: ViewParamsStore): void {
-  if (currentViewId !== 'task') {
+  if (currentViewId !== 'workspace') {
     clearTelemetryTaskScope();
     return;
   }
 
-  const taskParams = viewParamsStore.task;
+  const taskParams = viewParamsStore.workspace;
   if (
     taskParams &&
     typeof taskParams.projectId === 'string' &&
-    typeof taskParams.taskId === 'string'
+    typeof taskParams.workspaceId === 'string'
   ) {
-    setTelemetryTaskScope({ projectId: taskParams.projectId, taskId: taskParams.taskId });
+    setTelemetryTaskScope({ projectId: taskParams.projectId, workspaceId: taskParams.workspaceId });
     return;
   }
 

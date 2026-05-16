@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   resolveBranchLikeTaskStrategy,
   resolvePullRequestTaskStrategy,
-} from '@renderer/features/tasks/create-task-modal/create-task-strategy';
+} from '@renderer/features/workspaces/create-workspace-modal/create-workspace-strategy';
 
 describe('resolveBranchLikeTaskStrategy', () => {
   it('returns new-branch with pushBranch when branch/worktree creation is enabled', () => {
@@ -10,12 +10,12 @@ describe('resolveBranchLikeTaskStrategy', () => {
       resolveBranchLikeTaskStrategy({
         isUnborn: false,
         createBranchAndWorktree: true,
-        taskBranch: 'issue-task',
+        workspaceBranch: 'issue-task',
         pushBranch: false,
       })
     ).toEqual({
       kind: 'new-branch',
-      taskBranch: 'issue-task',
+      workspaceBranch: 'issue-task',
       pushBranch: false,
     });
   });
@@ -25,7 +25,7 @@ describe('resolveBranchLikeTaskStrategy', () => {
       resolveBranchLikeTaskStrategy({
         isUnborn: false,
         createBranchAndWorktree: false,
-        taskBranch: 'issue-task',
+        workspaceBranch: 'issue-task',
         pushBranch: true,
       })
     ).toEqual({ kind: 'no-worktree' });
@@ -36,7 +36,7 @@ describe('resolveBranchLikeTaskStrategy', () => {
       resolveBranchLikeTaskStrategy({
         isUnborn: true,
         createBranchAndWorktree: true,
-        taskBranch: 'issue-task',
+        workspaceBranch: 'issue-task',
         pushBranch: true,
       })
     ).toEqual({ kind: 'no-worktree' });
@@ -44,7 +44,7 @@ describe('resolveBranchLikeTaskStrategy', () => {
 });
 
 describe('resolvePullRequestTaskStrategy', () => {
-  it('includes taskBranch and pushBranch in new-branch mode', () => {
+  it('includes workspaceBranch and pushBranch in new-branch mode', () => {
     expect(
       resolvePullRequestTaskStrategy({
         checkoutMode: 'new-branch',
@@ -52,7 +52,7 @@ describe('resolvePullRequestTaskStrategy', () => {
         headBranch: 'feature/pr-head',
         headRepositoryUrl: 'https://github.com/contributor/repo',
         isFork: false,
-        taskBranch: 'pr-task',
+        workspaceBranch: 'pr-task',
         pushBranch: false,
       })
     ).toEqual({
@@ -61,12 +61,12 @@ describe('resolvePullRequestTaskStrategy', () => {
       headBranch: 'feature/pr-head',
       headRepositoryUrl: 'https://github.com/contributor/repo',
       isFork: false,
-      taskBranch: 'pr-task',
+      workspaceBranch: 'pr-task',
       pushBranch: false,
     });
   });
 
-  it('omits taskBranch and pushBranch in checkout mode', () => {
+  it('omits workspaceBranch and pushBranch in checkout mode', () => {
     expect(
       resolvePullRequestTaskStrategy({
         checkoutMode: 'checkout',
@@ -74,7 +74,7 @@ describe('resolvePullRequestTaskStrategy', () => {
         headBranch: 'feature/pr-head',
         headRepositoryUrl: 'https://github.com/contributor/repo',
         isFork: false,
-        taskBranch: 'pr-task',
+        workspaceBranch: 'pr-task',
         pushBranch: false,
       })
     ).toEqual({

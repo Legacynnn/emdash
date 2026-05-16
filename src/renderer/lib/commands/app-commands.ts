@@ -64,7 +64,7 @@ function createAppCommandProvider(): CommandProvider {
           shortcutKey: newTaskDef.shortcutKey,
           group: newTaskDef.group,
           execute() {
-            showModal('taskModal', { projectId });
+            showModal('workspaceModal', { projectId });
           },
         });
       }

@@ -1,6 +1,6 @@
 export type HostPreviewEvent = {
   type: 'url' | 'setup' | 'exit';
-  taskId: string;
+  workspaceId: string;
   terminalId?: string;
   url?: string;
   status?: 'starting' | 'line' | 'done' | 'error';

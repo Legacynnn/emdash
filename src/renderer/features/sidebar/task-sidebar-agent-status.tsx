@@ -1,12 +1,12 @@
 import { observer } from 'mobx-react-lite';
-import { AgentStatusIndicator } from '@renderer/features/tasks/components/agent-status-indicator';
-import { CLISpinner } from '@renderer/features/tasks/components/cliSpinner';
-import { taskAgentStatus } from '@renderer/features/tasks/stores/task-selectors';
+import { AgentStatusIndicator } from '@renderer/features/workspaces/components/agent-status-indicator';
+import { CLISpinner } from '@renderer/features/workspaces/components/cliSpinner';
+import { taskAgentStatus } from '@renderer/features/workspaces/stores/workspace-selectors';
 import {
   isUnprovisioned,
   isUnregistered,
-  type TaskStore,
-} from '@renderer/features/tasks/stores/task-store';
+  type WorkspaceStore,
+} from '@renderer/features/workspaces/stores/workspace-store';
 import { useDelayedBoolean } from '@renderer/lib/hooks/use-delay-boolean';
 import { sidebarStore } from '@renderer/lib/stores/app-state';
 import { RelativeTime } from '@renderer/lib/ui/relative-time';
@@ -19,7 +19,7 @@ import { getSortInstant } from './sidebar-store';
 export const TaskSidebarAgentStatus = observer(function TaskSidebarAgentStatus({
   task,
 }: {
-  task: TaskStore;
+  task: WorkspaceStore;
 }) {
   const isBootstrapping =
     isUnregistered(task) ||

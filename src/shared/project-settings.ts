@@ -86,7 +86,7 @@ export type ProjectSettingsPage = {
 
 export type ProjectSettingsWriteTarget =
   | { type: 'project' }
-  | { type: 'task'; taskId: string }
+  | { type: 'task'; workspaceId: string }
   | { type: 'workspace'; workspaceId: string };
 
 export type ProjectSettingsWriteTargetOption = ProjectSettingsWriteTarget & {

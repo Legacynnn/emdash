@@ -22,7 +22,7 @@ export const viewEvents: Record<
 > = {
   home: 'home_viewed',
   project: 'project_viewed',
-  task: 'task_viewed',
+  workspace: 'task_viewed',
   settings: 'settings_viewed',
   skills: 'skills_viewed',
   mcp: 'mcp_viewed',
@@ -39,7 +39,7 @@ export class NavigationStore implements Snapshottable<NavigationSnapshot> {
   }
 
   navigate<T extends ViewId>(viewId: T, params?: WrapParams<T>): void {
-    if (viewId !== 'task') {
+    if (viewId !== 'workspace') {
       const historyParams = params ?? this.viewParamsStore[viewId] ?? ({} as WrapParams<T>);
       appState.history.push({ kind: 'view', viewId, params: historyParams });
     }
@@ -49,7 +49,7 @@ export class NavigationStore implements Snapshottable<NavigationSnapshot> {
   _applyNavigation<T extends ViewId>(viewId: T, params?: WrapParams<T>): void {
     if (viewId !== this.currentViewId) {
       const transition = focusTracker.transition(
-        viewId === 'task'
+        viewId === 'workspace'
           ? { view: viewId }
           : {
               view: viewId,

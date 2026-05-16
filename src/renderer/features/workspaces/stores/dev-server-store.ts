@@ -1,0 +1,50 @@
+import { hostPreviewEventChannel } from '@shared/events/hostPreviewEvents';
+import type { HostPreviewEvent } from '@shared/hostPreview';
+import { events } from '@renderer/lib/ipc';
+import type { IDisposable } from '@renderer/lib/stores/lifecycle';
+import { Resource } from '@renderer/lib/stores/resource';
+
+export class DevServerStore implements IDisposable {
+  /**
+   * Event-driven resource — starts empty, updated by `hostPreviewEventChannel`
+   * events. Each event atomically replaces the map to trigger MobX reactivity.
+   */
+  readonly servers: Resource<Map<string, string>, HostPreviewEvent>;
+
+  constructor(workspaceId: string, infraId: string) {
+    this.servers = new Resource<Map<string, string>, HostPreviewEvent>(
+      null,
+      [
+        {
+          kind: 'event',
+          subscribe: (handler) =>
+            events.on(hostPreviewEventChannel, (event) => {
+              if (event.workspaceId === workspaceId || event.workspaceId === infraId) {
+                handler(event);
+              }
+            }),
+          onEvent: (event, ctx) => {
+            const next = new Map(ctx.data ?? []);
+            if (event.type === 'url' && event.terminalId && event.url) {
+              next.set(event.terminalId, event.url);
+            } else if (event.type === 'exit' && event.terminalId) {
+              next.delete(event.terminalId);
+            }
+            ctx.set(next);
+          },
+        },
+      ],
+      { init: new Map() }
+    );
+
+    this.servers.start();
+  }
+
+  get urls(): string[] {
+    return Array.from(this.servers.data?.values() ?? []);
+  }
+
+  dispose(): void {
+    this.servers.dispose();
+  }
+}

@@ -1,7 +1,7 @@
 import { when } from 'mobx';
 import { useEffect } from 'react';
 import { menuOpenSettingsChannel, notificationFocusTaskChannel } from '@shared/events/appEvents';
-import { getTaskView } from '@renderer/features/tasks/stores/task-selectors';
+import { getWorkspaceView } from '@renderer/features/workspaces/stores/workspace-selectors';
 import { events } from '@renderer/lib/ipc';
 import { useNavigate, useWorkspaceSlots } from '@renderer/lib/layout/navigation-provider';
 import { toggleSettingsView } from '@renderer/lib/layout/settings-toggle';
@@ -26,15 +26,15 @@ export function AppMenuEvents({ onOpenSettings }: { onOpenSettings?: () => boole
 
     const unlisten = events.on(
       notificationFocusTaskChannel,
-      ({ projectId, taskId, conversationId }) => {
-        navigate('task', { projectId, taskId });
+      ({ projectId, workspaceId, conversationId }) => {
+        navigate('workspace', { projectId, workspaceId });
         if (!conversationId) return;
 
-        // Task view may not be provisioned yet — wait for it before opening the conversation tab.
+        // Workspace view may not be provisioned yet — wait for it before opening the conversation tab.
         const dispose = when(
-          () => !!getTaskView(projectId, taskId),
+          () => !!getWorkspaceView(projectId, workspaceId),
           () => {
-            getTaskView(projectId, taskId)?.tabManager.openConversation(conversationId);
+            getWorkspaceView(projectId, workspaceId)?.tabManager.openConversation(conversationId);
           },
           {
             timeout: 10_000,

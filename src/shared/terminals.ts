@@ -3,7 +3,7 @@ import { createHash } from './utils';
 export type Terminal = {
   id: string;
   projectId: string;
-  taskId: string;
+  workspaceId: string;
   ssh?: boolean;
   name: string;
 };
@@ -11,7 +11,7 @@ export type Terminal = {
 export type CreateTerminalParams = {
   id: string;
   projectId: string;
-  taskId: string;
+  workspaceId: string;
   name: string;
   initialSize?: { cols: number; rows: number };
 };
@@ -19,17 +19,17 @@ export type CreateTerminalParams = {
 export async function createScriptTerminalId({
   projectId,
   scopeId,
-  taskId,
+  workspaceId,
   type,
   script,
 }: {
   projectId: string;
   scopeId?: string;
-  taskId?: string;
+  workspaceId?: string;
   type: 'setup' | 'run' | 'teardown';
   script: string;
 }) {
-  const resolvedScopeId = scopeId ?? taskId;
+  const resolvedScopeId = scopeId ?? workspaceId;
   if (!resolvedScopeId) {
     throw new Error('createScriptTerminalId requires scopeId');
   }

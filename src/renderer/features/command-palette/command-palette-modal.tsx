@@ -6,8 +6,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ALL_COMMAND_DEFS, type CommandDef } from '@shared/commands';
 import type { SearchItem } from '@shared/search';
 import { useAppSettingsKey } from '@renderer/features/settings/use-app-settings-key';
-import { conversationRegistry } from '@renderer/features/tasks/stores/conversation-registry';
-import { getTaskStore, getTaskView } from '@renderer/features/tasks/stores/task-selectors';
+import { conversationRegistry } from '@renderer/features/workspaces/stores/conversation-registry';
+import {
+  getWorkspaceStore,
+  getWorkspaceView,
+} from '@renderer/features/workspaces/stores/workspace-selectors';
 import { commandRegistry } from '@renderer/lib/commands/registry';
 import { FileIcon } from '@renderer/lib/editor/file-icon';
 import { useDebounce } from '@renderer/lib/hooks/useDebounce';
@@ -26,8 +29,8 @@ import { applyContextAffinity } from './search-utils';
 
 interface CommandPaletteProps {
   projectId?: string;
-  taskId?: string;
   workspaceId?: string;
+  infraId?: string;
 }
 
 interface PaletteAction {
@@ -119,8 +122,8 @@ function PaletteFileItem({
 
 export function CommandPaletteModal({
   projectId,
-  taskId,
   workspaceId,
+  infraId,
   onClose,
 }: CommandPaletteProps & BaseModalProps) {
   const [view, setView] = useState<'search' | 'resource-monitor'>('search');
@@ -134,20 +137,20 @@ export function CommandPaletteModal({
   // Prefetch recents immediately on mount so the empty-query view is instant.
   useEffect(() => {
     void queryClient.prefetchQuery({
-      queryKey: ['cmdk-search', '', projectId, taskId, workspaceId],
+      queryKey: ['cmdk-search', '', projectId, workspaceId, infraId],
       queryFn: () =>
-        rpc.search.commandPalette({ query: '', context: { projectId, taskId, workspaceId } }),
+        rpc.search.commandPalette({ query: '', context: { projectId, workspaceId, infraId } }),
       staleTime: 5_000,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const { data: dbResults = [] } = useQuery({
-    queryKey: ['cmdk-search', debouncedQuery, projectId, taskId, workspaceId],
+    queryKey: ['cmdk-search', debouncedQuery, projectId, workspaceId, infraId],
     queryFn: () =>
       rpc.search.commandPalette({
         query: debouncedQuery,
-        context: { projectId, taskId, workspaceId },
+        context: { projectId, workspaceId, infraId },
       }),
     // Keep results fresh for 5 s — re-opening the palette with the same query
     // returns cached data instantly rather than waiting for a round-trip.
@@ -204,12 +207,16 @@ export function CommandPaletteModal({
     }
 
     // Empty state: show the ordered context-specific suggested actions only.
-    const suggestedIds = taskId ? TASK_SUGGESTED : projectId ? PROJECT_SUGGESTED : APP_SUGGESTED;
+    const suggestedIds = workspaceId
+      ? TASK_SUGGESTED
+      : projectId
+        ? PROJECT_SUGGESTED
+        : APP_SUGGESTED;
     return allActions
       .filter((a) => suggestedIds.includes(a.id))
       .sort((a, b) => suggestedIds.indexOf(a.id) - suggestedIds.indexOf(b.id))
       .slice(0, 7);
-  }, [registryActions, resourceMonitor?.enabled, projectId, taskId]);
+  }, [registryActions, resourceMonitor?.enabled, projectId, workspaceId]);
 
   const rankedDb = applyContextAffinity(dbResults, { projectId });
   const actionResults = actions;
@@ -219,7 +226,7 @@ export function CommandPaletteModal({
   const handleNavigateToTask = (item: SearchItem) => {
     if (!item.projectId) return;
     onClose();
-    navigate('task', { projectId: item.projectId, taskId: item.id });
+    navigate('workspace', { projectId: item.projectId, workspaceId: item.id });
   };
 
   const handleNavigateToProject = (item: SearchItem) => {
@@ -228,17 +235,17 @@ export function CommandPaletteModal({
   };
 
   const handleNavigateToConversation = (item: SearchItem) => {
-    if (!item.projectId || !item.taskId) return;
-    getTaskView(item.projectId, item.taskId)?.tabManager.openConversation(item.id);
+    if (!item.projectId || !item.workspaceId) return;
+    getWorkspaceView(item.projectId, item.workspaceId)?.tabManager.openConversation(item.id);
     onClose();
-    navigate('task', { projectId: item.projectId, taskId: item.taskId });
+    navigate('workspace', { projectId: item.projectId, workspaceId: item.workspaceId });
   };
 
   const handleOpenFile = (item: SearchItem) => {
-    if (!item.projectId || !item.taskId) return;
-    getTaskView(item.projectId, item.taskId)?.tabManager.openFile(item.id);
+    if (!item.projectId || !item.workspaceId) return;
+    getWorkspaceView(item.projectId, item.workspaceId)?.tabManager.openFile(item.id);
     onClose();
-    navigate('task', { projectId: item.projectId, taskId: item.taskId });
+    navigate('workspace', { projectId: item.projectId, workspaceId: item.workspaceId });
   };
 
   const handleSelect = (item: SearchItem) => {
@@ -332,7 +339,7 @@ export function CommandPaletteModal({
                 );
               }
               if (item.kind === 'task' && item.projectId) {
-                const store = getTaskStore(item.projectId, item.id);
+                const store = getWorkspaceStore(item.projectId, item.id);
                 if (store) {
                   return (
                     <PaletteTaskItem
@@ -344,8 +351,10 @@ export function CommandPaletteModal({
                   );
                 }
               }
-              if (item.kind === 'conversation' && item.projectId && item.taskId) {
-                const convStore = conversationRegistry.get(item.taskId)?.conversations.get(item.id);
+              if (item.kind === 'conversation' && item.projectId && item.workspaceId) {
+                const convStore = conversationRegistry
+                  .get(item.workspaceId)
+                  ?.conversations.get(item.id);
                 if (convStore) {
                   return (
                     <PaletteConversationItem
@@ -381,7 +390,7 @@ export function CommandPaletteModal({
           <>
             <PaletteNotificationsGroup
               currentProjectId={projectId}
-              currentTaskId={taskId}
+              currentTaskId={workspaceId}
               onClose={onClose}
               navigate={navigate}
             />
@@ -395,7 +404,9 @@ export function CommandPaletteModal({
             {taskResults.length > 0 && (
               <Command.Group heading="Recent Tasks" className={GROUP_CLASS}>
                 {taskResults.slice(0, 5).map((item) => {
-                  const store = item.projectId ? getTaskStore(item.projectId, item.id) : undefined;
+                  const store = item.projectId
+                    ? getWorkspaceStore(item.projectId, item.id)
+                    : undefined;
                   return store ? (
                     <PaletteTaskItem
                       key={item.id}
@@ -414,7 +425,7 @@ export function CommandPaletteModal({
                 })}
               </Command.Group>
             )}
-            {!taskId && (
+            {!workspaceId && (
               <PaletteProjectsGroup
                 currentProjectId={projectId}
                 limit={5}
@@ -422,11 +433,11 @@ export function CommandPaletteModal({
                 navigate={navigate}
               />
             )}
-            {taskId && conversationResults.length > 0 && (
+            {workspaceId && conversationResults.length > 0 && (
               <Command.Group heading="Recent Conversations" className={GROUP_CLASS}>
                 {conversationResults.slice(0, 5).map((item) => {
-                  const convStore = item.taskId
-                    ? conversationRegistry.get(item.taskId)?.conversations.get(item.id)
+                  const convStore = item.workspaceId
+                    ? conversationRegistry.get(item.workspaceId)?.conversations.get(item.id)
                     : undefined;
                   return convStore ? (
                     <PaletteConversationItem

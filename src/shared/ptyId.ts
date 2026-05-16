@@ -29,7 +29,7 @@ export function parsePtyId(id: string): {
 }
 
 /**
- * Try to parse a legacy PTY ID (pre-refactor format: {prov}-main-{taskId} or {prov}-chat-{convId}).
+ * Try to parse a legacy PTY ID (pre-refactor format: {prov}-main-{workspaceId} or {prov}-chat-{convId}).
  * Used only by TerminalSnapshotService for one-time fallback lookups on existing snapshots.
  */
 export function parseLegacyPtyId(id: string): {

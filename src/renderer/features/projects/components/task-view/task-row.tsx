@@ -1,15 +1,15 @@
 import { observer } from 'mobx-react-lite';
 import { selectCurrentPr } from '@shared/pull-requests';
-import { type Task } from '@shared/tasks';
-import { AgentStatusIndicator } from '@renderer/features/tasks/components/agent-status-indicator';
-import { TaskContextMenu } from '@renderer/features/tasks/components/task-context-menu';
-import { TaskGitDiffStats } from '@renderer/features/tasks/components/task-git-diff-stats';
+import { type Workspace } from '@shared/workspaces';
+import { AgentStatusIndicator } from '@renderer/features/workspaces/components/agent-status-indicator';
+import { WorkspaceContextMenu } from '@renderer/features/workspaces/components/workspace-context-menu';
+import { WorkspaceGitDiffStats } from '@renderer/features/workspaces/components/workspace-git-diff-stats';
 import {
   getTaskGitStore,
-  getTaskManagerStore,
+  getWorkspaceManagerStore,
   taskAgentStatus,
-} from '@renderer/features/tasks/stores/task-selectors';
-import { type TaskStore } from '@renderer/features/tasks/stores/task-store';
+} from '@renderer/features/workspaces/stores/workspace-selectors';
+import { type WorkspaceStore } from '@renderer/features/workspaces/stores/workspace-store';
 import AgentLogo from '@renderer/lib/components/agent-logo';
 import { PrBadge } from '@renderer/lib/components/pr-badge';
 import { useNavigate } from '@renderer/lib/layout/navigation-provider';
@@ -19,7 +19,7 @@ import { RelativeTime } from '@renderer/lib/ui/relative-time';
 import { agentConfig } from '@renderer/utils/agentConfig';
 import { cn } from '@renderer/utils/utils';
 
-export type ReadyTask = TaskStore & { data: Task };
+export type ReadyTask = WorkspaceStore & { data: Workspace };
 
 export const TaskRow = observer(function TaskRow({
   task,
@@ -31,24 +31,24 @@ export const TaskRow = observer(function TaskRow({
   onToggleSelect: () => void;
 }) {
   const { navigate } = useNavigate();
-  const showRename = useShowModal('renameTaskModal');
+  const showRename = useShowModal('renameWorkspaceModal');
   const showConfirm = useShowModal('confirmActionModal');
-  const taskManager = getTaskManagerStore(task.data.projectId);
+  const taskManager = getWorkspaceManagerStore(task.data.projectId);
 
-  const handleArchive = () => void taskManager?.archiveTask(task.data.id);
-  const handleRestore = () => void taskManager?.restoreTask(task.data.id);
-  const handleProvision = () => void taskManager?.provisionTask(task.data.id);
+  const handleArchive = () => void taskManager?.archiveWorkspace(task.data.id);
+  const handleRestore = () => void taskManager?.restoreWorkspace(task.data.id);
+  const handleProvision = () => void taskManager?.provisionWorkspace(task.data.id);
   const handleDelete = () =>
     showConfirm({
       title: 'Delete task',
       description: `"${task.data.name}" will be permanently deleted. This action cannot be undone.`,
       confirmLabel: 'Delete',
-      onSuccess: () => void taskManager?.deleteTask(task.data.id),
+      onSuccess: () => void taskManager?.deleteWorkspace(task.data.id),
     });
   const handleRename = () =>
     showRename({
       projectId: task.data.projectId,
-      taskId: task.data.id,
+      workspaceId: task.data.id,
       currentName: task.data.name,
     });
 
@@ -57,10 +57,10 @@ export const TaskRow = observer(function TaskRow({
   const agentAttention = taskAgentStatus(task);
   const currentPr = task.data.prs ? selectCurrentPr(task.data.prs) : undefined;
   const branchName =
-    getTaskGitStore(task.data.projectId, task.data.id)?.branchName ?? task.data.taskBranch;
+    getTaskGitStore(task.data.projectId, task.data.id)?.branchName ?? task.data.workspaceBranch;
 
   return (
-    <TaskContextMenu
+    <WorkspaceContextMenu
       isPinned={task.data.isPinned}
       canPin={canPin}
       isArchived={isArchived}
@@ -76,7 +76,7 @@ export const TaskRow = observer(function TaskRow({
         onClick={() => {
           if (isArchived) return;
           handleProvision();
-          navigate('task', { projectId: task.data.projectId, taskId: task.data.id });
+          navigate('workspace', { projectId: task.data.projectId, workspaceId: task.data.id });
         }}
         className="group flex items-center gap-2 rounded-lg p-3  hover:bg-background-1 transition-colors w-full"
       >
@@ -96,7 +96,7 @@ export const TaskRow = observer(function TaskRow({
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <span className="min-w-0 text-left text-sm truncate">{task.data.name}</span>
-            <TaskGitDiffStats task={task} className="text-xs shrink-0" />
+            <WorkspaceGitDiffStats task={task} className="text-xs shrink-0" />
             {currentPr && <PrBadge pr={currentPr} />}
           </div>
         </div>
@@ -143,6 +143,6 @@ export const TaskRow = observer(function TaskRow({
           )}
         </div>
       </button>
-    </TaskContextMenu>
+    </WorkspaceContextMenu>
   );
 });

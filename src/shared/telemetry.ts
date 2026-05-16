@@ -1,10 +1,10 @@
 import type { AgentProviderId } from '@shared/agent-provider-registry';
 import type { OpenInAppId } from '@shared/openInApps';
-import type { TaskLifecycleStatus } from '@shared/tasks';
+import type { WorkspaceLifecycleStatus } from '@shared/workspaces';
 
 type EmptyProps = Record<string, never>;
 
-export type FocusView = 'home' | 'project' | 'task' | 'settings' | 'skills' | 'mcp';
+export type FocusView = 'home' | 'project' | 'workspace' | 'settings' | 'skills' | 'mcp';
 export type FocusMainPanel = 'agents' | 'editor' | 'diff';
 export type FocusedRegion = 'main' | 'bottom';
 
@@ -58,7 +58,10 @@ export type TelemetryEventProperties = {
   };
   task_provisioned: EmptyProps;
   task_archived: EmptyProps;
-  task_status_changed: { from_status: TaskLifecycleStatus; to_status: TaskLifecycleStatus };
+  task_status_changed: {
+    from_status: WorkspaceLifecycleStatus;
+    to_status: WorkspaceLifecycleStatus;
+  };
   task_deleted: EmptyProps;
 
   conversation_created: { provider: AgentProviderId; is_first_in_task: boolean };

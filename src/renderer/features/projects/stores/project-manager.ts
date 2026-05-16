@@ -312,15 +312,15 @@ export class ProjectManagerStore {
         if (taskManager) {
           await taskManager.loadTasks();
           const nav = appState.navigation;
-          const navParams = nav.viewParamsStore['task'] as
-            | { projectId?: string; taskId?: string }
+          const navParams = nav.viewParamsStore['workspace'] as
+            | { projectId?: string; workspaceId?: string }
             | undefined;
           const navTaskId =
-            nav.currentViewId === 'task' && navParams?.projectId === projectId
-              ? navParams.taskId
+            nav.currentViewId === 'workspace' && navParams?.projectId === projectId
+              ? navParams.workspaceId
               : undefined;
           if (navTaskId) {
-            taskManager.provisionTask(navTaskId).catch(() => {});
+            taskManager.provisionWorkspace(navTaskId).catch(() => {});
           }
         }
       })

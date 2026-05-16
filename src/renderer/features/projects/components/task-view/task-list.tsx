@@ -3,7 +3,7 @@ import { Archive, RotateCcw, Trash2, X } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 import { useRef } from 'react';
 import { asMounted, getProjectStore } from '@renderer/features/projects/stores/project-selectors';
-import { getTaskManagerStore } from '@renderer/features/tasks/stores/task-selectors';
+import { getWorkspaceManagerStore } from '@renderer/features/workspaces/stores/workspace-selectors';
 import { ListPopoverCard } from '@renderer/lib/components/list-popover-card';
 import { useParams } from '@renderer/lib/layout/navigation-provider';
 import { useShowModal } from '@renderer/lib/modal/modal-provider';
@@ -127,11 +127,11 @@ export const TaskList = observer(function TaskList() {
     params: { projectId },
   } = useParams('project');
   const store = asMounted(getProjectStore(projectId));
-  const taskManager = getTaskManagerStore(projectId);
+  const taskManager = getWorkspaceManagerStore(projectId);
   const showConfirm = useShowModal('confirmActionModal');
-  const showCreateTaskModal = useShowModal('taskModal');
+  const showCreateTaskModal = useShowModal('workspaceModal');
 
-  const taskView = store?.view.taskView ?? null;
+  const workspaceView = store?.view.workspaceView ?? null;
 
   const allTasks = taskManager
     ? Array.from(taskManager.tasks.values()).filter(
@@ -141,37 +141,37 @@ export const TaskList = observer(function TaskList() {
   const activeTasks = allTasks.filter((t) => !t.data.archivedAt);
   const archivedTasks = allTasks.filter((t) => Boolean(t.data.archivedAt));
 
-  if (!taskView) return null;
+  if (!workspaceView) return null;
 
-  const displayTasks = taskView.tab === 'active' ? activeTasks : archivedTasks;
-  const q = taskView.searchQuery.trim().toLowerCase();
+  const displayTasks = workspaceView.tab === 'active' ? activeTasks : archivedTasks;
+  const q = workspaceView.searchQuery.trim().toLowerCase();
   const filteredTasks = q
     ? displayTasks.filter((t) => t.data.name.toLowerCase().includes(q))
     : displayTasks;
 
-  const clearSelection = () => taskView.setSelectedIds(new Set());
+  const clearSelection = () => workspaceView.setSelectedIds(new Set());
 
   const bulkArchive = () => {
-    const ids = [...taskView.selectedIds];
-    ids.forEach((id) => void taskManager?.archiveTask(id));
+    const ids = [...workspaceView.selectedIds];
+    ids.forEach((id) => void taskManager?.archiveWorkspace(id));
     clearSelection();
   };
 
   const bulkRestore = () => {
-    const ids = [...taskView.selectedIds];
-    ids.forEach((id) => void taskManager?.restoreTask(id));
+    const ids = [...workspaceView.selectedIds];
+    ids.forEach((id) => void taskManager?.restoreWorkspace(id));
     clearSelection();
   };
 
   const bulkDelete = () => {
-    const count = taskView.selectedIds.size;
+    const count = workspaceView.selectedIds.size;
     showConfirm({
       title: `Delete ${count} task${count === 1 ? '' : 's'}`,
       description: 'The selected tasks will be permanently deleted. This action cannot be undone.',
       confirmLabel: `Delete ${count} task${count === 1 ? '' : 's'}`,
       onSuccess: () => {
-        const ids = [...taskView.selectedIds];
-        ids.forEach((id) => void taskManager?.deleteTask(id));
+        const ids = [...workspaceView.selectedIds];
+        ids.forEach((id) => void taskManager?.deleteWorkspace(id));
         clearSelection();
       },
     });
@@ -183,9 +183,9 @@ export const TaskList = observer(function TaskList() {
         <div className="flex items-center gap-2 flex-wrap justify-between">
           <ToggleGroup
             multiple={false}
-            value={[taskView.tab]}
+            value={[workspaceView.tab]}
             onValueChange={([value]) => {
-              if (value) taskView.setTab(value as 'active' | 'archived');
+              if (value) workspaceView.setTab(value as 'active' | 'archived');
             }}
           >
             <ToggleGroupItem value="active">Active ({activeTasks.length})</ToggleGroupItem>
@@ -194,12 +194,12 @@ export const TaskList = observer(function TaskList() {
           <div className="flex items-center gap-2">
             <SearchInput
               placeholder="Search tasks…"
-              value={taskView.searchQuery}
-              onChange={(e) => taskView.setSearchQuery(e.target.value)}
+              value={workspaceView.searchQuery}
+              onChange={(e) => workspaceView.setSearchQuery(e.target.value)}
               className="flex-1"
             />
             <Button onClick={() => showCreateTaskModal({ projectId })}>
-              Create Task <ShortcutHint settingsKey="newTask" />
+              Create Workspace <ShortcutHint settingsKey="newTask" />
             </Button>
           </div>
         </div>
@@ -207,13 +207,13 @@ export const TaskList = observer(function TaskList() {
 
       <TaskVirtualList
         tasks={filteredTasks}
-        selectedIds={taskView.selectedIds}
-        onToggleSelect={(id) => taskView.toggleSelect(id)}
+        selectedIds={workspaceView.selectedIds}
+        onToggleSelect={(id) => workspaceView.toggleSelect(id)}
       />
 
       <SelectionBar
-        count={taskView.selectedIds.size}
-        tab={taskView.tab}
+        count={workspaceView.selectedIds.size}
+        tab={workspaceView.tab}
         onClear={clearSelection}
         onArchive={bulkArchive}
         onRestore={bulkRestore}

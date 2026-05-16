@@ -9,15 +9,15 @@ import type { ProjectManagerStore } from '@renderer/features/projects/stores/pro
 import {
   registeredTaskData,
   unregisteredTaskData,
-  type TaskStore,
-} from '@renderer/features/tasks/stores/task-store';
+  type WorkspaceStore,
+} from '@renderer/features/workspaces/stores/workspace-store';
 import type { Snapshottable } from '@renderer/lib/stores/snapshottable';
 
 function parseSidebarTaskSortBy(value: unknown): SidebarTaskSortBy | undefined {
   return value === 'created-at' || value === 'updated-at' ? value : undefined;
 }
 
-export function getSortInstant(task: TaskStore, kind: 'created' | 'updated'): string {
+export function getSortInstant(task: WorkspaceStore, kind: 'created' | 'updated'): string {
   const reg = registeredTaskData(task);
   if (reg) {
     if (kind === 'created') return reg.createdAt;
@@ -33,7 +33,7 @@ export function getSortInstant(task: TaskStore, kind: 'created' | 'updated'): st
 
 export type SidebarRow =
   | { kind: 'project'; projectId: string }
-  | { kind: 'task'; projectId: string; taskId: string };
+  | { kind: 'task'; projectId: string; workspaceId: string };
 
 export class SidebarStore implements Snapshottable<SidebarSnapshot> {
   projectOrder: string[] = [];
@@ -109,7 +109,7 @@ export class SidebarStore implements Snapshottable<SidebarSnapshot> {
           : this.sortTasksForSidebar(tasks);
         for (const task of ordered) {
           if (task.data.isPinned) continue;
-          rows.push({ kind: 'task', projectId, taskId: task.data.id });
+          rows.push({ kind: 'task', projectId, workspaceId: task.data.id });
         }
       }
     }
@@ -117,8 +117,8 @@ export class SidebarStore implements Snapshottable<SidebarSnapshot> {
   }
 
   /** Flat list of pinned tasks (all mounted projects), same sort rules as project tree tasks. */
-  get pinnedSidebarEntries(): { projectId: string; taskId: string }[] {
-    const pairs: { projectId: string; task: TaskStore }[] = [];
+  get pinnedSidebarEntries(): { projectId: string; workspaceId: string }[] {
+    const pairs: { projectId: string; task: WorkspaceStore }[] = [];
     for (const project of this.projectManager.projects.values()) {
       if (!project.mountedProject) continue;
       const projectId = project.state === 'unregistered' ? project.id : project.data?.id;
@@ -131,12 +131,12 @@ export class SidebarStore implements Snapshottable<SidebarSnapshot> {
       }
     }
     pairs.sort((a, b) => this.compareSidebarTasks(a.task, b.task));
-    return pairs.map(({ projectId, task }) => ({ projectId, taskId: task.data.id }));
+    return pairs.map(({ projectId, task }) => ({ projectId, workspaceId: task.data.id }));
   }
 
   /**
    * Visible unpinned task IDs for a project in sidebar order. Archived tasks are
-   * excluded. Independent of expand state so Next/Previous Task navigation works
+   * excluded. Independent of expand state so Next/Previous Workspace navigation works
    * even when the project is collapsed.
    */
   visibleTaskIdsForProject(projectId: string): string[] {
@@ -217,11 +217,11 @@ export class SidebarStore implements Snapshottable<SidebarSnapshot> {
     this.projectOrder = ids;
   }
 
-  mergeTaskOrder(projectId: string, tasks: TaskStore[]): TaskStore[] {
+  mergeTaskOrder(projectId: string, tasks: WorkspaceStore[]): WorkspaceStore[] {
     const stored = this.taskOrderByProject[projectId] ?? [];
     const byId = new Map(tasks.map((t) => [t.data.id, t] as const));
     const seen = new Set<string>();
-    const result: TaskStore[] = [];
+    const result: WorkspaceStore[] = [];
     for (const id of stored) {
       const t = byId.get(id);
       if (t) {
@@ -241,7 +241,7 @@ export class SidebarStore implements Snapshottable<SidebarSnapshot> {
     this.taskOrderByProject = { ...this.taskOrderByProject, [projectId]: orderedIds };
   }
 
-  private compareSidebarTasks(a: TaskStore, b: TaskStore): number {
+  private compareSidebarTasks(a: WorkspaceStore, b: WorkspaceStore): number {
     const kind: 'created' | 'updated' = this.taskSortBy === 'created-at' ? 'created' : 'updated';
     const ia = getSortInstant(a, kind);
     const ib = getSortInstant(b, kind);
@@ -250,7 +250,7 @@ export class SidebarStore implements Snapshottable<SidebarSnapshot> {
     return a.data.id.localeCompare(b.data.id);
   }
 
-  private sortTasksForSidebar(tasks: TaskStore[]): TaskStore[] {
+  private sortTasksForSidebar(tasks: WorkspaceStore[]): WorkspaceStore[] {
     return [...tasks].sort((a, b) => this.compareSidebarTasks(a, b));
   }
 }

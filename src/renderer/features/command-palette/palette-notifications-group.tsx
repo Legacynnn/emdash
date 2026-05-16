@@ -4,18 +4,21 @@ import {
   asMounted,
   getProjectManagerStore,
 } from '@renderer/features/projects/stores/project-selectors';
-import type { ConversationStore } from '@renderer/features/tasks/conversations/conversation-manager';
-import { conversationRegistry } from '@renderer/features/tasks/stores/conversation-registry';
-import { getTaskView } from '@renderer/features/tasks/stores/task-selectors';
-import { isRegistered, type TaskStore } from '@renderer/features/tasks/stores/task-store';
+import type { ConversationStore } from '@renderer/features/workspaces/conversations/conversation-manager';
+import { conversationRegistry } from '@renderer/features/workspaces/stores/conversation-registry';
+import { getWorkspaceView } from '@renderer/features/workspaces/stores/workspace-selectors';
+import {
+  isRegistered,
+  type WorkspaceStore,
+} from '@renderer/features/workspaces/stores/workspace-store';
 import type { NavigateFnTyped } from '@renderer/lib/layout/navigation-provider';
 import { cn } from '@renderer/utils/utils';
 import { PaletteConversationItem } from './palette-conversation-item';
 import { PaletteTaskItem } from './palette-task-item';
 
 type NotificationItem =
-  | { kind: 'task'; projectId: string; taskStore: TaskStore }
-  | { kind: 'conversation'; projectId: string; taskId: string; conv: ConversationStore };
+  | { kind: 'task'; projectId: string; taskStore: WorkspaceStore }
+  | { kind: 'conversation'; projectId: string; workspaceId: string; conv: ConversationStore };
 
 const GROUP_CLASS = cn(
   '[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5',
@@ -57,7 +60,7 @@ export function PaletteNotificationsGroup({
           // We're already in this task — surface individual unseen conversations.
           for (const conv of conversations.conversations.values()) {
             if (!conv.seen && conv.indicatorStatus) {
-              result.push({ kind: 'conversation', projectId: pid, taskId: tid, conv });
+              result.push({ kind: 'conversation', projectId: pid, workspaceId: tid, conv });
             }
           }
         } else {
@@ -81,11 +84,14 @@ export function PaletteNotificationsGroup({
               conv={item.conv}
               value={`notif:conversation:${item.conv.data.id}`}
               onSelect={() => {
-                getTaskView(item.projectId, item.taskId)?.tabManager.openConversation(
+                getWorkspaceView(item.projectId, item.workspaceId)?.tabManager.openConversation(
                   item.conv.data.id
                 );
-                if (item.projectId !== currentProjectId || item.taskId !== currentTaskId) {
-                  navigate('task', { projectId: item.projectId, taskId: item.taskId });
+                if (item.projectId !== currentProjectId || item.workspaceId !== currentTaskId) {
+                  navigate('workspace', {
+                    projectId: item.projectId,
+                    workspaceId: item.workspaceId,
+                  });
                 }
                 onClose();
               }}
@@ -98,9 +104,9 @@ export function PaletteNotificationsGroup({
             taskStore={item.taskStore}
             value={`notif:task:${item.taskStore.data.id}`}
             onSelect={() => {
-              navigate('task', {
+              navigate('workspace', {
                 projectId: item.projectId,
-                taskId: item.taskStore.data.id,
+                workspaceId: item.taskStore.data.id,
               });
               onClose();
             }}

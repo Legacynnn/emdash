@@ -4,7 +4,7 @@ import { mcpView } from '@renderer/features/mcp/mcp-view';
 import { projectView } from '@renderer/features/projects/view';
 import { settingsView } from '@renderer/features/settings/settings-view';
 import { skillsView } from '@renderer/features/skills/skills-view';
-import { taskView } from '@renderer/features/tasks/view';
+import { workspaceView } from '@renderer/features/workspaces/view';
 import type { CommandProvider } from '@renderer/lib/commands/types';
 
 // Define views here so we can use them in the navigate function
@@ -13,7 +13,7 @@ export const views = {
   skills: skillsView,
   mcp: mcpView,
   project: projectView,
-  task: taskView,
+  workspace: workspaceView,
   settings: settingsView,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 } satisfies Record<string, ViewDefinition<any>>;

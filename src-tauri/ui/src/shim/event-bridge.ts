@@ -67,7 +67,7 @@ export function emitToBus(channel: string, data: unknown): void {
 // (per-id) suffixes use `.<topic>` per createEventEmitter's contract.
 //
 // Where the renderer expects multiple cache invalidations off a single
-// Tauri event (e.g. `task_created` should bump both the task list for
+// Tauri event (e.g. `workspace_created` should bump both the workspace list for
 // the project and any per-task subscribers), we emit on every
 // matching channel.
 
@@ -93,39 +93,42 @@ function translateUiMutation(event: UiMutationEvent): void {
       if (typeof event.id === 'string') emit(`project.deleted.${event.id}`, event);
       break;
 
-    case 'task_created':
-      emit('task.created', event);
-      emit('task.changed', event);
+    case 'workspace_created':
+      emit('workspace.created', event);
+      emit('workspace.changed', event);
       if (typeof event.project_id === 'string') {
-        emit(`task.created.${event.project_id}`, event);
-        emit(`task.changed.${event.project_id}`, event);
+        emit(`workspace.created.${event.project_id}`, event);
+        emit(`workspace.changed.${event.project_id}`, event);
       }
       break;
-    case 'task_updated':
-      emit('task.updated', event);
-      emit('task.changed', event);
-      if (typeof event.id === 'string') emit(`task.updated.${event.id}`, event);
-      if (typeof event.project_id === 'string') emit(`task.changed.${event.project_id}`, event);
+    case 'workspace_updated':
+      emit('workspace.updated', event);
+      emit('workspace.changed', event);
+      if (typeof event.id === 'string') emit(`workspace.updated.${event.id}`, event);
+      if (typeof event.project_id === 'string')
+        emit(`workspace.changed.${event.project_id}`, event);
       break;
-    case 'task_deleted':
-      emit('task.deleted', event);
-      emit('task.changed', event);
-      if (typeof event.id === 'string') emit(`task.deleted.${event.id}`, event);
-      if (typeof event.project_id === 'string') emit(`task.changed.${event.project_id}`, event);
+    case 'workspace_deleted':
+      emit('workspace.deleted', event);
+      emit('workspace.changed', event);
+      if (typeof event.id === 'string') emit(`workspace.deleted.${event.id}`, event);
+      if (typeof event.project_id === 'string')
+        emit(`workspace.changed.${event.project_id}`, event);
       break;
 
     case 'agent_hook_event':
       emit('agent.event', event.event ?? event);
-      if (typeof event.task_id === 'string')
-        emit(`agent.event.${event.task_id}`, event.event ?? event);
+      if (typeof event.workspace_id === 'string')
+        emit(`agent.event.${event.workspace_id}`, event.event ?? event);
       break;
     case 'agent_started':
       emit('agent.started', event);
-      if (typeof event.task_id === 'string') emit(`agent.started.${event.task_id}`, event);
+      if (typeof event.workspace_id === 'string')
+        emit(`agent.started.${event.workspace_id}`, event);
       break;
     case 'agent_exited':
       emit('agent.exited', event);
-      if (typeof event.task_id === 'string') emit(`agent.exited.${event.task_id}`, event);
+      if (typeof event.workspace_id === 'string') emit(`agent.exited.${event.workspace_id}`, event);
       break;
 
     case 'github_identity_changed':
@@ -152,14 +155,16 @@ function translateUiMutation(event: UiMutationEvent): void {
     case 'conversation_updated':
     case 'conversation_deleted':
       emit('conversation.changed', event);
-      if (typeof event.task_id === 'string') emit(`conversation.changed.${event.task_id}`, event);
+      if (typeof event.workspace_id === 'string')
+        emit(`conversation.changed.${event.workspace_id}`, event);
       break;
 
     case 'terminal_created':
     case 'terminal_updated':
     case 'terminal_deleted':
       emit('terminal.changed', event);
-      if (typeof event.task_id === 'string') emit(`terminal.changed.${event.task_id}`, event);
+      if (typeof event.workspace_id === 'string')
+        emit(`terminal.changed.${event.workspace_id}`, event);
       break;
 
     default:

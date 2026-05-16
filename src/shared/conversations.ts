@@ -3,7 +3,7 @@ import type { AgentProviderId } from '@shared/agent-provider-registry';
 export type Conversation = {
   id: string;
   projectId: string;
-  taskId: string;
+  workspaceId: string;
   providerId: AgentProviderId;
   title: string;
   lastInteractedAt: string | null;
@@ -20,7 +20,7 @@ export type RenameConversationParams = {
 export type CreateConversationParams = {
   id: string;
   projectId: string;
-  taskId: string;
+  workspaceId: string;
   provider: AgentProviderId;
   title: string;
   autoApprove?: boolean;

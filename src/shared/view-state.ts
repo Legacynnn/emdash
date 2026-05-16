@@ -58,7 +58,7 @@ export interface ActiveFile {
   prNumber?: number;
 }
 
-export type TaskViewSnapshot = {
+export type WorkspaceViewSnapshot = {
   sidebarTab?: string;
   isSidebarCollapsed?: boolean;
   focusedRegion: 'main' | 'bottom';

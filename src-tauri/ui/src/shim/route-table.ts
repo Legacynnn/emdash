@@ -209,88 +209,95 @@ const ROUTES: Record<string, Route> = {
   'projects.updateProjectConnection': STATIC_RESULT_OK_NULL,
   'projects.shareProjectSettingsToConfig': STATIC_RESULT_OK_NULL,
 
-  // == tasks ========================================================
-  'tasks.createTask': {
+  // == workspaces ===================================================
+  'workspaces.createWorkspace': {
     kind: 'invoke',
-    command: 'tasks_create',
+    command: 'workspaces_create',
     adapt: ([input]) => {
       // The renderer passes a strategy object that includes the
       // explicit branch name for new-branch / from-pull-request
       // flows. Extract it so the Rust side honors the chosen name
       // verbatim (no task/ prefix, no UUID suffix).
       const obj = (input as Record<string, unknown>) ?? {};
-      const strategy = obj.strategy as { kind?: string; taskBranch?: string } | undefined;
+      const strategy = obj.strategy as { kind?: string; workspaceBranch?: string } | undefined;
       return {
         projectId: obj.projectId,
         name: obj.name,
         sourceBranch: obj.sourceBranch ?? { type: 'local', branch: 'main' },
-        taskBranch:
+        workspaceBranch:
           strategy?.kind === 'new-branch' || strategy?.kind === 'from-pull-request'
-            ? (strategy.taskBranch ?? null)
+            ? (strategy.workspaceBranch ?? null)
             : null,
+        placement: 'worktree',
+        existingBranch: false,
       };
     },
   },
-  'tasks.deleteTask': { kind: 'invoke', command: 'tasks_delete', adapt: toRecord('id') },
-  'tasks.archiveTask': {
+  'workspaces.deleteWorkspace': {
     kind: 'invoke',
-    command: 'tasks_archive',
+    command: 'workspaces_delete',
+    adapt: toRecord('id'),
+  },
+  'workspaces.archiveWorkspace': {
+    kind: 'invoke',
+    command: 'workspaces_archive',
+    adapt: ([, id]) => ({ id }),
+    transform: (value) => ({ ok: true, value }),
+  },
+  'workspaces.restoreWorkspace': {
+    kind: 'invoke',
+    command: 'workspaces_restore',
     adapt: ([id]) => ({ id }),
     transform: (value) => ({ ok: true, value }),
   },
-  'tasks.restoreTask': {
+  'workspaces.renameWorkspace': {
     kind: 'invoke',
-    command: 'tasks_restore',
-    adapt: ([id]) => ({ id }),
+    command: 'workspaces_rename',
+    adapt: ([, id, name]) => ({ id, name }),
     transform: (value) => ({ ok: true, value }),
   },
-  'tasks.renameTask': {
+  'workspaces.generateWorkspaceName': {
     kind: 'invoke',
-    command: 'tasks_rename',
-    adapt: ([id, name]) => ({ id, name }),
-    transform: (value) => ({ ok: true, value }),
-  },
-  'tasks.generateTaskName': {
-    kind: 'invoke',
-    command: 'tasks_generate_name',
+    command: 'workspaces_generate_name',
     adapt: ([description]) => ({ description: description ?? '' }),
     transform: (value) => ({ ok: true, value }),
   },
-  // Provisioning is implicit in Tauri's tasks_create (worktree is
-  // created atomically). The renderer's provisionTask is a separate
+  // Provisioning is implicit in Tauri's workspaces_create (worktree is
+  // created atomically). The renderer's provisionWorkspace is a separate
   // step on Electron; here it's a no-op success.
-  'tasks.provisionTask': STATIC_RESULT_OK_NULL,
-  'tasks.setTaskPinned': {
+  'workspaces.provisionWorkspace': STATIC_RESULT_OK_NULL,
+  'workspaces.setWorkspacePinned': {
     kind: 'invoke',
-    command: 'tasks_set_pinned',
+    command: 'workspaces_set_pinned',
     adapt: ([id, pinned]) => ({ id, pinned }),
   },
-  // updateTaskStatus on Electron mutates a richer status enum
-  // (provisioning/running/etc.); Tauri's tasks have only active /
+  // updateWorkspaceStatus on Electron mutates a richer status enum
+  // (provisioning/running/etc.); Tauri's workspaces have only active /
   // archived, so we route this to archive/restore based on the
   // status string the caller passes.
-  'tasks.updateTaskStatus': {
+  'workspaces.updateWorkspaceStatus': {
     kind: 'custom',
     handler: async ([id, status]) => {
       const next = typeof status === 'string' ? status : '';
       try {
-        const value = await tauriInvoke(next === 'archived' ? 'tasks_archive' : 'tasks_restore', {
-          id,
-        });
+        const value = await tauriInvoke(
+          next === 'archived' ? 'workspaces_archive' : 'workspaces_restore',
+          { id }
+        );
         return { ok: true, value };
       } catch (e) {
         return { ok: false, error: e };
       }
     },
   },
-  'tasks.updateLinkedIssue': {
+  'workspaces.updateLinkedIssue': {
     kind: 'invoke',
-    command: 'tasks_update_linked_issue',
+    command: 'workspaces_update_linked_issue',
     adapt: ([id, linkedIssue]) => ({ id, linkedIssue }),
   },
   // No project_settings.workspace_settings layer in Tauri yet; the
   // renderer's call site coalesces null into defaults.
-  'tasks.getWorkspaceSettings': STATIC_NULL,
+  'workspaces.getWorkspaceSettings': STATIC_NULL,
 
   // == app ==========================================================
   // Real Rust implementations under `src-tauri/src/commands/app.rs`.
@@ -492,15 +499,15 @@ const ROUTES: Record<string, Route> = {
   // == conversations ================================================
   // Tauri-side service in `src/conversations` + glue in
   // `commands/conversations`. Renderer's call shapes:
-  //   getConversationsForTask(taskId) → Result<Conversation[]>
+  //   getConversationsForWorkspace(projectId, workspaceId) → Result<Conversation[]>
   //   createConversation(params) → Result<Conversation>
   // The Tauri error envelope is exposed verbatim; the renderer's
   // `rpc` helper normalizes `{code, message}` rejections into the
   // standard Result envelope, so no transform is needed here.
-  'conversations.getConversationsForTask': {
+  'conversations.getConversationsForWorkspace': {
     kind: 'invoke',
-    command: 'conversations_list_for_task',
-    adapt: ([taskId]) => ({ taskId }),
+    command: 'conversations_list_for_workspace',
+    adapt: ([, workspaceId]) => ({ workspaceId }),
     transform: (value) => ({ ok: true, value }),
   },
   'conversations.createConversation': {
@@ -528,10 +535,10 @@ const ROUTES: Record<string, Route> = {
   // == terminals ====================================================
   // Tauri-side service in `src/terminals` + glue in
   // `commands/terminals`.
-  'terminals.getTerminalsForTask': {
+  'terminals.getTerminalsForWorkspace': {
     kind: 'invoke',
-    command: 'terminals_list_for_task',
-    adapt: ([taskId]) => ({ taskId }),
+    command: 'terminals_list_for_workspace',
+    adapt: ([, workspaceId]) => ({ workspaceId }),
     transform: (value) => ({ ok: true, value }),
   },
   'terminals.createTerminal': {
@@ -607,10 +614,10 @@ const ROUTES: Record<string, Route> = {
   // Read-side wired to real (currently empty) Rust commands; mutation
   // ops stay stubbed until the github commands grow create/merge.
   'pullRequests.listPullRequests': { kind: 'invoke', command: 'pull_requests_list', adapt: noArgs },
-  'pullRequests.getPullRequestsForTask': {
+  'pullRequests.getPullRequestsForWorkspace': {
     kind: 'invoke',
-    command: 'pull_requests_for_task',
-    adapt: ([taskId]) => ({ taskId }),
+    command: 'pull_requests_for_workspace',
+    adapt: ([, workspaceId]) => ({ workspaceId }),
   },
   'pullRequests.getPullRequestComments': {
     kind: 'invoke',

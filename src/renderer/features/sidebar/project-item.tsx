@@ -55,8 +55,8 @@ export const SidebarProjectItem = observer(function SidebarProjectItem({
   const { navigate } = useNavigate();
   const { currentView } = useWorkspaceSlots();
   const { params: projectParams } = useParams('project');
-  const { params: taskParams } = useParams('task');
-  const showCreateTaskModal = useShowModal('taskModal');
+  const { params: taskParams } = useParams('workspace');
+  const showCreateTaskModal = useShowModal('workspaceModal');
   const showConfirmDeleteProject = useShowModal('confirmActionModal');
   const showChangeConnectionModal = useShowModal('changeProjectConnectionModal');
 
@@ -69,12 +69,12 @@ export const SidebarProjectItem = observer(function SidebarProjectItem({
   }, [projectId]);
 
   const currentProjectId =
-    currentView === 'task'
+    currentView === 'workspace'
       ? taskParams.projectId
       : currentView === 'project'
         ? projectParams.projectId
         : null;
-  const currentTaskId = currentView === 'task' ? taskParams.taskId : null;
+  const currentTaskId = currentView === 'workspace' ? taskParams.workspaceId : null;
 
   const isProjectActive = currentProjectId === projectId && !currentTaskId;
 

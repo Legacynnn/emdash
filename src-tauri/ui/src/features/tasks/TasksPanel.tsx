@@ -5,20 +5,20 @@
  */
 import { observer } from 'mobx-react-lite';
 import { useEffect, useState } from 'react';
-import type { Project, TasksCommandError } from '../../bindings';
-import { asReady, taskStoreKind, type TaskStore } from '../../stores/taskStore';
+import type { Project, WorkspacesCommandError_Serialize } from '../../bindings';
+import { asReady, workspaceStoreKind, type WorkspaceStore } from '../../stores/taskStore';
 
-function formatError(err: TasksCommandError): string {
+function formatError(err: WorkspacesCommandError_Serialize): string {
   return `[${err.code}] ${err.message}`;
 }
 
-function isCommandError(value: unknown): value is TasksCommandError {
+function isCommandError(value: unknown): value is WorkspacesCommandError_Serialize {
   return typeof value === 'object' && value !== null && 'code' in value && 'message' in value;
 }
 
 export interface TasksPanelProps {
   project: Project;
-  store: TaskStore;
+  store: WorkspaceStore;
 }
 
 export const TasksPanel = observer(function TasksPanel({ project, store }: TasksPanelProps) {
@@ -30,12 +30,12 @@ export const TasksPanel = observer(function TasksPanel({ project, store }: Tasks
   // Auto-load on first mount of a project view — the user sees the
   // current state without an extra Reload click.
   useEffect(() => {
-    if (taskStoreKind(store) === 'idle') {
+    if (workspaceStoreKind(store) === 'idle') {
       void store.load();
     }
   }, [store]);
 
-  const kind = taskStoreKind(store);
+  const kind = workspaceStoreKind(store);
   const ready = asReady(store);
 
   async function handleCreate() {
@@ -107,10 +107,10 @@ export const TasksPanel = observer(function TasksPanel({ project, store }: Tasks
       {kind === 'error' && store.state.kind === 'error' && (
         <pre className="error">{formatError(store.state.error)}</pre>
       )}
-      {ready && ready.tasks.length === 0 && <p className="muted">No tasks yet.</p>}
-      {ready && ready.tasks.length > 0 && (
+      {ready && ready.workspaces.length === 0 && <p className="muted">No tasks yet.</p>}
+      {ready && ready.workspaces.length > 0 && (
         <ul className="project-list" aria-label="tasks">
-          {ready.tasks.map((t) => (
+          {ready.workspaces.map((t) => (
             <li key={t.id}>
               <div>
                 <strong>{t.name}</strong>
