@@ -93,6 +93,13 @@
     "git_changed_files",
     "git_current_branch",
     "git_diff_against_head",
-    "git_list_branches"
+    "git_list_branches",
+    "fs_ws_read_file",
+    "fs_ws_write_file",
+    "fs_ws_list_files",
+    "fs_ws_read_image",
+    "fs_ws_remove_file",
+    "fs_ws_file_exists",
+    "fs_ws_stat_file"
   ]
 }

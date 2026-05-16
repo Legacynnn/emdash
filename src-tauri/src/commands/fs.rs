@@ -12,10 +12,15 @@
 
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use base64::Engine;
 use serde::Serialize;
 use specta::Type;
+use tauri::State;
+
+use crate::projects::ProjectsService;
+use crate::tasks::TasksService;
 
 #[derive(Debug, Serialize, Type)]
 pub struct FsCommandError {
@@ -244,6 +249,156 @@ pub fn fs_read_image(path: String) -> Result<FsImageData, FsCommandError> {
         base64,
         bytes: meta.len() as f64,
     })
+}
+
+// -- Workspace-scoped variants ---------------------------------------
+//
+// The renderer's fs.* calls pass `(projectId, workspaceId, relPath)`.
+// These wrappers resolve the workspace to an absolute root via the
+// tasks table (workspace_id == task_id in v1, with the project root
+// as the fallback when no task matches) then delegate to the
+// absolute-path commands above.
+
+fn resolve_workspace_root(
+    projects: &ProjectsService,
+    tasks: &TasksService,
+    project_id: &str,
+    workspace_id: &str,
+) -> Result<PathBuf, FsCommandError> {
+    if let Ok(Some(task)) = tasks.get(workspace_id) {
+        return Ok(PathBuf::from(task.path));
+    }
+    // Fall back to the project root (the renderer treats `workspaceId
+    // == projectId` as "no worktree, use the repo directly").
+    let project = projects.get(project_id).map_err(|e| FsCommandError {
+        code: FsErrorCode::NotFound,
+        message: e.to_string(),
+    })?;
+    match project {
+        Some(p) => Ok(PathBuf::from(p.path)),
+        None => Err(FsCommandError {
+            code: FsErrorCode::NotFound,
+            message: format!("workspace not found: {project_id}/{workspace_id}"),
+        }),
+    }
+}
+
+fn join_workspace(root: &Path, rel: &str) -> Result<PathBuf, FsCommandError> {
+    // Reject absolute / parent-escaping paths so the renderer can't
+    // accidentally walk outside the workspace.
+    let p = Path::new(rel);
+    if p.is_absolute() || rel.contains("..") {
+        return Err(FsCommandError {
+            code: FsErrorCode::Io,
+            message: format!("rel path escapes workspace: {rel}"),
+        });
+    }
+    Ok(root.join(p))
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn fs_ws_read_file(
+    projects: State<'_, Arc<ProjectsService>>,
+    tasks: State<'_, Arc<TasksService>>,
+    project_id: String,
+    workspace_id: String,
+    file_path: String,
+    max_bytes: Option<f64>,
+) -> Result<String, FsCommandError> {
+    let root = resolve_workspace_root(&projects, &tasks, &project_id, &workspace_id)?;
+    let abs = join_workspace(&root, &file_path)?;
+    fs_read_file(abs.to_string_lossy().into_owned(), max_bytes)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn fs_ws_write_file(
+    projects: State<'_, Arc<ProjectsService>>,
+    tasks: State<'_, Arc<TasksService>>,
+    project_id: String,
+    workspace_id: String,
+    file_path: String,
+    content: String,
+) -> Result<(), FsCommandError> {
+    let root = resolve_workspace_root(&projects, &tasks, &project_id, &workspace_id)?;
+    let abs = join_workspace(&root, &file_path)?;
+    fs_write_file(abs.to_string_lossy().into_owned(), content)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn fs_ws_list_files(
+    projects: State<'_, Arc<ProjectsService>>,
+    tasks: State<'_, Arc<TasksService>>,
+    project_id: String,
+    workspace_id: String,
+    dir_path: String,
+    include_hidden: Option<bool>,
+) -> Result<Vec<FsListEntry>, FsCommandError> {
+    let root = resolve_workspace_root(&projects, &tasks, &project_id, &workspace_id)?;
+    let abs = if dir_path.is_empty() {
+        root
+    } else {
+        join_workspace(&root, &dir_path)?
+    };
+    fs_list_files(abs.to_string_lossy().into_owned(), include_hidden)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn fs_ws_read_image(
+    projects: State<'_, Arc<ProjectsService>>,
+    tasks: State<'_, Arc<TasksService>>,
+    project_id: String,
+    workspace_id: String,
+    file_path: String,
+) -> Result<FsImageData, FsCommandError> {
+    let root = resolve_workspace_root(&projects, &tasks, &project_id, &workspace_id)?;
+    let abs = join_workspace(&root, &file_path)?;
+    fs_read_image(abs.to_string_lossy().into_owned())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn fs_ws_remove_file(
+    projects: State<'_, Arc<ProjectsService>>,
+    tasks: State<'_, Arc<TasksService>>,
+    project_id: String,
+    workspace_id: String,
+    file_path: String,
+) -> Result<(), FsCommandError> {
+    let root = resolve_workspace_root(&projects, &tasks, &project_id, &workspace_id)?;
+    let abs = join_workspace(&root, &file_path)?;
+    fs_remove_file(abs.to_string_lossy().into_owned())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn fs_ws_file_exists(
+    projects: State<'_, Arc<ProjectsService>>,
+    tasks: State<'_, Arc<TasksService>>,
+    project_id: String,
+    workspace_id: String,
+    file_path: String,
+) -> Result<bool, FsCommandError> {
+    let root = resolve_workspace_root(&projects, &tasks, &project_id, &workspace_id)?;
+    let abs = join_workspace(&root, &file_path)?;
+    fs_file_exists(abs.to_string_lossy().into_owned())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn fs_ws_stat_file(
+    projects: State<'_, Arc<ProjectsService>>,
+    tasks: State<'_, Arc<TasksService>>,
+    project_id: String,
+    workspace_id: String,
+    file_path: String,
+) -> Result<Option<FsListEntry>, FsCommandError> {
+    let root = resolve_workspace_root(&projects, &tasks, &project_id, &workspace_id)?;
+    let abs = join_workspace(&root, &file_path)?;
+    fs_stat_file(abs.to_string_lossy().into_owned())
 }
 
 fn guess_mime(p: &Path) -> String {

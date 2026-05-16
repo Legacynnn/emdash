@@ -21,6 +21,8 @@
 
 import { invoke as tauriInvoke } from '@tauri-apps/api/core';
 
+import { ptySessionMap } from './pty-session-map';
+
 export type ElectronArgs = unknown[];
 
 export type Route =
@@ -497,26 +499,154 @@ const ROUTES: Record<string, Route> = {
   'pullRequests.markReadyForReview': STATIC_RESULT_OK_NULL,
 
   // == fs ===========================================================
-  // TODO: port reads through tauri-plugin-fs; for now stubs keep the
-  // renderer's file-tree / image-loaders from throwing.
-  'fs.readFile': STATIC_NULL,
-  'fs.writeFile': STATIC_VOID,
-  'fs.readImage': STATIC_NULL,
-  'fs.listFiles': STATIC_EMPTY_ARRAY,
-  'fs.watchSetPaths': STATIC_VOID,
-  'fs.watchStop': STATIC_VOID,
+  // Tauri commands resolve (projectId, workspaceId) → absolute path
+  // via the tasks table (workspace_id == task_id in v1), then read
+  // the underlying file. Path-escape (`..` / absolute) is rejected
+  // server-side.
+  'fs.readFile': {
+    kind: 'invoke',
+    command: 'fs_ws_read_file',
+    adapt: ([projectId, workspaceId, filePath, maxBytes]) => ({
+      projectId,
+      workspaceId,
+      filePath,
+      maxBytes: typeof maxBytes === 'number' ? maxBytes : null,
+    }),
+    transform: (value) => ({ ok: true, value }),
+  },
+  'fs.writeFile': {
+    kind: 'invoke',
+    command: 'fs_ws_write_file',
+    adapt: ([projectId, workspaceId, filePath, content]) => ({
+      projectId,
+      workspaceId,
+      filePath,
+      content,
+    }),
+    transform: () => ({ ok: true, value: undefined }),
+  },
+  'fs.readImage': {
+    kind: 'invoke',
+    command: 'fs_ws_read_image',
+    adapt: ([projectId, workspaceId, filePath]) => ({ projectId, workspaceId, filePath }),
+    transform: (value) => ({ ok: true, value }),
+  },
+  'fs.listFiles': {
+    kind: 'invoke',
+    command: 'fs_ws_list_files',
+    adapt: ([projectId, workspaceId, dirPath, options]) => ({
+      projectId,
+      workspaceId,
+      dirPath: dirPath ?? '',
+      includeHidden:
+        options && typeof options === 'object' && 'includeHidden' in options
+          ? Boolean((options as { includeHidden?: boolean }).includeHidden)
+          : null,
+    }),
+    transform: (value) => ({ ok: true, value }),
+  },
+  'fs.fileExists': {
+    kind: 'invoke',
+    command: 'fs_ws_file_exists',
+    adapt: ([projectId, workspaceId, filePath]) => ({ projectId, workspaceId, filePath }),
+    transform: (exists) => ({ ok: true, value: { exists } }),
+  },
+  'fs.statFile': {
+    kind: 'invoke',
+    command: 'fs_ws_stat_file',
+    adapt: ([projectId, workspaceId, filePath]) => ({ projectId, workspaceId, filePath }),
+    transform: (entry) => ({ ok: true, value: { entry } }),
+  },
+  'fs.removeFile': {
+    kind: 'invoke',
+    command: 'fs_ws_remove_file',
+    adapt: ([projectId, workspaceId, filePath]) => ({ projectId, workspaceId, filePath }),
+    transform: () => ({ ok: true, value: undefined }),
+  },
+  // searchFiles / saveAttachment have no Tauri equivalents yet —
+  // empty results keep the file-tree / attachment-picker quiet.
+  'fs.searchFiles': { kind: 'static', value: { ok: true, value: [] } },
+  'fs.saveAttachment': { kind: 'static', value: { ok: true, value: null } },
+  // fs_watcher is wired but the renderer-facing watchSetPaths/watchStop
+  // path expects a (projectId, workspaceId, paths[], label) shape — a
+  // proper bridge lives in a follow-up; the no-op keeps the renderer's
+  // file-tree from throwing.
+  'fs.watchSetPaths': { kind: 'static', value: { ok: true, value: { supported: false } } },
+  'fs.watchStop': { kind: 'static', value: { ok: true, value: {} } },
 
   // == pty ==========================================================
   // The renderer's PTY layer subscribes via events and writes via
-  // sendInput/resize; for now stub to avoid hard crashes. PTY end-to-end
-  // wiring is its own follow-up (Tauri exposes pty_spawn/write/resize
-  // as direct commands which the renderer's PTY controller will need
-  // to be re-pointed at — separate task).
-  'pty.subscribe': STATIC_NULL,
-  'pty.unsubscribe': STATIC_VOID,
-  'pty.sendInput': STATIC_VOID,
-  'pty.resize': STATIC_VOID,
-  'pty.uploadFiles': STATIC_RESULT_OK_NULL,
+  // sendInput/resize. Tauri exposes pty_spawn / pty_write / pty_resize
+  // / pty_kill as direct commands with a `Channel<Vec<u8>>` for
+  // streaming, plus `agents_start` for spawning an agent into a PTY.
+  //
+  // We maintain a sessionId → PtyId map in the shim so the renderer's
+  // existing rpc.pty.* call sites work unchanged. subscribe returns an
+  // empty initial ring buffer (Tauri doesn't keep one) — the live byte
+  // stream arrives via the `pty:data.<sessionId>` event topic.
+  'pty.subscribe': {
+    kind: 'custom',
+    handler: async ([sessionId]) => {
+      // Idempotent: if the session was already registered by an
+      // agent-spawn path we keep the map entry. Otherwise we record
+      // the sessionId so subsequent sendInput / resize calls can
+      // resolve to a PtyId once one is associated.
+      if (typeof sessionId === 'string') ptySessionMap.ensure(sessionId);
+      return { ok: true, value: { buffer: '' } };
+    },
+  },
+  'pty.unsubscribe': {
+    kind: 'custom',
+    handler: async ([sessionId]) => {
+      if (typeof sessionId === 'string') ptySessionMap.forget(sessionId);
+      return { ok: true };
+    },
+  },
+  'pty.sendInput': {
+    kind: 'custom',
+    handler: async ([sessionId, data]) => {
+      const ptyId = typeof sessionId === 'string' ? ptySessionMap.get(sessionId) : undefined;
+      if (!ptyId) return { ok: false, error: { type: 'not_found' } };
+      const bytes =
+        typeof data === 'string' ? Array.from(new TextEncoder().encode(data)) : data;
+      try {
+        await tauriInvoke('pty_write', { id: ptyId, bytes });
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, error: e };
+      }
+    },
+  },
+  'pty.resize': {
+    kind: 'custom',
+    handler: async ([sessionId, cols, rows]) => {
+      const ptyId = typeof sessionId === 'string' ? ptySessionMap.get(sessionId) : undefined;
+      if (!ptyId) return { ok: false, error: { type: 'not_found' } };
+      try {
+        await tauriInvoke('pty_resize', { id: ptyId, size: { cols, rows } });
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, error: e };
+      }
+    },
+  },
+  'pty.kill': {
+    kind: 'custom',
+    handler: async ([sessionId]) => {
+      const ptyId = typeof sessionId === 'string' ? ptySessionMap.get(sessionId) : undefined;
+      if (!ptyId) return { ok: true };
+      try {
+        await tauriInvoke('pty_kill', { id: ptyId });
+        ptySessionMap.forget(sessionId as string);
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, error: e };
+      }
+    },
+  },
+  // SSH PTY upload — no Tauri equivalent yet. Returning ok([]) lets
+  // the conversation flow continue with zero attached files.
+  'pty.uploadFiles': { kind: 'static', value: { ok: true, value: [] } },
 
   // == search =======================================================
   'search.commandPalette': STATIC_EMPTY_ARRAY,

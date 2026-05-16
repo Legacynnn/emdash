@@ -25,6 +25,26 @@ impl ProjectsService {
 
     /// List all projects, newest first by `created_at`. Stable enough to
     /// drive the renderer list without an explicit cursor.
+    pub fn get(&self, id: &str) -> Result<Option<Project>, ProjectsError> {
+        let conn = self.db.read()?;
+        let mut stmt = conn.prepare(
+            "SELECT id, name, path, created_at, updated_at FROM projects WHERE id = ?1",
+        )?;
+        let mut rows = stmt.query_map(rusqlite::params![id], |row| {
+            Ok(Project {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                path: row.get(2)?,
+                created_at: row.get(3)?,
+                updated_at: row.get(4)?,
+            })
+        })?;
+        match rows.next() {
+            Some(r) => Ok(Some(r?)),
+            None => Ok(None),
+        }
+    }
+
     pub fn list(&self) -> Result<Vec<Project>, ProjectsError> {
         let conn = self.db.read()?;
         let mut stmt = conn.prepare(

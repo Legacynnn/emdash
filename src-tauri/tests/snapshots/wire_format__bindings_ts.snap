@@ -193,6 +193,22 @@ export const commands = {
 	gitCurrentBranch: (workspaceId: string) => typedError<string | null, GitCommandError>(__TAURI_INVOKE("git_current_branch", { workspaceId })),
 	gitDiffAgainstHead: (workspaceId: string) => typedError<string, GitCommandError>(__TAURI_INVOKE("git_diff_against_head", { workspaceId })),
 	gitListBranches: (workspaceId: string) => typedError<string[], GitCommandError>(__TAURI_INVOKE("git_list_branches", { workspaceId })),
+	fsWsReadFile: (projectId: string, workspaceId: string, filePath: string, maxBytes: number | null) => typedError<string, FsCommandError>(__TAURI_INVOKE("fs_ws_read_file", { projectId, workspaceId, filePath, maxBytes })),
+	fsWsWriteFile: (projectId: string, workspaceId: string, filePath: string, content: string) => typedError<null, FsCommandError>(__TAURI_INVOKE("fs_ws_write_file", { projectId, workspaceId, filePath, content })),
+	fsWsListFiles: (projectId: string, workspaceId: string, dirPath: string, includeHidden: boolean | null) => typedError<FsListEntry[], FsCommandError>(__TAURI_INVOKE("fs_ws_list_files", { projectId, workspaceId, dirPath, includeHidden })),
+	fsWsReadImage: (projectId: string, workspaceId: string, filePath: string) => typedError<FsImageData, FsCommandError>(__TAURI_INVOKE("fs_ws_read_image", { projectId, workspaceId, filePath })),
+	fsWsRemoveFile: (projectId: string, workspaceId: string, filePath: string) => typedError<null, FsCommandError>(__TAURI_INVOKE("fs_ws_remove_file", { projectId, workspaceId, filePath })),
+	fsWsFileExists: (projectId: string, workspaceId: string, filePath: string) => typedError<boolean, FsCommandError>(__TAURI_INVOKE("fs_ws_file_exists", { projectId, workspaceId, filePath })),
+	fsWsStatFile: (projectId: string, workspaceId: string, filePath: string) => typedError<{
+	name: string,
+	path: string,
+	kind: FsEntryKind,
+	/**
+	 *  Byte size; serialized as `f64` to stay within JS Number range
+	 *  without triggering specta's BigInt-forbidden check on `u64`.
+	 */
+	size: number | null,
+} | null, FsCommandError>(__TAURI_INVOKE("fs_ws_stat_file", { projectId, workspaceId, filePath })),
 };
 
 /* Types */

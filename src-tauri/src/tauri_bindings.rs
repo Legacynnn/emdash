@@ -105,6 +105,13 @@ pub fn build_specta() -> Builder<tauri::Wry> {
         commands::git::git_current_branch,
         commands::git::git_diff_against_head,
         commands::git::git_list_branches,
+        commands::fs::fs_ws_read_file,
+        commands::fs::fs_ws_write_file,
+        commands::fs::fs_ws_list_files,
+        commands::fs::fs_ws_read_image,
+        commands::fs::fs_ws_remove_file,
+        commands::fs::fs_ws_file_exists,
+        commands::fs::fs_ws_stat_file,
     ])
 }
 
