@@ -1,4 +1,15 @@
 @import 'tailwindcss';
+
+/*
+ * The renderer source lives at <repo>/src/renderer/, outside the
+ * Tauri vite root (<repo>/src-tauri/ui/). Tailwind v4's default scan
+ * starts at the vite root, so without these `@source` declarations
+ * it would emit an empty utility set and the renderer would paint
+ * unstyled. Paths are relative to this CSS file.
+ */
+@source ".";
+@source "../shared/**/*.{ts,tsx,html,css}";
+
 @import 'tw-animate-css';
 @import '@xterm/xterm/css/xterm.css';
 @import 'allotment/dist/style.css';

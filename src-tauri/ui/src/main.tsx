@@ -8,14 +8,13 @@
 // permanent transport.
 
 import { installElectronApiPolyfill } from './shim/electron-api';
-// Imported for its `@source` directives — extends Tailwind v4's scan
-// scope to include the renderer + shared trees that live above this
-// package's Vite root. Has no runtime effect; only the build pipeline
-// reads it.
-import './shim/tailwind-sources.css';
 
 // Install BEFORE importing the renderer entry. The renderer's top-level
-// bootstrap reads `window.electronAPI` synchronously.
+// bootstrap reads `window.electronAPI` synchronously. Tailwind v4
+// `@source` declarations now live inside `src/renderer/index.css`
+// (the file that already hosts `@import 'tailwindcss';`) — the
+// previous shim/tailwind-sources.css bridge was a no-op because
+// Tailwind only honours `@source` from the CSS that imports it.
 installElectronApiPolyfill();
 
 // Side-effecting import: the renderer's main.tsx calls bootstrap() at
