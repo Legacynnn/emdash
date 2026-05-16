@@ -27,7 +27,9 @@ moves under `src-tauri/ui/src/` and the Electron tree can be deleted.
 | Namespace | Status | Notes |
 |-----------|--------|-------|
 | `projects` (CRUD) | done | `projects_list / add / remove` + shape adapter |
-| `tasks` (create/delete) | done | `tasks_list / create / delete` with worktree |
+| `tasks` (full) | done | create, delete, rename, archive, restore, set_pinned, update_linked_issue, generate_name |
+| `conversations` (full CRUD) | done | list_for_task, create, rename, touch, delete; broadcasts ConversationCreated/Updated/Deleted |
+| `terminals` (full CRUD) | done | list_for_task, create, rename, delete; broadcasts TerminalCreated/Updated/Deleted |
 | `viewState` | done | JSON-encoded on the host; shim parses on read |
 | `telemetry` (get/set) | done | Native opt-in toggle |
 | `update.check` | done | `tauri-plugin-updater` |
@@ -36,8 +38,10 @@ moves under `src-tauri/ui/src/` and the Electron tree can be deleted.
 | `agents` (start/stop/list) | done | EMD-27 local invocation |
 | `editorBuffer` | done | Save/clear/list |
 | `app.*` (version, platform, open, etc.) | done | Shell out to OS handlers |
-| `fs.*` (read/write/list/image) | partial | Rust commands ship; shim still stubbed pending workspace-path resolver |
-| `workspaces.resolveBootstrap` | done | Tauri tasks are always `{ kind: 'ready' }` |
+| `fs.*` (read/write/list/image) | partial | Rust commands ship as absolute-path tooling; shim still stubbed for the `(projectId, workspaceId, relPath)` shape pending a workspace-path resolver helper |
+| `workspaces.resolveBootstrap` | done | Tauri tasks are always `{ kind: 'ready' }` (atomic worktree create) |
+| `git` (read-only) | partial | getFullStatus, getChangedFiles, getCurrentBranch, diff via libgit2; getLog + getFile*AtRef/Index still stubbed |
+| `repository.getLocalBranches` | done | wired through git_list_branches |
 
 ## Outstanding ports (route-table is `STATIC_*`)
 
@@ -53,26 +57,18 @@ Order is rough priority — earlier work unblocks more of the renderer.
   channel bytes into `pty:data.<sessionId>` events. Spawn flow
   belongs in `agents_start` so the renderer's pty.subscribe really
   attaches to an already-running agent.
-- **Conversations + terminals** (`getConversations`,
-  `getConversationsForTask`, CRUD, `renameConversation`,
-  `touchConversation`). Need DB tables + commands. The renderer
-  attaches PTY sessions to conversation/terminal records.
-- **Tasks completeness** (`archiveTask`, `restoreTask`, `renameTask`,
-  `generateTaskName`, `provisionTask`, `setTaskPinned`,
-  `updateTaskStatus`, `updateLinkedIssue`, `getWorkspaceSettings`).
-  Some need schema migrations (pinned, archived status, linked_issue
-  column).
 - **FS workspace resolution** — port a `fs_*_in_workspace(project_id,
   workspace_id, rel_path, ...)` family in Rust that resolves to an
   absolute path via the tasks table, then wire the renderer's
   fs.* calls through those instead of the absolute-path commands
-  added in this PR.
-- **Git read** (`getFullStatus`, `getChangedFiles`, `getLog`,
-  `getFileAtRef / Index`, `getImageAtRef / Index`). Tauri already
-  has `git2` vendored; expose porcelain wrappers.
+  added in this PR. Pattern reference: `commands::git::resolve_workspace_path`.
+- **Git log + content-at-ref/index** (`getLog`, `getFileAtRef /
+  Index`, `getImageAtRef / Index`, `getCommitFileDiff`,
+  `getCommitFiles`, `getFileAtHead`). Need new helpers in
+  `crate::git::ops`.
 - **Git write** (`commit`, `push`, `pull`, `publishBranch`, stage /
   unstage / revert).
-- **Repository** (`fetch`, `addRemote`, `getLocalBranches`,
+- **Repository remotes** (`fetch`, `addRemote`,
   `getRemoteBranches`).
 
 ### Tier 2 — required for full functionality
