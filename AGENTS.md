@@ -84,22 +84,22 @@ Start here. Load only the linked `agents/` docs that are relevant to the task.
 - Access task manager via `getTaskManagerStore(projectId)`, not through `project.taskManager`
 - Access mounted project via `asMounted(getProjectStore(id))`, not via inline `isMountedProject` guards
 
-## emdash-dev (Tauri 2 + Rust rewrite) — primary build
+## Tauri 2 + Rust — the only build
 
-The Tauri 2 + Rust rewrite under `src-tauri/` is the **primary build** that
-`pnpm run dev` / `pnpm run build` / `pnpm run package` target. The Electron
-codebase remains in-tree during the migration window but is on the way out
-— prefer `dev:electron` / `package:electron` for any remaining Electron
-work and the Tauri scripts (`dev:tauri`, `build:tauri`) for everything
-else. Conventions and decisions for `src-tauri/` live in `docs/decisions/`
-(Michael Nygard ADRs).
+The app is a Tauri 2 + Rust desktop app. `pnpm run dev` /
+`pnpm run build` / `pnpm run package` all target Tauri. The Electron
+tree was removed; see `docs/migration/tauri-renderer-wire.md` for what
+was ported and where the residual stubs live. Conventions and decisions
+for `src-tauri/` live in `docs/decisions/` (Michael Nygard ADRs).
 
-The Electron renderer (`src/renderer/`) is currently shared with the Tauri
-build via a `window.electronAPI` polyfill — see
-`src-tauri/ui/src/shim/electron-api.ts` and the route table next to it.
-Channels still backed by static stubs in `route-table.ts` are the
-outstanding ports; see the table at the top of that file (TODO comments)
-plus `docs/migration/tauri-renderer-wire.md` for the systematic plan.
+The React UI source still lives at `src/renderer/` (shared layout
+inherited from the migration). The Tauri UI shell at `src-tauri/ui/`
+dynamically imports it and installs a `window.electronAPI`-shaped
+polyfill backed by Tauri invoke + UiMutationEvent channels — the shim
+implementation is in `src-tauri/ui/src/shim/`. Channels routed
+through `route-table.ts` cover the renderer's full RPC surface; the
+remaining `STATIC_*` entries return sensible empty / not-supported
+envelopes for surfaces whose Rust implementation is deferred.
 
 Rules specific to `src-tauri/`:
 
@@ -173,11 +173,9 @@ emdash-dev build job.
 ## Non-Negotiables
 
 - Run `pnpm run format`, `pnpm run lint`, `pnpm run typecheck`, and `pnpm test` before merging.
-- Do not hand-edit numbered Drizzle migrations or `drizzle/meta/`.
-- New RPC methods go in the appropriate `src/main/core/*/controller.ts` and are auto-registered via `src/main/rpc.ts`.
-- Only use manual IPC in `electron-api.d.ts` for methods requiring `event.sender`.
+- New Tauri commands go under `src-tauri/src/commands/<feature>.rs`, get registered in `collect_commands![]` (`src-tauri/src/tauri_bindings.rs`), and appended to `src-tauri/allowed-commands.json`. Regenerate `ui/src/bindings.ts` via `cargo run --bin emdash-dev -- --export-bindings`.
+- New renderer-side RPC routes go in `src-tauri/ui/src/shim/route-table.ts` (one entry per `namespace.method`); shim type changes go in `src-tauri/ui/src/shim/electron-api.ts`.
 - New modals must be registered in `src/renderer/core/modal/registry.ts`.
 - New views must be registered in `src/renderer/core/view/registry.ts`.
-- Treat `src/main/core/pty/`, `src/main/core/ssh/`, `src/main/db/`, and updater code as high risk.
-- Avoid editing `dist/`, `release/`, and `build/` unless the task is explicitly about packaging or updater/signing behavior.
-- The docs app in `docs/` is separate from the Electron renderer and also defaults to port `3000`.
+- Treat `src-tauri/src/pty/`, `src-tauri/src/agents/`, `src-tauri/src/db/`, and updater code as high risk.
+- The docs app in `docs/` is separate from the Tauri renderer and defaults to port `3000`; the Tauri dev server uses port `1420`.
