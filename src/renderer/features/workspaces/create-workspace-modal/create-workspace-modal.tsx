@@ -275,27 +275,6 @@ export const CreateWorkspaceModal = observer(function CreateWorkspaceModal({
             <span className="text-sm text-muted-foreground">Use BYOI infrastructure</span>
           </div>
         )}
-        <ToggleGroup
-          className="w-full"
-          value={[placement]}
-          onValueChange={([value]) => {
-            if (!value) return;
-            const next = value as 'worktree' | 'local';
-            if (next === 'local' && selectedStrategy === 'from-pull-request') return;
-            setPlacement(next);
-          }}
-        >
-          <ToggleGroupItem className="flex-1" value="worktree">
-            Worktree
-          </ToggleGroupItem>
-          <ToggleGroupItem
-            className="flex-1"
-            value="local"
-            disabled={selectedStrategy === 'from-pull-request' || isUnborn}
-          >
-            Work locally
-          </ToggleGroupItem>
-        </ToggleGroup>
         <AnimatedHeight onAnimatingChange={setIsTransitioning}>
           {selectedStrategy === 'from-branch' && (
             <FromBranchContent
@@ -304,6 +283,8 @@ export const CreateWorkspaceModal = observer(function CreateWorkspaceModal({
               currentBranch={currentBranch}
               isUnborn={isUnborn}
               initialConversation={initialConversation}
+              placement={placement}
+              onPlacementChange={setPlacement}
             />
           )}
           {selectedStrategy === 'from-issue' && (
@@ -316,6 +297,8 @@ export const CreateWorkspaceModal = observer(function CreateWorkspaceModal({
               disabled={isTransitioning}
               isUnborn={isUnborn}
               initialConversation={initialConversation}
+              placement={placement}
+              onPlacementChange={setPlacement}
             />
           )}
           {selectedStrategy === 'from-pull-request' && (

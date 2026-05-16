@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { InlineIssueSelector } from '../components/issue-selector/inline-issue-selector';
 import { SelectedIssueValue } from '../components/issue-selector/issue-selector';
-import { BranchPickerField } from './branch-picker-field';
+import { BranchPickerField, type Placement } from './branch-picker-field';
 import {
   InitialConversationField,
   type InitialConversationState,
@@ -18,6 +18,8 @@ interface FromIssueContentProps {
   disabled?: boolean;
   isUnborn?: boolean;
   initialConversation: InitialConversationState;
+  placement: Placement;
+  onPlacementChange: (next: Placement) => void;
 }
 
 export function FromIssueContent({
@@ -29,6 +31,8 @@ export function FromIssueContent({
   disabled,
   isUnborn,
   initialConversation,
+  placement,
+  onPlacementChange,
 }: FromIssueContentProps) {
   const [isSelecting, setIsSelecting] = useState(!state.linkedIssue);
 
@@ -69,6 +73,8 @@ export function FromIssueContent({
         projectId={projectId}
         currentBranch={currentBranch}
         isUnborn={isUnborn}
+        placement={placement}
+        onPlacementChange={onPlacementChange}
       />
       <WorkspaceNameField state={state} />
       <InitialConversationField

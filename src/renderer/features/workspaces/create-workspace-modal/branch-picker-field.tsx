@@ -4,9 +4,18 @@ import { ProjectBranchSelector } from '@renderer/lib/components/project-branch-s
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@renderer/lib/ui/collapsible';
 import { ComboboxTrigger, ComboboxValue } from '@renderer/lib/ui/combobox';
 import { Field, FieldLabel } from '@renderer/lib/ui/field';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@renderer/lib/ui/select';
 import { Switch } from '@renderer/lib/ui/switch';
 import { cn } from '@renderer/utils/utils';
 import { type BranchSelectionState } from './use-branch-selection';
+
+export type Placement = 'worktree' | 'local';
 
 interface BranchPickerFieldProps {
   state: BranchSelectionState;
@@ -15,6 +24,9 @@ interface BranchPickerFieldProps {
   label?: string;
   className?: string;
   isUnborn?: boolean;
+  placement: Placement;
+  onPlacementChange: (next: Placement) => void;
+  placementDisabled?: boolean;
 }
 
 export function BranchPickerField({
@@ -24,15 +36,13 @@ export function BranchPickerField({
   label = 'From Branch',
   className,
   isUnborn = false,
+  placement,
+  onPlacementChange,
+  placementDisabled = false,
 }: BranchPickerFieldProps) {
-  const {
-    createBranchAndWorktree,
-    setCreateBranchAndWorktree,
-    pushBranch,
-    setPushBranch,
-    placementMode,
-  } = state;
-  const isLocal = placementMode === 'local-new';
+  const { createBranchAndWorktree, setCreateBranchAndWorktree, pushBranch, setPushBranch } = state;
+  const isLocal = placement === 'local';
+  const placementSelectDisabled = placementDisabled || isUnborn;
 
   return (
     <div className={cn('border border-border rounded-md overflow-hidden', className)}>
@@ -63,12 +73,23 @@ export function BranchPickerField({
           }
         />
       ) : null}
-      {isLocal ? (
-        <p className="border-t border-border bg-background-1 px-2 py-1 text-xs text-foreground-muted">
-          Creates a new branch off the selected source and switches the project to it in place. No
-          worktree.
-        </p>
-      ) : !isUnborn ? (
+      <div className="border-t border-border flex items-center gap-2 px-2 py-1.5 bg-background-1">
+        <span className="text-xs text-foreground-muted">Placement</span>
+        <Select
+          value={placement}
+          onValueChange={(next) => onPlacementChange(next as Placement)}
+          disabled={placementSelectDisabled}
+        >
+          <SelectTrigger className="h-6 w-auto shrink-0 gap-2 text-xs [&>span]:line-clamp-none">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="min-w-max">
+            <SelectItem value="worktree">Worktree</SelectItem>
+            <SelectItem value="local">Work locally</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      {isLocal ? null : !isUnborn ? (
         <Collapsible className="border-t border-border">
           <CollapsibleTrigger className="w-full p-2 hover:bg-background-1 data-open:bg-background-1 flex text-xs text-foreground-muted items-center gap-2 justify-between">
             Should create and push feature branch

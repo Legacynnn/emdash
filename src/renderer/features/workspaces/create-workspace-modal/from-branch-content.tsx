@@ -1,4 +1,4 @@
-import { BranchPickerField } from './branch-picker-field';
+import { BranchPickerField, type Placement } from './branch-picker-field';
 import {
   InitialConversationField,
   type InitialConversationState,
@@ -12,6 +12,8 @@ interface FromBranchContentProps {
   currentBranch?: string | null;
   isUnborn?: boolean;
   initialConversation: InitialConversationState;
+  placement: Placement;
+  onPlacementChange: (next: Placement) => void;
 }
 
 export function FromBranchContent({
@@ -20,6 +22,8 @@ export function FromBranchContent({
   currentBranch,
   isUnborn,
   initialConversation,
+  placement,
+  onPlacementChange,
 }: FromBranchContentProps) {
   return (
     <div className="flex flex-col gap-4">
@@ -28,6 +32,8 @@ export function FromBranchContent({
         projectId={projectId}
         currentBranch={currentBranch}
         isUnborn={isUnborn}
+        placement={placement}
+        onPlacementChange={onPlacementChange}
       />
       <WorkspaceNameField state={state} />
       <InitialConversationField state={initialConversation} />
