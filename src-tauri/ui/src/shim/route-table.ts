@@ -260,12 +260,13 @@ const ROUTES: Record<string, Route> = {
   'update.openLatest': STATIC_VOID,
 
   // == resourceMonitor ==============================================
-  // TODO: port from src/main/core/resource-monitor. The store unwraps
-  // `{ success: true, data }` and reads cpuCount/app/entries; an
-  // unsuccessful Result is treated as "no sample yet" by the store.
+  // Host returns `{ success: false }` until a real per-PTY sampler
+  // lands. The renderer's store treats that as "no sample yet" and
+  // keeps the badge idle.
   'resourceMonitor.getSnapshot': {
-    kind: 'static',
-    value: { success: false },
+    kind: 'invoke',
+    command: 'resource_monitor_get_snapshot',
+    adapt: noArgs,
   },
 
   // == telemetry ====================================================
@@ -646,7 +647,16 @@ const ROUTES: Record<string, Route> = {
   'pty.uploadFiles': { kind: 'static', value: { ok: true, value: [] } },
 
   // == search =======================================================
-  'search.commandPalette': STATIC_EMPTY_ARRAY,
+  // Host ranks the renderer-provided candidates by substring +
+  // start-of-token match. Full cross-corpus search is a follow-up.
+  'search.commandPalette': {
+    kind: 'invoke',
+    command: 'search_command_palette',
+    adapt: ([query, items]) => ({
+      query: typeof query === 'string' ? query : '',
+      items: Array.isArray(items) ? items : [],
+    }),
+  },
 
   // == skills =======================================================
   'skills.getCatalog': STATIC_EMPTY_ARRAY,
@@ -678,13 +688,35 @@ const ROUTES: Record<string, Route> = {
   'ssh.deleteConnection': STATIC_VOID,
 
   // == dependencies =================================================
-  // The dependencies store probes which agent CLIs are installed on
-  // PATH. Returning an empty record means "none detected"; the UI
-  // will surface install prompts.
-  'dependencies.getAll': STATIC_EMPTY_OBJECT,
-  'dependencies.probeAll': STATIC_VOID,
+  // PATH-based probe of known agent CLIs. The renderer's store maps
+  // the array into a per-id record for its UI display.
+  'dependencies.getAll': {
+    kind: 'invoke',
+    command: 'dependencies_get_all',
+    adapt: noArgs,
+    transform: (entries) => {
+      const arr = Array.isArray(entries) ? entries : [];
+      const out: Record<string, unknown> = {};
+      for (const e of arr) {
+        const entry = e as { id?: string };
+        if (entry && typeof entry.id === 'string') out[entry.id] = e;
+      }
+      return out;
+    },
+  },
+  'dependencies.probeAll': {
+    kind: 'invoke',
+    command: 'dependencies_get_all',
+    adapt: noArgs,
+    transform: () => undefined,
+  },
   'dependencies.probeCategory': STATIC_VOID,
-  'dependencies.install': STATIC_RESULT_OK_NULL,
+  // The host has no auto-installer; surface a clean failure so the
+  // renderer points the user at install docs.
+  'dependencies.install': {
+    kind: 'static',
+    value: { ok: false, error: { type: 'not_supported' } },
+  },
 
   // == issues / forgejo / gitlab / jira / plain / featurebase =======
   'issues.listIssues': STATIC_EMPTY_ARRAY,

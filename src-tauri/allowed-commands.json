@@ -100,6 +100,10 @@
     "fs_ws_read_image",
     "fs_ws_remove_file",
     "fs_ws_file_exists",
-    "fs_ws_stat_file"
+    "fs_ws_stat_file",
+    "resource_monitor_get_snapshot",
+    "dependencies_get_all",
+    "dependencies_probe",
+    "search_command_palette"
   ]
 }

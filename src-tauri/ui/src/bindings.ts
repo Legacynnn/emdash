@@ -205,6 +205,10 @@ export const commands = {
 	 */
 	size: number | null,
 } | null, FsCommandError>(__TAURI_INVOKE("fs_ws_stat_file", { projectId, workspaceId, filePath })),
+	resourceMonitorGetSnapshot: () => __TAURI_INVOKE<ResourceSnapshot>("resource_monitor_get_snapshot"),
+	dependenciesGetAll: () => __TAURI_INVOKE<DependencyEntry[]>("dependencies_get_all"),
+	dependenciesProbe: (id: string) => __TAURI_INVOKE<DependencyEntry>("dependencies_probe", { id }),
+	searchCommandPalette: (query: string, items: CommandPaletteItem[]) => __TAURI_INVOKE<CommandPaletteResult[]>("search_command_palette", { query, items }),
 };
 
 /* Types */
@@ -276,6 +280,19 @@ export type AppErrorCode = "io" | "unsupported" | "cancelled";
  */
 export type CheckReason = "startup" | "resume" | "focus" | "interval" | "manual";
 
+export type CommandPaletteItem = {
+	id: string,
+	label: string,
+	kind: string,
+};
+
+export type CommandPaletteResult = {
+	id: string,
+	label: string,
+	kind: string,
+	score: number,
+};
+
 /**
  *  Projection of a `conversations` row that the renderer consumes. The
  *  `config` column stores agent-specific JSON (e.g. `{ "autoApprove":
@@ -301,6 +318,12 @@ export type ConversationsCommandError = {
 };
 
 export type ConversationsErrorCode = "not_found" | "task_not_found" | "empty_title" | "storage";
+
+export type DependencyEntry = {
+	id: string,
+	installed: boolean,
+	resolvedPath: string | null,
+};
 
 /**
  *  Opaque handle for the renderer to pass back to
@@ -631,6 +654,10 @@ export type RepoSummary = {
 	private: boolean,
 	default_branch: string | null,
 	description: string | null,
+};
+
+export type ResourceSnapshot = {
+	success: boolean,
 };
 
 export type SecretsCommandError = {

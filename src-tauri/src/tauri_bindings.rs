@@ -112,6 +112,10 @@ pub fn build_specta() -> Builder<tauri::Wry> {
         commands::fs::fs_ws_remove_file,
         commands::fs::fs_ws_file_exists,
         commands::fs::fs_ws_stat_file,
+        commands::resource_monitor::resource_monitor_get_snapshot,
+        commands::dependencies::dependencies_get_all,
+        commands::dependencies::dependencies_probe,
+        commands::search::search_command_palette,
     ])
 }
 
