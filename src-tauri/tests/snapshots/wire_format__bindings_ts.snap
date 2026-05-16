@@ -188,6 +188,11 @@ export const commands = {
 	 *  renderer's "Generate name" button on new-task dialogs.
 	 */
 	tasksGenerateName: (description: string) => __TAURI_INVOKE<string>("tasks_generate_name", { description }),
+	gitFullStatus: (workspaceId: string) => typedError<GitFullStatus, GitCommandError>(__TAURI_INVOKE("git_full_status", { workspaceId })),
+	gitChangedFiles: (workspaceId: string) => typedError<GitStatusEntry[], GitCommandError>(__TAURI_INVOKE("git_changed_files", { workspaceId })),
+	gitCurrentBranch: (workspaceId: string) => typedError<string | null, GitCommandError>(__TAURI_INVOKE("git_current_branch", { workspaceId })),
+	gitDiffAgainstHead: (workspaceId: string) => typedError<string, GitCommandError>(__TAURI_INVOKE("git_diff_against_head", { workspaceId })),
+	gitListBranches: (workspaceId: string) => typedError<string[], GitCommandError>(__TAURI_INVOKE("git_list_branches", { workspaceId })),
 };
 
 /* Types */
@@ -361,6 +366,28 @@ export type FsWatcherCommandError = {
 };
 
 export type FsWatcherErrorCode = "path_missing" | "notify" | "io";
+
+export type GitCommandError = {
+	code: GitErrorCode,
+	message: string,
+};
+
+export type GitErrorCode = "not_found" | "not_a_repository" | "git_error";
+
+/**
+ *  Renderer-facing combined status payload. Mirrors the shape produced
+ *  by the Electron `GitFs::getFullStatus` so the renderer can consume
+ *  either backend transparently.
+ */
+export type GitFullStatus = {
+	current_branch: string | null,
+	changes: GitStatusEntry[],
+};
+
+export type GitStatusEntry = {
+	path: string,
+	bits: number,
+};
 
 export type GithubCommandError = {
 	code: GithubErrorCode,

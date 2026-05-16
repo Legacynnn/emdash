@@ -435,10 +435,26 @@ const ROUTES: Record<string, Route> = {
   },
 
   // == git ==========================================================
-  // TODO: port from src/main/core/git. Returning empty/idle states
-  // means the diff/status panels will look "clean" until ports land.
-  'git.getFullStatus': STATIC_NULL,
-  'git.getChangedFiles': STATIC_EMPTY_ARRAY,
+  // Read-only ops backed by `commands::git` (libgit2 via `git2`).
+  // Workspace IDs resolve to a worktree path in Rust via the tasks
+  // table, so the shim only needs to forward the workspace_id.
+  // Mutating ops (commit/push/pull/stage/revert) still stubbed —
+  // see docs/migration/tauri-renderer-wire.md.
+  'git.getFullStatus': {
+    kind: 'invoke',
+    command: 'git_full_status',
+    adapt: ([, workspaceId]) => ({ workspaceId }),
+    transform: (value) => ({ ok: true, value }),
+  },
+  'git.getChangedFiles': {
+    kind: 'invoke',
+    command: 'git_changed_files',
+    adapt: ([, workspaceId]) => ({ workspaceId }),
+  },
+  // The renderer's git log surface expects {oid, author, message, ...}
+  // entries; the bare `commit_message(oid)` accessor isn't enough on
+  // its own. Wire log in a follow-up once a domain `git::log` helper
+  // ships.
   'git.getLog': STATIC_EMPTY_ARRAY,
   'git.getFileAtIndex': STATIC_NULL,
   'git.getFileAtRef': STATIC_NULL,
@@ -459,7 +475,11 @@ const ROUTES: Record<string, Route> = {
   'repository.fetch': STATIC_RESULT_OK_NULL,
   'repository.fetchPrForReview': STATIC_RESULT_OK_NULL,
   'repository.addRemote': STATIC_RESULT_OK_NULL,
-  'repository.getLocalBranches': STATIC_EMPTY_ARRAY,
+  'repository.getLocalBranches': {
+    kind: 'invoke',
+    command: 'git_list_branches',
+    adapt: ([, workspaceId]) => ({ workspaceId }),
+  },
   'repository.getRemoteBranches': STATIC_EMPTY_ARRAY,
 
   // == pullRequests =================================================

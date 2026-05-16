@@ -100,6 +100,11 @@ pub fn build_specta() -> Builder<tauri::Wry> {
         commands::tasks::tasks_set_pinned,
         commands::tasks::tasks_update_linked_issue,
         commands::tasks::tasks_generate_name,
+        commands::git::git_full_status,
+        commands::git::git_changed_files,
+        commands::git::git_current_branch,
+        commands::git::git_diff_against_head,
+        commands::git::git_list_branches,
     ])
 }
 

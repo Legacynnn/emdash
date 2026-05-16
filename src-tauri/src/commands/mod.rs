@@ -6,6 +6,7 @@ pub mod conversations;
 pub mod editor_buffers;
 pub mod fs;
 pub mod fs_watcher;
+pub mod git;
 pub mod github;
 pub mod greet;
 pub mod linear;
