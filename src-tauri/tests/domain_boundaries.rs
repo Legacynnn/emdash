@@ -19,6 +19,7 @@ const DOMAIN_MODULES: &[&str] = &[
     "pty",
     "secrets",
     "shell_env",
+    "skills",
     "tasks",
     "telemetry",
     "terminals",

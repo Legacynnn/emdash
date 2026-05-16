@@ -96,4 +96,14 @@ pub enum UiMutationEvent {
         task_id: String,
         project_id: String,
     },
+    /// A skill was installed (catalog state flipped).
+    SkillInstalled {
+        id: String,
+    },
+    /// A skill was uninstalled.
+    SkillUninstalled {
+        id: String,
+    },
+    /// The skills catalog was refreshed from upstream / disk.
+    SkillsCatalogRefreshed,
 }

@@ -776,21 +776,57 @@ const ROUTES: Record<string, Route> = {
   },
 
   // == skills =======================================================
-  'skills.getCatalog': { kind: 'invoke', command: 'skills_get_catalog', adapt: noArgs },
+  // The renderer (`useSkills.ts`) expects a `{ success, data?, error? }`
+  // envelope; Tauri commands return plain values or throw an error
+  // envelope, so the handlers below normalise both shapes.
+  'skills.getCatalog': {
+    kind: 'custom',
+    handler: () => skillsEnvelope(() => tauriInvoke('skills_get_catalog')),
+  },
+  'skills.refreshCatalog': {
+    kind: 'custom',
+    handler: () => skillsEnvelope(() => tauriInvoke('skills_refresh_catalog')),
+  },
   'skills.getDetail': {
-    kind: 'invoke',
-    command: 'skills_get_detail',
-    adapt: ([id]) => ({ id }),
+    kind: 'custom',
+    handler: ([arg]) => {
+      const skillId =
+        typeof arg === 'string' ? arg : (arg as { skillId?: string } | undefined)?.skillId;
+      return skillsEnvelope(() => tauriInvoke('skills_get_detail', { id: skillId ?? '' }));
+    },
   },
   'skills.getDetectedAgents': {
     kind: 'invoke',
     command: 'skills_get_detected_agents',
     adapt: noArgs,
   },
-  'skills.refreshCatalog': STATIC_VOID,
-  'skills.install': STATIC_RESULT_OK_NULL,
-  'skills.uninstall': STATIC_RESULT_OK_NULL,
-  'skills.create': STATIC_RESULT_OK_NULL,
+  'skills.install': {
+    kind: 'custom',
+    handler: ([arg]) => {
+      const skillId = (arg as { skillId?: string } | undefined)?.skillId ?? '';
+      return skillsEnvelope(() => tauriInvoke('skills_install', { skillId }));
+    },
+  },
+  'skills.uninstall': {
+    kind: 'custom',
+    handler: ([arg]) => {
+      const skillId = (arg as { skillId?: string } | undefined)?.skillId ?? '';
+      return skillsEnvelope(() => tauriInvoke('skills_uninstall', { skillId }));
+    },
+  },
+  'skills.create': {
+    kind: 'custom',
+    handler: ([arg]) => {
+      const input = (arg as { name?: string; description?: string; content?: string }) ?? {};
+      return skillsEnvelope(() =>
+        tauriInvoke('skills_create', {
+          name: input.name ?? '',
+          description: input.description ?? '',
+          content: input.content ?? null,
+        })
+      );
+    },
+  },
 
   // == mcp ==========================================================
   'mcp.loadAll': { kind: 'invoke', command: 'mcp_load_all', adapt: noArgs },
@@ -902,6 +938,27 @@ interface TauriDependencyEntry {
   id: string;
   installed: boolean;
   resolvedPath: string | null;
+}
+
+// Wrap a Tauri invoke into the `{ success, data, error }` envelope the
+// skills/mcp surfaces expect. Tauri-side error envelopes carry a
+// `{ code, message }` shape (see `commands/skills.rs::SkillsCommandError`);
+// other throws are stringified.
+async function skillsEnvelope(
+  call: () => Promise<unknown>
+): Promise<{ success: true; data: unknown } | { success: false; error: string }> {
+  try {
+    const data = await call();
+    return { success: true, data };
+  } catch (e) {
+    if (e && typeof e === 'object') {
+      const env = e as { message?: string; code?: string };
+      if (typeof env.message === 'string') {
+        return { success: false, error: env.message };
+      }
+    }
+    return { success: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 export function mapDependencyEntries(entries: unknown): Record<string, unknown> {

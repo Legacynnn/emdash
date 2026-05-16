@@ -135,6 +135,9 @@ pub fn run() {
             ))?;
             let hook_handle: Arc<HookServerHandle> = Arc::new(hook_handle);
 
+            let skills_service: Arc<emdash_dev::skills::SkillsService> =
+                Arc::new(emdash_dev::skills::SkillsService::new());
+
             let pty_registry: Arc<Registry> = Arc::new(Registry::new());
             // EMD-27 / ADR-0024: agent-spawn service. Constructed
             // after the hook server has bound so the port + token
@@ -161,6 +164,7 @@ pub fn run() {
             app.manage(classifier_registry);
             app.manage(hook_handle);
             app.manage(agent_service);
+            app.manage(skills_service);
             app.manage(pty_registry);
             Ok(())
         })

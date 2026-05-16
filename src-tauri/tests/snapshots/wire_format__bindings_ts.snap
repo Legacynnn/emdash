@@ -214,14 +214,26 @@ export const commands = {
 	dependenciesGetAll: () => __TAURI_INVOKE<DependencyEntry[]>("dependencies_get_all"),
 	dependenciesProbe: (id: string) => __TAURI_INVOKE<DependencyEntry>("dependencies_probe", { id }),
 	searchCommandPalette: (query: string, items: CommandPaletteItem[]) => __TAURI_INVOKE<CommandPaletteResult[]>("search_command_palette", { query, items }),
-	skillsGetCatalog: () => __TAURI_INVOKE<Skill[]>("skills_get_catalog"),
-	skillsGetDetail: (id: string) => __TAURI_INVOKE<{
+	skillsGetCatalog: () => typedError<CatalogIndex_Serialize, SkillsCommandError>(__TAURI_INVOKE("skills_get_catalog")),
+	skillsGetDetail: (id: string) => typedError<{
 	id: string,
-	name: string,
+	displayName: string,
 	description: string,
+	source: SkillSource,
+	sourceUrl?: string | null,
+	iconUrl?: string | null,
+	brandColor?: string | null,
+	defaultPrompt?: string | null,
+	skillMdContent?: string | null,
+	frontmatter: SkillFrontmatter_Serialize,
 	installed: boolean,
-} | null>("skills_get_detail", { id }),
-	skillsGetDetectedAgents: () => __TAURI_INVOKE<string[]>("skills_get_detected_agents"),
+	localPath?: string | null,
+} | null, SkillsCommandError>(__TAURI_INVOKE("skills_get_detail", { id })),
+	skillsGetDetectedAgents: () => __TAURI_INVOKE<DetectedAgent[]>("skills_get_detected_agents"),
+	skillsRefreshCatalog: () => typedError<CatalogIndex_Serialize, SkillsCommandError>(__TAURI_INVOKE("skills_refresh_catalog")),
+	skillsInstall: (skillId: string) => typedError<CatalogSkill_Serialize, SkillsCommandError>(__TAURI_INVOKE("skills_install", { skillId })),
+	skillsUninstall: (skillId: string) => typedError<null, SkillsCommandError>(__TAURI_INVOKE("skills_uninstall", { skillId })),
+	skillsCreate: (name: string, description: string, content: string | null) => typedError<CatalogSkill_Serialize, SkillsCommandError>(__TAURI_INVOKE("skills_create", { name, description, content })),
 	mcpLoadAll: () => __TAURI_INVOKE<McpServer[]>("mcp_load_all"),
 	mcpGetProviders: () => __TAURI_INVOKE<McpProvider[]>("mcp_get_providers"),
 	sshGetConnections: () => __TAURI_INVOKE<SshConnection[]>("ssh_get_connections"),
@@ -294,6 +306,52 @@ export type AppCommandError = {
 
 export type AppErrorCode = "io" | "unsupported" | "cancelled";
 
+export type CatalogIndex = CatalogIndex_Serialize | CatalogIndex_Deserialize;
+
+export type CatalogIndex_Deserialize = {
+	version: number,
+	lastUpdated: string,
+	skills: CatalogSkill_Deserialize[],
+};
+
+export type CatalogIndex_Serialize = {
+	version: number,
+	lastUpdated: string,
+	skills: CatalogSkill_Serialize[],
+};
+
+export type CatalogSkill = CatalogSkill_Serialize | CatalogSkill_Deserialize;
+
+export type CatalogSkill_Deserialize = {
+	id: string,
+	displayName: string,
+	description: string,
+	source: SkillSource,
+	sourceUrl?: string | null,
+	iconUrl?: string | null,
+	brandColor?: string | null,
+	defaultPrompt?: string | null,
+	skillMdContent?: string | null,
+	frontmatter: SkillFrontmatter_Deserialize,
+	installed: boolean,
+	localPath?: string | null,
+};
+
+export type CatalogSkill_Serialize = {
+	id: string,
+	displayName: string,
+	description: string,
+	source: SkillSource,
+	sourceUrl?: string | null,
+	iconUrl?: string | null,
+	brandColor?: string | null,
+	defaultPrompt?: string | null,
+	skillMdContent?: string | null,
+	frontmatter: SkillFrontmatter_Serialize,
+	installed: boolean,
+	localPath?: string | null,
+};
+
 /**
  *  Why the manager kicked off a check. Used both for backoff bucket
  *  selection (a `Manual` check should retry faster than a passive
@@ -345,6 +403,13 @@ export type DependencyEntry = {
 	id: string,
 	installed: boolean,
 	resolvedPath: string | null,
+};
+
+export type DetectedAgent = {
+	id: string,
+	name: string,
+	configDir: string,
+	installed: boolean,
 };
 
 /**
@@ -725,12 +790,34 @@ export type SecretsCommandError = {
 
 export type SecretsErrorCode = "keyring_unavailable" | "crypto" | "storage" | "invalid_value" | "unknown";
 
-export type Skill = {
-	id: string,
+export type SkillFrontmatter = SkillFrontmatter_Serialize | SkillFrontmatter_Deserialize;
+
+export type SkillFrontmatter_Deserialize = {
+	name?: string,
+	description?: string,
+	license?: string | null,
+	compatibility?: string | null,
+	metadata?: { [key in string]: string } | null,
+	"allowed-tools"?: string | null,
+};
+
+export type SkillFrontmatter_Serialize = {
 	name: string,
 	description: string,
-	installed: boolean,
+	license?: string | null,
+	compatibility?: string | null,
+	metadata?: { [key in string]: string } | null,
+	"allowed-tools"?: string | null,
 };
+
+export type SkillSource = "openai" | "anthropic" | "local";
+
+export type SkillsCommandError = {
+	code: SkillsErrorCode,
+	message: string,
+};
+
+export type SkillsErrorCode = "not_found" | "already_installed" | "already_exists" | "invalid_name" | "io" | "catalog";
 
 export type SpawnOptions = {
 	command: string,
@@ -850,7 +937,13 @@ export type UiMutationEvent = { kind: "project_created"; id: string } | { kind: 
 /**  A conversation was renamed or had its recency bumped. */
 { kind: "conversation_updated"; id: string; task_id: string; project_id: string } | { kind: "conversation_deleted"; id: string; task_id: string; project_id: string } | 
 /**  Terminal tabs are siblings of conversations under a task. */
-{ kind: "terminal_created"; id: string; task_id: string; project_id: string } | { kind: "terminal_updated"; id: string; task_id: string; project_id: string } | { kind: "terminal_deleted"; id: string; task_id: string; project_id: string };
+{ kind: "terminal_created"; id: string; task_id: string; project_id: string } | { kind: "terminal_updated"; id: string; task_id: string; project_id: string } | { kind: "terminal_deleted"; id: string; task_id: string; project_id: string } | 
+/**  A skill was installed (catalog state flipped). */
+{ kind: "skill_installed"; id: string } | 
+/**  A skill was uninstalled. */
+{ kind: "skill_uninstalled"; id: string } | 
+/**  The skills catalog was refreshed from upstream / disk. */
+{ kind: "skills_catalog_refreshed" };
 
 /**
  *  Stable machine-readable error code. The renderer matches on this
