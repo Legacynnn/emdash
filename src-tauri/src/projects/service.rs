@@ -67,10 +67,13 @@ impl ProjectsService {
     }
 
     /// Add a project pointing at `path`. The path must be absolute and
-    /// must already exist as a directory on disk. UUID-v4 id; basename
+    /// must already exist as a directory on disk. The caller may pass
+    /// an `id`; this keeps the renderer's optimistic-UI key (generated
+    /// before the server round-trip) aligned with the database primary
+    /// key. When `id` is `None`, a fresh UUID-v4 is allocated. Basename
     /// of the path becomes the initial name (the renderer can rename
     /// later via a future `projects.update` command).
-    pub fn add(&self, path: &str) -> Result<Project, ProjectsError> {
+    pub fn add(&self, path: &str, id: Option<&str>) -> Result<Project, ProjectsError> {
         let trimmed = path.trim();
         if trimmed.is_empty() {
             return Err(ProjectsError::EmptyPath);
@@ -87,7 +90,11 @@ impl ProjectsService {
         }
 
         let name = derive_name(path_buf, trimmed);
-        let id = Uuid::new_v4().to_string();
+        let id = id
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| Uuid::new_v4().to_string());
 
         let conn = self.db.write()?;
         let mut stmt = conn.prepare(
@@ -165,7 +172,7 @@ mod tests {
         let (_dir, _db, svc) = setup();
         let (_project_dir, path) = temp_dir_path();
 
-        let project = svc.add(&path).expect("add");
+        let project = svc.add(&path, None).expect("add");
         assert_eq!(project.path, path);
         // Tempdir basename: the unique-suffixed dir tempfile creates.
         let expected_name = Path::new(&path)
@@ -186,14 +193,14 @@ mod tests {
     #[test]
     fn add_rejects_empty_path() {
         let (_dir, _db, svc) = setup();
-        let err = svc.add("   ").unwrap_err();
+        let err = svc.add("   ", None).unwrap_err();
         assert!(matches!(err, ProjectsError::EmptyPath));
     }
 
     #[test]
     fn add_rejects_relative_path() {
         let (_dir, _db, svc) = setup();
-        let err = svc.add("./relative").unwrap_err();
+        let err = svc.add("./relative", None).unwrap_err();
         assert!(matches!(err, ProjectsError::NotAbsolute(_)));
     }
 
@@ -201,7 +208,7 @@ mod tests {
     fn add_rejects_missing_path() {
         let (_dir, _db, svc) = setup();
         let err = svc
-            .add("/this/path/should/not/exist/anywhere/q9w8e7r6")
+            .add("/this/path/should/not/exist/anywhere/q9w8e7r6", None)
             .unwrap_err();
         assert!(matches!(err, ProjectsError::PathMissing(_)));
     }
@@ -210,16 +217,34 @@ mod tests {
     fn add_rejects_file_not_dir() {
         let (_dir, _db, svc) = setup();
         let file = tempfile::NamedTempFile::new().unwrap();
-        let err = svc.add(file.path().to_str().unwrap()).unwrap_err();
+        let err = svc.add(file.path().to_str().unwrap(), None).unwrap_err();
         assert!(matches!(err, ProjectsError::PathNotDirectory(_)));
+    }
+
+    #[test]
+    fn add_uses_caller_provided_id_when_present() {
+        let (_dir, _db, svc) = setup();
+        let (_project_dir, path) = temp_dir_path();
+        let project = svc.add(&path, Some("renderer-uuid-123")).expect("add");
+        assert_eq!(project.id, "renderer-uuid-123");
+        assert_eq!(svc.list().unwrap()[0].id, "renderer-uuid-123");
+    }
+
+    #[test]
+    fn add_falls_back_to_generated_id_when_blank() {
+        let (_dir, _db, svc) = setup();
+        let (_project_dir, path) = temp_dir_path();
+        let project = svc.add(&path, Some("   ")).expect("add");
+        assert!(!project.id.is_empty());
+        assert_ne!(project.id, "   ");
     }
 
     #[test]
     fn add_rejects_duplicate_path() {
         let (_dir, _db, svc) = setup();
         let (_project_dir, path) = temp_dir_path();
-        svc.add(&path).expect("first add");
-        let err = svc.add(&path).unwrap_err();
+        svc.add(&path, None).expect("first add");
+        let err = svc.add(&path, None).unwrap_err();
         assert!(matches!(err, ProjectsError::DuplicatePath(_)));
     }
 
@@ -227,7 +252,7 @@ mod tests {
     fn remove_deletes_row() {
         let (_dir, _db, svc) = setup();
         let (_project_dir, path) = temp_dir_path();
-        let project = svc.add(&path).unwrap();
+        let project = svc.add(&path, None).unwrap();
         svc.remove(&project.id).unwrap();
         assert!(svc.list().unwrap().is_empty());
     }
@@ -246,9 +271,9 @@ mod tests {
         let (_b, path_b) = temp_dir_path();
         // SQLite's CURRENT_TIMESTAMP has 1-second resolution; sleep so
         // the second insert is strictly newer.
-        let first = svc.add(&path_a).unwrap();
+        let first = svc.add(&path_a, None).unwrap();
         std::thread::sleep(std::time::Duration::from_millis(1100));
-        let second = svc.add(&path_b).unwrap();
+        let second = svc.add(&path_b, None).unwrap();
 
         let listed = svc.list().unwrap();
         assert_eq!(listed.len(), 2);

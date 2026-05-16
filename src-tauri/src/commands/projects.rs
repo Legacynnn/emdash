@@ -64,8 +64,9 @@ pub fn projects_add(
     service: State<'_, Arc<ProjectsService>>,
     manager: State<'_, Arc<UiSyncManager>>,
     path: String,
+    id: Option<String>,
 ) -> Result<Project, ProjectsCommandError> {
-    let project = service.add(&path)?;
+    let project = service.add(&path, id.as_deref())?;
     manager.broadcast(UiMutationEvent::ProjectCreated {
         id: project.id.clone(),
     });

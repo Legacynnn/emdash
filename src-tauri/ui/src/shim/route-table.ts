@@ -181,11 +181,16 @@ const ROUTES: Record<string, Route> = {
     kind: 'invoke',
     command: 'projects_add',
     adapt: ([input]) => {
-      // Electron's createProject likely takes an object with at least
-      // `path`. Accept either positional path or input.path.
-      if (typeof input === 'string') return { path: input };
-      const obj = input as { path?: string } | undefined;
-      return { path: obj?.path ?? '' };
+      // Electron's createProject takes either a bare path string or an
+      // object with at least `path` (and usually `id` — the renderer's
+      // optimistic-UI uuid). Forward `id` so the DB primary key matches
+      // the renderer's map key; without that, the renderer stores the
+      // project store under the local uuid while `data.id` carries the
+      // server-allocated uuid, and downstream lookups by `data.id`
+      // (sidebar navigation, task store keys) miss the entry.
+      if (typeof input === 'string') return { path: input, id: null };
+      const obj = (input as { path?: string; id?: string } | undefined) ?? {};
+      return { path: obj.path ?? '', id: obj.id ?? null };
     },
     transform: (result) => toRendererProject(result as TauriProject),
   },
