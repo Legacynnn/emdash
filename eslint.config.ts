@@ -86,7 +86,8 @@ export default tseslint.config(
           patterns: [
             {
               group: ['@main', '@main/*', '@preload', '@preload/*', '@tooling', '@tooling/*'],
-              message: 'Electron-side aliases are removed; import from @shared or use Tauri commands.',
+              message:
+                'Electron-side aliases are removed; import from @shared or use Tauri commands.',
             },
           ],
         },

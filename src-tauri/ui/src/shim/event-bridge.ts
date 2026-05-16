@@ -139,8 +139,7 @@ function translateUiMutation(event: UiMutationEvent): void {
     case 'conversation_updated':
     case 'conversation_deleted':
       emit('conversation.changed', event);
-      if (typeof event.task_id === 'string')
-        emit(`conversation.changed.${event.task_id}`, event);
+      if (typeof event.task_id === 'string') emit(`conversation.changed.${event.task_id}`, event);
       break;
 
     case 'terminal_created':

@@ -20,7 +20,6 @@
 // the missing route is loud, not silent.
 
 import { invoke as tauriInvoke } from '@tauri-apps/api/core';
-
 import { ptySessionMap } from './pty-session-map';
 
 export type ElectronArgs = unknown[];
@@ -201,10 +200,9 @@ const ROUTES: Record<string, Route> = {
     handler: async ([id, status]) => {
       const next = typeof status === 'string' ? status : '';
       try {
-        const value = await tauriInvoke(
-          next === 'archived' ? 'tasks_archive' : 'tasks_restore',
-          { id }
-        );
+        const value = await tauriInvoke(next === 'archived' ? 'tasks_archive' : 'tasks_restore', {
+          id,
+        });
         return { ok: true, value };
       } catch (e) {
         return { ok: false, error: e };
@@ -607,8 +605,7 @@ const ROUTES: Record<string, Route> = {
     handler: async ([sessionId, data]) => {
       const ptyId = typeof sessionId === 'string' ? ptySessionMap.get(sessionId) : undefined;
       if (!ptyId) return { ok: false, error: { type: 'not_found' } };
-      const bytes =
-        typeof data === 'string' ? Array.from(new TextEncoder().encode(data)) : data;
+      const bytes = typeof data === 'string' ? Array.from(new TextEncoder().encode(data)) : data;
       try {
         await tauriInvoke('pty_write', { id: ptyId, bytes });
         return { ok: true };
