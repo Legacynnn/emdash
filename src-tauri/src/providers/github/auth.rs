@@ -22,11 +22,13 @@ use crate::secrets::{Secrets, SecretsError};
 
 use super::TOKEN_SECRET_KEY;
 
-/// emdash's GitHub OAuth app (the one the Electron build uses). The
-/// client ID is public; the device flow doesn't need a client secret.
-/// **If this changes, rotate the constant and document it in the next
-/// ADR.**
-const GH_CLIENT_ID: &str = "Ov23liNqGq9F4O7B2DwY";
+/// emdash-dev's GitHub OAuth app. The client ID is public; device
+/// flow doesn't need a client secret. The upstream `generalaction`
+/// app the Electron build used (`Ov23liNqGq9F4O7B2DwY`) returns 404
+/// for our fork, so this constant points at our own OAuth app
+/// registered under the Legacynnn/emdash project. **If this rotates,
+/// update here and document in an ADR.**
+const GH_CLIENT_ID: &str = "Ov23liaa6J3alg8LqcNW";
 const DEVICE_CODE_URL: &str = "https://github.com/login/device/code";
 const ACCESS_TOKEN_URL: &str = "https://github.com/login/oauth/access_token";
 const POLL_TIMEOUT_SECS: u64 = 600; // GitHub's device code lifetime is 15 min; we cap polling at 10.
