@@ -68,6 +68,7 @@ export const CreateWorkspaceModal = observer(function CreateWorkspaceModal({
   const [selectedStrategy, setSelectedStrategy] = useState<CreateWorkspaceStrategy>(strategy);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [useBYOI, setUseBYOI] = useState(false);
+  const [placement, setPlacement] = useState<'worktree' | 'local'>('worktree');
 
   const projectData = selectedProjectId
     ? mountedProjectData(getProjectManagerStore().projects.get(selectedProjectId))
@@ -101,6 +102,24 @@ export const CreateWorkspaceModal = observer(function CreateWorkspaceModal({
   const fromBranch = useFromBranchMode(selectedProjectId, defaultBranch, isUnborn, currentBranch);
   const fromIssue = useFromIssueMode(selectedProjectId, defaultBranch, isUnborn, currentBranch);
   const fromPR = useFromPullRequestMode(selectedProjectId, defaultBranch, isUnborn, initialPR);
+
+  // Keep the per-tab branch-selection state's placementMode in sync with
+  // the modal-level placement toggle. `local-existing` is unused for now —
+  // any future "switch to an existing branch" UX can layer it on without
+  // touching this toggle.
+  useEffect(() => {
+    const mode = placement === 'local' ? 'local-new' : 'worktree';
+    fromBranch.setPlacementMode(mode);
+    fromIssue.setPlacementMode(mode);
+  }, [placement, fromBranch, fromIssue]);
+
+  // Local placement doesn't apply to from-pull-request (a PR review wants
+  // its own worktree). Snap back to worktree if the user switches to PR.
+  useEffect(() => {
+    if (selectedStrategy === 'from-pull-request' && placement === 'local') {
+      setPlacement('worktree');
+    }
+  }, [selectedStrategy, placement]);
   const fromPrUnavailable = selectedStrategy === 'from-pull-request' && !repositoryUrl;
 
   const activeMode = {
@@ -134,13 +153,8 @@ export const CreateWorkspaceModal = observer(function CreateWorkspaceModal({
         const taskStrategy = resolveBranchLikeTaskStrategy({
           isUnborn,
           createBranchAndWorktree: fromBranch.createBranchAndWorktree,
-          placementMode: fromBranch.placementMode,
+          placementMode: placement === 'local' ? 'local-new' : 'worktree',
           workspaceBranch: fromBranch.taskName,
-          existingBranch:
-            fromBranch.placementMode === 'local-existing' &&
-            fromBranch.selectedBranch.type === 'local'
-              ? fromBranch.selectedBranch.branch
-              : undefined,
           pushBranch: fromBranch.pushBranch,
         });
         void projectStore.mountedProject!.taskManager.createTask({
@@ -159,13 +173,8 @@ export const CreateWorkspaceModal = observer(function CreateWorkspaceModal({
         const taskStrategy = resolveBranchLikeTaskStrategy({
           isUnborn,
           createBranchAndWorktree: fromIssue.createBranchAndWorktree,
-          placementMode: fromIssue.placementMode,
+          placementMode: placement === 'local' ? 'local-new' : 'worktree',
           workspaceBranch: fromIssue.taskName,
-          existingBranch:
-            fromIssue.placementMode === 'local-existing' &&
-            fromIssue.selectedBranch.type === 'local'
-              ? fromIssue.selectedBranch.branch
-              : undefined,
           pushBranch: fromIssue.pushBranch,
         });
         void projectStore.mountedProject!.taskManager.createTask({
@@ -217,6 +226,7 @@ export const CreateWorkspaceModal = observer(function CreateWorkspaceModal({
     fromPR,
     isUnborn,
     useBYOI,
+    placement,
     initialConversation,
     autoApproveDefaults,
     navigate,
@@ -265,6 +275,27 @@ export const CreateWorkspaceModal = observer(function CreateWorkspaceModal({
             <span className="text-sm text-muted-foreground">Use BYOI infrastructure</span>
           </div>
         )}
+        <ToggleGroup
+          className="w-full"
+          value={[placement]}
+          onValueChange={([value]) => {
+            if (!value) return;
+            const next = value as 'worktree' | 'local';
+            if (next === 'local' && selectedStrategy === 'from-pull-request') return;
+            setPlacement(next);
+          }}
+        >
+          <ToggleGroupItem className="flex-1" value="worktree">
+            Worktree
+          </ToggleGroupItem>
+          <ToggleGroupItem
+            className="flex-1"
+            value="local"
+            disabled={selectedStrategy === 'from-pull-request' || isUnborn}
+          >
+            Work locally
+          </ToggleGroupItem>
+        </ToggleGroup>
         <AnimatedHeight onAnimatingChange={setIsTransitioning}>
           {selectedStrategy === 'from-branch' && (
             <FromBranchContent
