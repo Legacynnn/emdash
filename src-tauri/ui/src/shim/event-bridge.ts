@@ -135,6 +135,21 @@ function translateUiMutation(event: UiMutationEvent): void {
       if (typeof event.team === 'string') emit(`linear.data-changed.${event.team}`, event);
       break;
 
+    case 'conversation_created':
+    case 'conversation_updated':
+    case 'conversation_deleted':
+      emit('conversation.changed', event);
+      if (typeof event.task_id === 'string')
+        emit(`conversation.changed.${event.task_id}`, event);
+      break;
+
+    case 'terminal_created':
+    case 'terminal_updated':
+    case 'terminal_deleted':
+      emit('terminal.changed', event);
+      if (typeof event.task_id === 'string') emit(`terminal.changed.${event.task_id}`, event);
+      break;
+
     default:
       // Unknown variant — broadcast under a generic channel so the
       // renderer's debug listeners can still see it.

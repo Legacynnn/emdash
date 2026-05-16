@@ -164,6 +164,11 @@ export const commands = {
 } | null, FsCommandError>(__TAURI_INVOKE("fs_stat_file", { path })),
 	fsListFiles: (path: string, includeHidden: boolean | null) => typedError<FsListEntry[], FsCommandError>(__TAURI_INVOKE("fs_list_files", { path, includeHidden })),
 	fsReadImage: (path: string) => typedError<FsImageData, FsCommandError>(__TAURI_INVOKE("fs_read_image", { path })),
+	conversationsListForTask: (taskId: string) => typedError<Conversation[], ConversationsCommandError>(__TAURI_INVOKE("conversations_list_for_task", { taskId })),
+	conversationsCreate: (input: NewConversationInput) => typedError<Conversation, ConversationsCommandError>(__TAURI_INVOKE("conversations_create", { input })),
+	conversationsRename: (id: string, title: string) => typedError<null, ConversationsCommandError>(__TAURI_INVOKE("conversations_rename", { id, title })),
+	conversationsTouch: (id: string) => typedError<null, ConversationsCommandError>(__TAURI_INVOKE("conversations_touch", { id })),
+	conversationsDelete: (id: string) => typedError<null, ConversationsCommandError>(__TAURI_INVOKE("conversations_delete", { id })),
 };
 
 /* Types */
@@ -234,6 +239,32 @@ export type AppErrorCode = "io" | "unsupported" | "cancelled";
  *  surfaces a louder error message).
  */
 export type CheckReason = "startup" | "resume" | "focus" | "interval" | "manual";
+
+/**
+ *  Projection of a `conversations` row that the renderer consumes. The
+ *  `config` column stores agent-specific JSON (e.g. `{ "autoApprove":
+ *  true }` for claude); we surface it as an opaque string and let the
+ *  renderer decode where needed.
+ */
+export type Conversation = {
+	id: string,
+	project_id: string,
+	task_id: string,
+	title: string,
+	provider: string | null,
+	config: string | null,
+	is_initial_conversation: boolean,
+	last_interacted_at: string | null,
+	created_at: string,
+	updated_at: string,
+};
+
+export type ConversationsCommandError = {
+	code: ConversationsErrorCode,
+	message: string,
+};
+
+export type ConversationsErrorCode = "not_found" | "task_not_found" | "empty_title" | "storage";
 
 /**
  *  Opaque handle for the renderer to pass back to
@@ -441,6 +472,15 @@ export type LinearWorkflowState = {
 	color: string,
 };
 
+export type NewConversationInput = {
+	project_id: string,
+	task_id: string,
+	title: string,
+	provider: string | null,
+	config: string | null,
+	is_initial_conversation: boolean | null,
+};
+
 export type NotificationKind = "general" | "permission_prompt" | "tool_use" | "status" | 
 /**  EMD-23+: agent is idle / awaiting input (e.g. ready prompt). */
 "idle_prompt" | 
@@ -617,7 +657,13 @@ export type UiMutationEvent = { kind: "project_created"; id: string } | { kind: 
  *  `None` when the host stopped the agent before the child
  *  process reported a code.
  */
-{ kind: "agent_exited"; task_id: string; exit_code: number | null };
+{ kind: "agent_exited"; task_id: string; exit_code: number | null } | 
+/**  A conversation was created under a task. */
+{ kind: "conversation_created"; id: string; task_id: string; project_id: string } | 
+/**  A conversation was renamed or had its recency bumped. */
+{ kind: "conversation_updated"; id: string; task_id: string; project_id: string } | { kind: "conversation_deleted"; id: string; task_id: string; project_id: string } | 
+/**  Terminal tabs are siblings of conversations under a task. */
+{ kind: "terminal_created"; id: string; task_id: string; project_id: string } | { kind: "terminal_updated"; id: string; task_id: string; project_id: string } | { kind: "terminal_deleted"; id: string; task_id: string; project_id: string };
 
 /**
  *  Stable machine-readable error code. The renderer matches on this

@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use emdash_dev::agent_hooks::classifier::ClaudeClassifier;
 use emdash_dev::agent_hooks::{ClassifierRegistry, HookServer, HookServerHandle};
+use emdash_dev::conversations::ConversationsService;
 use emdash_dev::db::Db;
 use emdash_dev::fs_watcher::WatcherRegistry;
 use emdash_dev::projects::ProjectsService;
@@ -101,6 +102,7 @@ pub fn run() {
             let workspace_fs_lock: Arc<WorkspaceFsMutationLock> =
                 Arc::new(WorkspaceFsMutationLock::new());
             let tasks = Arc::new(TasksService::new(db.clone(), workspace_fs_lock.clone()));
+            let conversations = Arc::new(ConversationsService::new(db.clone()));
             // Telemetry::new spawns a Tokio worker; the Tauri setup
             // callback isn't inside a runtime context, so enter Tauri's
             // own runtime to host the spawn (same pattern as the
@@ -150,6 +152,7 @@ pub fn run() {
             app.manage(fs_watcher);
             app.manage(workspace_fs_lock);
             app.manage(tasks);
+            app.manage(conversations);
             app.manage(telemetry);
             app.manage(updater);
             app.manage(classifier_registry);

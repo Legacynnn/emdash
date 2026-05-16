@@ -85,6 +85,11 @@ pub fn build_specta() -> Builder<tauri::Wry> {
         commands::fs::fs_stat_file,
         commands::fs::fs_list_files,
         commands::fs::fs_read_image,
+        commands::conversations::conversations_list_for_task,
+        commands::conversations::conversations_create,
+        commands::conversations::conversations_rename,
+        commands::conversations::conversations_touch,
+        commands::conversations::conversations_delete,
     ])
 }
 

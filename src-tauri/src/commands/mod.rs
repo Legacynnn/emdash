@@ -2,6 +2,7 @@
 
 pub mod agents;
 pub mod app;
+pub mod conversations;
 pub mod editor_buffers;
 pub mod fs;
 pub mod fs_watcher;

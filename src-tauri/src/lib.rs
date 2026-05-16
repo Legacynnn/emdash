@@ -8,6 +8,7 @@ pub mod agent_hooks;
 pub mod agents;
 pub mod bindings_parser;
 pub mod commands;
+pub mod conversations;
 pub mod db;
 pub mod editor_buffers;
 pub mod fs_watcher;

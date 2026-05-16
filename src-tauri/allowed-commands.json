@@ -73,6 +73,11 @@
     "fs_file_exists",
     "fs_stat_file",
     "fs_list_files",
-    "fs_read_image"
+    "fs_read_image",
+    "conversations_list_for_task",
+    "conversations_create",
+    "conversations_rename",
+    "conversations_touch",
+    "conversations_delete"
   ]
 }

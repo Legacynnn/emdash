@@ -64,6 +64,18 @@ export function dispatchUiMutation(stores: Stores, event: UiMutationEvent): void
       // bytes via the dedicated Channel<Vec<u8>>; this arm is just for
       // store-level signals (e.g. agent status badge).
       return;
+    case 'conversation_created':
+    case 'conversation_updated':
+    case 'conversation_deleted':
+    case 'terminal_created':
+    case 'terminal_updated':
+    case 'terminal_deleted':
+      // Per-task conversation / terminal CRUD. The renderer-side store
+      // (Electron renderer) reloads via the `conversation.changed`
+      // and `terminal.changed` event-bus topics that the shim emits;
+      // the dispatch arm exists to keep the exhaustiveness check
+      // honest until a Tauri-native task store consumes these.
+      return;
   }
   // Exhaustiveness check: a new variant added to UiMutationEvent without a
   // case here makes this a compile error.

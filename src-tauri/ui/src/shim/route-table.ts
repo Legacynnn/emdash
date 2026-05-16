@@ -323,11 +323,40 @@ const ROUTES: Record<string, Route> = {
   'workspaces.createWorktree': STATIC_RESULT_OK_NULL,
 
   // == conversations ================================================
-  'conversations.getConversationsForTask': STATIC_EMPTY_ARRAY,
-  'conversations.createConversation': STATIC_RESULT_OK_NULL,
-  'conversations.deleteConversation': STATIC_VOID,
-  'conversations.renameConversation': STATIC_VOID,
-  'conversations.touchConversation': STATIC_VOID,
+  // Tauri-side service in `src/conversations` + glue in
+  // `commands/conversations`. Renderer's call shapes:
+  //   getConversationsForTask(taskId) → Result<Conversation[]>
+  //   createConversation(params) → Result<Conversation>
+  // The Tauri error envelope is exposed verbatim; the renderer's
+  // `rpc` helper normalizes `{code, message}` rejections into the
+  // standard Result envelope, so no transform is needed here.
+  'conversations.getConversationsForTask': {
+    kind: 'invoke',
+    command: 'conversations_list_for_task',
+    adapt: ([taskId]) => ({ taskId }),
+    transform: (value) => ({ ok: true, value }),
+  },
+  'conversations.createConversation': {
+    kind: 'invoke',
+    command: 'conversations_create',
+    adapt: ([params]) => ({ input: params }),
+    transform: (value) => ({ ok: true, value }),
+  },
+  'conversations.deleteConversation': {
+    kind: 'invoke',
+    command: 'conversations_delete',
+    adapt: ([id]) => ({ id }),
+  },
+  'conversations.renameConversation': {
+    kind: 'invoke',
+    command: 'conversations_rename',
+    adapt: ([id, title]) => ({ id, title }),
+  },
+  'conversations.touchConversation': {
+    kind: 'invoke',
+    command: 'conversations_touch',
+    adapt: ([id]) => ({ id }),
+  },
 
   // == terminals ====================================================
   'terminals.getTerminalsForTask': STATIC_EMPTY_ARRAY,

@@ -8,6 +8,7 @@ const DOMAIN_MODULES: &[&str] = &[
     "agent_hooks",
     "agents",
     "bindings_parser",
+    "conversations",
     "db",
     "editor_buffers",
     "fs_watcher",

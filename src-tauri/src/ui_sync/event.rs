@@ -63,4 +63,37 @@ pub enum UiMutationEvent {
         task_id: String,
         exit_code: Option<i32>,
     },
+    /// A conversation was created under a task.
+    ConversationCreated {
+        id: String,
+        task_id: String,
+        project_id: String,
+    },
+    /// A conversation was renamed or had its recency bumped.
+    ConversationUpdated {
+        id: String,
+        task_id: String,
+        project_id: String,
+    },
+    ConversationDeleted {
+        id: String,
+        task_id: String,
+        project_id: String,
+    },
+    /// Terminal tabs are siblings of conversations under a task.
+    TerminalCreated {
+        id: String,
+        task_id: String,
+        project_id: String,
+    },
+    TerminalUpdated {
+        id: String,
+        task_id: String,
+        project_id: String,
+    },
+    TerminalDeleted {
+        id: String,
+        task_id: String,
+        project_id: String,
+    },
 }
