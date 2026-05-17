@@ -3,7 +3,7 @@ source: tests/wire_format.rs
 expression: "serde_json::to_value(&event).unwrap()"
 ---
 {
+  "conversation_id": "conv-1",
   "kind": "agent_started",
-  "provider": "claude",
-  "workspace_id": "ws-1"
+  "provider": "claude"
 }

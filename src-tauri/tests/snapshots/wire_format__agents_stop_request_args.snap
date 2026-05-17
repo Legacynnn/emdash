@@ -3,5 +3,5 @@ source: tests/wire_format.rs
 expression: args
 ---
 {
-  "workspaceId": "ws-1"
+  "conversationId": "conv-1"
 }

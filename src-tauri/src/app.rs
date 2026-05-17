@@ -125,6 +125,7 @@ pub fn run() {
             let broadcaster: emdash_dev::agent_hooks::server::EventBroadcaster =
                 Arc::new(move |event| {
                     hook_broadcaster_ui_sync.broadcast(UiMutationEvent::AgentHookEvent {
+                        conversation_id: event.conversation_id.clone(),
                         workspace_id: event.workspace_id.clone(),
                         event,
                     });

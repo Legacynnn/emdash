@@ -45,8 +45,9 @@ export const SidebarTaskItem = observer(function SidebarTaskItem({
     params.workspaceId === workspaceId &&
     params.projectId === projectId;
 
-  const task = getWorkspaceStore(projectId, workspaceId)!;
+  const task = getWorkspaceStore(projectId, workspaceId);
   const taskManager = getWorkspaceManagerStore(projectId);
+  if (!task) return null;
 
   const isBootstrapping =
     task.state === 'unregistered' ||

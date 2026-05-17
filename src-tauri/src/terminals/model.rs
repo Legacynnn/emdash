@@ -19,6 +19,11 @@ pub struct Terminal {
 
 #[derive(Clone, Debug, Deserialize, Type)]
 pub struct NewTerminalInput {
+    /// Optional renderer-supplied id, mirroring the conversations
+    /// modal pattern (renderer pre-allocates the id so navigation can
+    /// target the row before the round-trip completes).
+    #[serde(default)]
+    pub id: Option<String>,
     pub project_id: String,
     pub workspace_id: String,
     pub name: String,

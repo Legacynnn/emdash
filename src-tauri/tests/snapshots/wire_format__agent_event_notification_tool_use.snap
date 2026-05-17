@@ -5,6 +5,7 @@ expression: "serde_json::to_value(&event).unwrap()"
 {
   "agent": "claude",
   "classifier": "claude",
+  "conversation_id": null,
   "kind": {
     "kind": "notification",
     "notification_kind": "tool_use"

@@ -353,7 +353,6 @@ fn workspace_response_shape() {
         source_branch: WorkspaceSourceBranch::Local {
             branch: "main".into(),
         },
-        pty_id: None,
         created_at: "2026-05-15 00:00:00".into(),
         updated_at: "2026-05-15 00:00:00".into(),
     };
@@ -377,7 +376,6 @@ fn workspace_response_local_shape() {
         source_branch: WorkspaceSourceBranch::Local {
             branch: "main".into(),
         },
-        pty_id: None,
         created_at: "2026-05-15 00:00:00".into(),
         updated_at: "2026-05-15 00:00:00".into(),
     };
@@ -859,6 +857,7 @@ fn agent_event_stop_wire_format() {
         kind: AgentEventKind::Stop,
         message: Some("session ended".into()),
         timestamp: "2026-05-15T17:00:00+00:00".into(),
+        conversation_id: None,
         workspace_id: None,
         project_id: None,
     };
@@ -877,6 +876,7 @@ fn agent_event_notification_tool_use_wire_format() {
         },
         message: Some("tool: Bash".into()),
         timestamp: "2026-05-15T17:00:00+00:00".into(),
+        conversation_id: None,
         workspace_id: None,
         project_id: None,
     };
@@ -895,6 +895,7 @@ fn agent_event_unknown_wire_format() {
         kind: AgentEventKind::Unknown,
         message: None,
         timestamp: "2026-05-15T17:00:00+00:00".into(),
+        conversation_id: None,
         workspace_id: None,
         project_id: None,
     };
@@ -911,10 +912,12 @@ fn ui_mutation_agent_hook_event_wire_format() {
         kind: AgentEventKind::Stop,
         message: None,
         timestamp: "2026-05-15T17:00:00+00:00".into(),
+        conversation_id: None,
         workspace_id: None,
         project_id: None,
     };
     let event = UiMutationEvent::AgentHookEvent {
+        conversation_id: Some("conv-1".into()),
         workspace_id: Some("ws-1".into()),
         event: inner,
     };
@@ -941,7 +944,7 @@ fn ui_mutation_github_data_changed_wire_format() {
 #[test]
 fn agents_start_wire_format() {
     let args = serde_json::json!({
-        "workspaceId": "ws-1",
+        "conversationId": "conv-1",
         "provider": "claude",
         "size": { "rows": 24, "cols": 80 },
     });
@@ -950,7 +953,7 @@ fn agents_start_wire_format() {
 
 #[test]
 fn agents_stop_wire_format() {
-    let args = serde_json::json!({ "workspaceId": "ws-1" });
+    let args = serde_json::json!({ "conversationId": "conv-1" });
     insta::assert_json_snapshot!("agents_stop_request_args", args);
 }
 
@@ -968,7 +971,7 @@ fn ui_mutation_agent_started_wire_format() {
     use emdash_dev::agents::AgentProvider;
     use emdash_dev::ui_sync::UiMutationEvent;
     let event = UiMutationEvent::AgentStarted {
-        workspace_id: "ws-1".into(),
+        conversation_id: "conv-1".into(),
         provider: AgentProvider::Claude,
     };
     insta::assert_json_snapshot!(
@@ -981,7 +984,7 @@ fn ui_mutation_agent_started_wire_format() {
 fn ui_mutation_agent_exited_wire_format() {
     use emdash_dev::ui_sync::UiMutationEvent;
     let event = UiMutationEvent::AgentExited {
-        workspace_id: "ws-1".into(),
+        conversation_id: "conv-1".into(),
         exit_code: Some(0),
     };
     insta::assert_json_snapshot!(

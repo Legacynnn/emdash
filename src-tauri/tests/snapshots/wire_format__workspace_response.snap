@@ -9,7 +9,6 @@ expression: "serde_json::to_value(&workspace).unwrap()"
   "path": "/Users/example/code/repo/.emdash-worktrees/feature-x",
   "placement": "worktree",
   "project_id": "00000000-0000-0000-0000-000000000002",
-  "pty_id": null,
   "source_branch": {
     "branch": "main",
     "type": "local"

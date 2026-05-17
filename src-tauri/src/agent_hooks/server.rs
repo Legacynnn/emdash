@@ -117,6 +117,15 @@ impl HookServer {
 #[derive(Debug, Deserialize)]
 struct HookBody {
     agent: String,
+    /// Optional routing keys the user-configured hook command may
+    /// forward from the spawn env (`EMDASH_CONVERSATION_ID` /
+    /// `EMDASH_WORKSPACE_ID`). When absent the renderer falls back to
+    /// fanning the event out to any working conversation in the
+    /// workspace, but explicit routing is cheaper and unambiguous.
+    #[serde(default)]
+    conversation_id: Option<String>,
+    #[serde(default)]
+    workspace_id: Option<String>,
     #[serde(flatten)]
     rest: serde_json::Value,
 }
@@ -177,7 +186,8 @@ async fn handle_hook(
         kind: classified.kind,
         message: classified.message,
         timestamp: Utc::now().to_rfc3339(),
-        workspace_id: None,
+        conversation_id: parsed.conversation_id,
+        workspace_id: parsed.workspace_id,
         project_id: None,
     };
     (state.broadcaster)(event);

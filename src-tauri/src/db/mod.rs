@@ -182,7 +182,9 @@ mod tests {
         let (_dir, db) = open_temp_db();
         let conn = db.read().unwrap();
         let v: i64 = pragma(&conn, "user_version");
-        assert_eq!(v, 1, "migrations must have run during open()");
+        // Bootstrap (=1) + tasks→workspaces rename (=2) + child-table rebuild (=3)
+        // + per-conversation pty_id move (=4).
+        assert_eq!(v, 4, "migrations must have run during open()");
     }
 
     #[test]

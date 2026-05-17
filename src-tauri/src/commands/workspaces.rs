@@ -106,6 +106,18 @@ pub fn workspaces_list(
     service.list(&project_id).map_err(Into::into)
 }
 
+/// Look up a single workspace by id. Returns `None` if the workspace
+/// doesn't exist. Used by the renderer's `provisionWorkspace` flow to
+/// fetch the on-disk path after the atomic `workspaces_create` returns.
+#[tauri::command]
+#[specta::specta]
+pub fn workspaces_get(
+    service: State<'_, Arc<WorkspacesService>>,
+    id: String,
+) -> Result<Option<Workspace>, WorkspacesCommandError> {
+    service.get(&id).map_err(Into::into)
+}
+
 #[tauri::command]
 #[specta::specta]
 pub fn workspaces_create(

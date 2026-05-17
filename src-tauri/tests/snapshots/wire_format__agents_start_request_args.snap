@@ -3,10 +3,10 @@ source: tests/wire_format.rs
 expression: args
 ---
 {
+  "conversationId": "conv-1",
   "provider": "claude",
   "size": {
     "cols": 80,
     "rows": 24
-  },
-  "workspaceId": "ws-1"
+  }
 }

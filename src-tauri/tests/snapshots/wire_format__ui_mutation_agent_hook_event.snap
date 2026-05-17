@@ -3,9 +3,11 @@ source: tests/wire_format.rs
 expression: "serde_json::to_value(&event).unwrap()"
 ---
 {
+  "conversation_id": "conv-1",
   "event": {
     "agent": "claude",
     "classifier": "claude",
+    "conversation_id": null,
     "kind": {
       "kind": "stop"
     },

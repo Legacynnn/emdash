@@ -19,7 +19,6 @@ pub struct Workspace {
     pub placement: WorkspacePlacement,
     pub path: String,
     pub source_branch: WorkspaceSourceBranch,
-    pub pty_id: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }

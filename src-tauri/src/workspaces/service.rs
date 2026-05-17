@@ -38,7 +38,7 @@ impl WorkspacesService {
     pub fn list(&self, project_id: &str) -> Result<Vec<Workspace>, WorkspacesError> {
         let conn = self.db.read()?;
         let mut stmt = conn.prepare(
-            "SELECT id, project_id, name, status, placement, path, source_branch, pty_id, created_at, updated_at \
+            "SELECT id, project_id, name, status, placement, path, source_branch, created_at, updated_at \
              FROM workspaces \
              WHERE project_id = ? AND archived_at IS NULL \
              ORDER BY created_at DESC, id ASC",
@@ -53,7 +53,7 @@ impl WorkspacesService {
         let conn = self.db.read()?;
         let row = conn
             .query_row(
-                "SELECT id, project_id, name, status, placement, path, source_branch, pty_id, created_at, updated_at \
+                "SELECT id, project_id, name, status, placement, path, source_branch, created_at, updated_at \
                  FROM workspaces WHERE id = ?",
                 params![workspace_id],
                 row_to_workspace,
@@ -355,7 +355,7 @@ impl WorkspacesService {
         let mut stmt = conn.prepare(
             "INSERT INTO workspaces (id, project_id, name, status, placement, path, source_branch, workspace_branch) \
              VALUES (?, ?, ?, 'active', ?, ?, ?, ?) \
-             RETURNING id, project_id, name, status, placement, path, source_branch, pty_id, created_at, updated_at",
+             RETURNING id, project_id, name, status, placement, path, source_branch, created_at, updated_at",
         )?;
         let raw = stmt.query_row(
             params![id, project_id, name, placement_str, &path_str, &source_json, workspace_branch],
@@ -512,7 +512,6 @@ struct RawWorkspace {
     placement: String,
     path: String,
     source_branch_json: Option<String>,
-    pty_id: Option<String>,
     created_at: String,
     updated_at: String,
 }
@@ -526,9 +525,8 @@ fn row_to_workspace(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawWorkspace> {
         placement: row.get(4)?,
         path: row.get(5)?,
         source_branch_json: row.get(6)?,
-        pty_id: row.get(7)?,
-        created_at: row.get(8)?,
-        updated_at: row.get(9)?,
+        created_at: row.get(7)?,
+        updated_at: row.get(8)?,
     })
 }
 
@@ -568,7 +566,6 @@ fn decode_row(raw: RawWorkspace) -> Result<Workspace, WorkspacesError> {
         placement,
         path: raw.path,
         source_branch,
-        pty_id: raw.pty_id,
         created_at: raw.created_at,
         updated_at: raw.updated_at,
     })

@@ -26,6 +26,12 @@ pub struct Conversation {
 
 #[derive(Clone, Debug, Deserialize, Type)]
 pub struct NewConversationInput {
+    /// Optional renderer-supplied id. When `None`, the service
+    /// generates a fresh UUID. The create-conversation modal pre-
+    /// allocates an id so its post-create navigation can target the
+    /// row before the round-trip completes.
+    #[serde(default)]
+    pub id: Option<String>,
     pub project_id: String,
     pub workspace_id: String,
     pub title: String,

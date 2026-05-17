@@ -25,6 +25,22 @@ export const commands = {
 	fsWatcherSubscribe: (id: string, path: string, onEvent: Channel<WatchEvent>) => typedError<WatcherFallback, FsWatcherCommandError>(__TAURI_INVOKE("fs_watcher_subscribe", { id, path, onEvent })),
 	fsWatcherUnsubscribe: (id: string) => typedError<boolean, FsWatcherCommandError>(__TAURI_INVOKE("fs_watcher_unsubscribe", { id })),
 	workspacesList: (projectId: string) => typedError<Workspace[], WorkspacesCommandError_Serialize>(__TAURI_INVOKE("workspaces_list", { projectId })),
+	/**
+	 *  Look up a single workspace by id. Returns `None` if the workspace
+	 *  doesn't exist. Used by the renderer's `provisionWorkspace` flow to
+	 *  fetch the on-disk path after the atomic `workspaces_create` returns.
+	 */
+	workspacesGet: (id: string) => typedError<{
+	id: string,
+	project_id: string,
+	name: string,
+	status: WorkspaceStatus,
+	placement: WorkspacePlacement,
+	path: string,
+	source_branch: WorkspaceSourceBranch,
+	created_at: string,
+	updated_at: string,
+} | null, WorkspacesCommandError_Serialize>(__TAURI_INVOKE("workspaces_get", { id })),
 	workspacesCreate: (projectId: string, name: string, sourceBranch: WorkspaceSourceBranch, workspaceBranch: string | null, placement: WorkspacePlacement, existingBranch: boolean) => typedError<Workspace, WorkspacesCommandError_Serialize>(__TAURI_INVOKE("workspaces_create", { projectId, name, sourceBranch, workspaceBranch, placement, existingBranch })),
 	workspacesDelete: (id: string) => typedError<null, WorkspacesCommandError_Serialize>(__TAURI_INVOKE("workspaces_delete", { id })),
 	telemetryGetEnabled: () => typedError<boolean, TelemetryCommandError>(__TAURI_INVOKE("telemetry_get_enabled")),
@@ -95,18 +111,26 @@ export const commands = {
 	linearListComments: (issueId: string) => typedError<LinearIssueComment[], LinearCommandError>(__TAURI_INVOKE("linear_list_comments", { issueId })),
 	linearCreateComment: (issueId: string, body: string) => typedError<LinearIssueComment, LinearCommandError>(__TAURI_INVOKE("linear_create_comment", { issueId, body })),
 	/**
-	 *  Spawn `provider` for `workspace_id`. Returns the PTY id so the
+	 *  Spawn `provider` for `conversation_id`. Returns the PTY id so the
 	 *  renderer can wire `pty_write` / `pty_resize` / `pty_kill` to the
-	 *  same id without a follow-up lookup.
+	 *  same id without a follow-up lookup. Each conversation owns its
+	 *  own agent process — multiple conversations in the same workspace
+	 *  run independent `claude` / `codex` / etc. instances.
 	 */
-	agentsStart: (workspaceId: string, provider: AgentProvider, size: PtySize, onOutput: Channel<number[]>) => typedError<PtyId, AgentsCommandError>(__TAURI_INVOKE("agents_start", { workspaceId, provider, size, onOutput })),
-	agentsStop: (workspaceId: string) => typedError<null, AgentsCommandError>(__TAURI_INVOKE("agents_stop", { workspaceId })),
+	agentsStart: (conversationId: string, provider: AgentProvider, size: PtySize, onOutput: Channel<number[]>) => typedError<PtyId, AgentsCommandError>(__TAURI_INVOKE("agents_start", { conversationId, provider, size, onOutput })),
+	agentsStop: (conversationId: string) => typedError<null, AgentsCommandError>(__TAURI_INVOKE("agents_stop", { conversationId })),
 	agentsListProviders: () => __TAURI_INVOKE<ProviderSpec[]>("agents_list_providers"),
 	/**
 	 *  Cargo-derived version string. The renderer's about-screen displays
 	 *  this verbatim.
 	 */
 	appGetVersion: () => __TAURI_INVOKE<string>("app_get_version"),
+	/**
+	 *  Echo a renderer-side log line into the host's stderr. The shim uses
+	 *  this for runtime errors that would otherwise be hidden inside the
+	 *  webview console (no DevTools available headlessly).
+	 */
+	appLogRenderer: (level: string, message: string) => __TAURI_INVOKE<void>("app_log_renderer", { level, message }),
 	/**
 	 *  Best-effort platform string matching the renderer's expected
 	 *  values: `"darwin" | "linux" | "win32"`. (The Tauri webview can
@@ -256,9 +280,9 @@ export const commands = {
 /* Types */
 /**
  *  Renderer-visible projection of one classified hook event.
- *  `workspace_id` / `project_id` are filled in by the agent-spawn site
- *  (EMD-27) once it lands; until then they're `None` for every
- *  event.
+ *  `conversation_id` / `workspace_id` / `project_id` are filled in
+ *  by the agent-spawn site (EMD-27) — agents are per-conversation
+ *  now, so the conversation id is the primary routing key.
  */
 export type AgentEvent = {
 	agent: string,
@@ -272,10 +296,11 @@ export type AgentEvent = {
 	 */
 	timestamp: string,
 	/**
-	 *  Set by the agent-spawn site (EMD-27) when it injects the
-	 *  hook env vars; `None` for raw events received before any
-	 *  spawn integration.
+	 *  Primary routing key. `None` for hook events received before
+	 *  the renderer's user-configured hook command propagates
+	 *  `EMDASH_CONVERSATION_ID` into the POST body.
 	 */
+	conversation_id: string | null,
 	workspace_id: string | null,
 	project_id: string | null,
 };
@@ -305,7 +330,7 @@ export type AgentsCommandError = {
 	message: string,
 };
 
-export type AgentsErrorCode = "workspace_not_found" | "already_running" | "spawn_failed" | "storage";
+export type AgentsErrorCode = "conversation_not_found" | "workspace_not_found" | "already_running" | "spawn_failed" | "storage";
 
 export type AppCommandError = {
 	code: AppErrorCode,
@@ -743,6 +768,13 @@ export type McpServer_Serialize = {
 export type McpTransport = "stdio" | "http";
 
 export type NewConversationInput = {
+	/**
+	 *  Optional renderer-supplied id. When `None`, the service
+	 *  generates a fresh UUID. The create-conversation modal pre-
+	 *  allocates an id so its post-create navigation can target the
+	 *  row before the round-trip completes.
+	 */
+	id?: string | null,
 	project_id: string,
 	workspace_id: string,
 	title: string,
@@ -752,6 +784,12 @@ export type NewConversationInput = {
 };
 
 export type NewTerminalInput = {
+	/**
+	 *  Optional renderer-supplied id, mirroring the conversations
+	 *  modal pattern (renderer pre-allocates the id so navigation can
+	 *  target the row before the round-trip completes).
+	 */
+	id?: string | null,
 	project_id: string,
 	workspace_id: string,
 	name: string,
@@ -968,10 +1006,12 @@ export type TokenSource = "secure_storage" | "cli";
 
 export type UiMutationEvent = { kind: "project_created"; id: string } | { kind: "project_updated"; id: string } | { kind: "project_deleted"; id: string } | { kind: "workspace_created"; id: string; project_id: string } | { kind: "workspace_updated"; id: string; project_id: string } | { kind: "workspace_deleted"; id: string; project_id: string } | 
 /**
- *  One classified agent-hook event (EMD-9). `workspace_id` is `None`
- *  until the agent-spawn site (EMD-27) injects coordinates.
+ *  One classified agent-hook event (EMD-9). `conversation_id` is
+ *  the primary routing key now that agents are per-conversation;
+ *  `workspace_id` is retained for the renderer's fan-out fallback
+ *  when the hook command didn't propagate `EMDASH_CONVERSATION_ID`.
  */
-{ kind: "agent_hook_event"; workspace_id: string | null; event: AgentEvent } | 
+{ kind: "agent_hook_event"; conversation_id: string | null; workspace_id: string | null; event: AgentEvent } | 
 /**  EMD-13: GitHub identity changed (sign-in / sign-out / refresh). */
 { kind: "github_identity_changed" } | 
 /**
@@ -983,14 +1023,18 @@ export type UiMutationEvent = { kind: "project_created"; id: string } | { kind: 
 { kind: "linear_identity_changed" } | 
 /**  EMD-14: Linear team-scoped data changed (issues, comments). */
 { kind: "linear_data_changed"; team: string } | 
-/**  EMD-27: an agent started for the named workspace. */
-{ kind: "agent_started"; workspace_id: string; provider: AgentProvider } | 
+/**
+ *  EMD-27: an agent started for the named conversation. Per-
+ *  conversation routing (each conversation tab owns its own agent
+ *  process) replaces the earlier one-per-workspace constraint.
+ */
+{ kind: "agent_started"; conversation_id: string; provider: AgentProvider } | 
 /**
  *  EMD-27: an agent exited (clean or killed). `exit_code` is
  *  `None` when the host stopped the agent before the child
  *  process reported a code.
  */
-{ kind: "agent_exited"; workspace_id: string; exit_code: number | null } | 
+{ kind: "agent_exited"; conversation_id: string; exit_code: number | null } | 
 /**  A conversation was created under a workspace. */
 { kind: "conversation_created"; id: string; workspace_id: string; project_id: string } | 
 /**  A conversation was renamed or had its recency bumped. */
@@ -1095,7 +1139,6 @@ export type Workspace = {
 	placement: WorkspacePlacement,
 	path: string,
 	source_branch: WorkspaceSourceBranch,
-	pty_id: string | null,
 	created_at: string,
 	updated_at: string,
 };

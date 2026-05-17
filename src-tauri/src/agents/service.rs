@@ -1,14 +1,15 @@
-//! `AgentService` — start/stop an agent for a workspace.
+//! `AgentService` — start/stop an agent for a conversation.
 //!
 //! Composes:
-//! - `workspaces::WorkspacesService` to resolve the workspace → path,
-//!   `pty_id` column update on start/stop
+//! - `conversations` table for the conversation's workspace + `pty_id`
+//!   column update on start/stop
+//! - `workspaces` table to resolve the conversation's workspace → path
 //! - `pty::Registry` to spawn the PTY itself
 //! - `shell_env::shell_env()` for the captured login-shell env
 //! - `agent_hooks::inject_hook_env_into` to plant the hook URL +
-//!   token before spawn
-//! - `WorkspaceFsMutationLock` (re-used from workspaces) so concurrent
-//!   start/stop on the same workspace serialize cleanly
+//!   token + conversation id before spawn
+//! - `WorkspaceFsMutationLock` (re-used) so concurrent start/stop on
+//!   the same conversation serialize cleanly
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -28,9 +29,11 @@ use super::provider::{provider_spec, AgentProvider};
 
 #[derive(Debug, Error)]
 pub enum AgentsError {
-    #[error("workspace not found: {0}")]
+    #[error("conversation not found: {0}")]
+    ConversationNotFound(String),
+    #[error("workspace not found for conversation: {0}")]
     WorkspaceNotFound(String),
-    #[error("workspace already has an agent running (pty {0})")]
+    #[error("conversation already has an agent running (pty {0})")]
     AlreadyRunning(String),
     #[error("db error: {0}")]
     Db(#[from] DbError),
@@ -76,25 +79,25 @@ impl AgentService {
         }
     }
 
-    /// Start an agent for `workspace_id`. Returns the freshly-spawned
+    /// Start an agent for `conversation_id`. Returns the freshly-spawned
     /// `PtyId`. Side effects:
-    /// - `workspaces.pty_id` updated to the new PTY id
+    /// - `conversations.pty_id` updated to the new PTY id
     /// - PTY output streamed via `on_output`
-    /// - hook env vars injected at spawn time
+    /// - hook env vars + `EMDASH_CONVERSATION_ID` injected at spawn time
     pub fn start(
         &self,
-        workspace_id: &str,
+        conversation_id: &str,
         provider: AgentProvider,
         size: PtySize,
         on_output: OutputCallback,
     ) -> Result<PtyId, AgentsError> {
-        // Serialize start/stop on the same workspace so concurrent
+        // Serialize start/stop on the same conversation so concurrent
         // requests can't double-spawn.
-        let mutex = self.fs_lock.lock_for(workspace_id);
+        let mutex = self.fs_lock.lock_for(conversation_id);
         let _guard = mutex.lock();
 
-        let (workspace_path, existing_pty_id) = self.fetch_workspace_meta(workspace_id)?;
-        if let Some(existing) = existing_pty_id {
+        let meta = self.fetch_conversation_meta(conversation_id)?;
+        if let Some(existing) = meta.pty_id {
             return Err(AgentsError::AlreadyRunning(existing));
         }
 
@@ -104,11 +107,23 @@ impl AgentService {
             env.insert(k.clone(), v.clone());
         }
         agent_hooks::inject_hook_env_into(&mut env, self.hook_port, &self.hook_token);
+        // Per-conversation routing for hook callbacks. User-configured
+        // hook commands (e.g. in `~/.claude/settings.json`) can forward
+        // this into the POST body so the hook server attributes the
+        // event to the right conversation.
+        env.insert(
+            "EMDASH_CONVERSATION_ID".to_string(),
+            conversation_id.to_string(),
+        );
+        env.insert(
+            "EMDASH_WORKSPACE_ID".to_string(),
+            meta.workspace_id.clone(),
+        );
 
         let opts = SpawnOptions {
             command: spec.binary.to_string(),
             args: spec.args.clone(),
-            cwd: Some(workspace_path.to_string_lossy().to_string()),
+            cwd: Some(meta.workspace_path.to_string_lossy().to_string()),
             env,
             size,
         };
@@ -118,57 +133,81 @@ impl AgentService {
             .spawn(opts, move |bytes| on_output(bytes))
             .map_err(|e| AgentsError::Pty(format!("{e:?}")))?;
 
-        self.update_workspace_pty_id(workspace_id, Some(&pty_id.0.to_string()))?;
+        self.update_conversation_pty_id(conversation_id, Some(&pty_id.0.to_string()))?;
         Ok(pty_id)
     }
 
-    /// Stop the running agent. Idempotent — calling on a workspace with
-    /// no agent is a no-op.
-    pub fn stop(&self, workspace_id: &str) -> Result<(), AgentsError> {
-        let mutex = self.fs_lock.lock_for(workspace_id);
+    /// Stop the running agent. Idempotent — calling on a conversation
+    /// with no agent is a no-op.
+    pub fn stop(&self, conversation_id: &str) -> Result<(), AgentsError> {
+        let mutex = self.fs_lock.lock_for(conversation_id);
         let _guard = mutex.lock();
 
-        let (_path, existing_pty_id) = self.fetch_workspace_meta(workspace_id)?;
-        if let Some(id_str) = existing_pty_id {
+        let meta = self.fetch_conversation_meta(conversation_id)?;
+        if let Some(id_str) = meta.pty_id {
             if let Ok(id_num) = id_str.parse::<u32>() {
                 let _ = self.pty.kill(PtyId(id_num));
             }
         }
-        self.update_workspace_pty_id(workspace_id, None)?;
+        self.update_conversation_pty_id(conversation_id, None)?;
         Ok(())
     }
 
-    /// `(workspace_path, current_pty_id)` for the workspace.
-    fn fetch_workspace_meta(
+    fn fetch_conversation_meta(
         &self,
-        workspace_id: &str,
-    ) -> Result<(PathBuf, Option<String>), AgentsError> {
+        conversation_id: &str,
+    ) -> Result<ConversationMeta, AgentsError> {
         use rusqlite::OptionalExtension;
         let conn = self.db.read()?;
+        // One join keeps workspace_id + workspace.path resolution atomic
+        // with the conversation lookup.
         let row = conn
             .query_row(
-                "SELECT path, pty_id FROM workspaces WHERE id = ?",
-                params![workspace_id],
-                |r| Ok((r.get::<_, String>(0)?, r.get::<_, Option<String>>(1)?)),
+                "SELECT c.workspace_id, w.path, c.pty_id
+                 FROM conversations c
+                 LEFT JOIN workspaces w ON w.id = c.workspace_id
+                 WHERE c.id = ?",
+                params![conversation_id],
+                |r| {
+                    Ok((
+                        r.get::<_, String>(0)?,
+                        r.get::<_, Option<String>>(1)?,
+                        r.get::<_, Option<String>>(2)?,
+                    ))
+                },
             )
             .optional()?;
-        let (path, pty_id) =
-            row.ok_or_else(|| AgentsError::WorkspaceNotFound(workspace_id.to_string()))?;
-        Ok((PathBuf::from(path), pty_id))
+        let (workspace_id, workspace_path, pty_id) = row
+            .ok_or_else(|| AgentsError::ConversationNotFound(conversation_id.to_string()))?;
+        let workspace_path = workspace_path
+            .ok_or_else(|| AgentsError::WorkspaceNotFound(workspace_id.clone()))?;
+        Ok(ConversationMeta {
+            workspace_id,
+            workspace_path: PathBuf::from(workspace_path),
+            pty_id,
+        })
     }
 
-    fn update_workspace_pty_id(
+    fn update_conversation_pty_id(
         &self,
-        workspace_id: &str,
+        conversation_id: &str,
         pty_id: Option<&str>,
     ) -> Result<(), AgentsError> {
         let conn = self.db.write()?;
         conn.execute(
-            "UPDATE workspaces SET pty_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-            params![pty_id, workspace_id],
+            "UPDATE conversations
+             SET pty_id = ?, updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?",
+            params![pty_id, conversation_id],
         )?;
         Ok(())
     }
+}
+
+struct ConversationMeta {
+    workspace_id: String,
+    workspace_path: PathBuf,
+    pty_id: Option<String>,
 }
 
 /// Convenience helper for the renderer-side stream wiring. The

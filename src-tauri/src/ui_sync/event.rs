@@ -32,9 +32,12 @@ pub enum UiMutationEvent {
         id: String,
         project_id: String,
     },
-    /// One classified agent-hook event (EMD-9). `workspace_id` is `None`
-    /// until the agent-spawn site (EMD-27) injects coordinates.
+    /// One classified agent-hook event (EMD-9). `conversation_id` is
+    /// the primary routing key now that agents are per-conversation;
+    /// `workspace_id` is retained for the renderer's fan-out fallback
+    /// when the hook command didn't propagate `EMDASH_CONVERSATION_ID`.
     AgentHookEvent {
+        conversation_id: Option<String>,
         workspace_id: Option<String>,
         event: crate::agent_hooks::AgentEvent,
     },
@@ -51,16 +54,18 @@ pub enum UiMutationEvent {
     LinearDataChanged {
         team: String,
     },
-    /// EMD-27: an agent started for the named workspace.
+    /// EMD-27: an agent started for the named conversation. Per-
+    /// conversation routing (each conversation tab owns its own agent
+    /// process) replaces the earlier one-per-workspace constraint.
     AgentStarted {
-        workspace_id: String,
+        conversation_id: String,
         provider: crate::agents::AgentProvider,
     },
     /// EMD-27: an agent exited (clean or killed). `exit_code` is
     /// `None` when the host stopped the agent before the child
     /// process reported a code.
     AgentExited {
-        workspace_id: String,
+        conversation_id: String,
         exit_code: Option<i32>,
     },
     /// A conversation was created under a workspace.

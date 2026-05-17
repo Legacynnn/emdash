@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 /// Renderer-visible projection of one classified hook event.
-/// `workspace_id` / `project_id` are filled in by the agent-spawn site
-/// (EMD-27) once it lands; until then they're `None` for every
-/// event.
+/// `conversation_id` / `workspace_id` / `project_id` are filled in
+/// by the agent-spawn site (EMD-27) — agents are per-conversation
+/// now, so the conversation id is the primary routing key.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
 pub struct AgentEvent {
     pub agent: String,
@@ -17,9 +17,10 @@ pub struct AgentEvent {
     /// string at the wire boundary because specta requires a
     /// dedicated feature flag to round-trip `chrono::DateTime`.
     pub timestamp: String,
-    /// Set by the agent-spawn site (EMD-27) when it injects the
-    /// hook env vars; `None` for raw events received before any
-    /// spawn integration.
+    /// Primary routing key. `None` for hook events received before
+    /// the renderer's user-configured hook command propagates
+    /// `EMDASH_CONVERSATION_ID` into the POST body.
+    pub conversation_id: Option<String>,
     pub workspace_id: Option<String>,
     pub project_id: Option<String>,
 }

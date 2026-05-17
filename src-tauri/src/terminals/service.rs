@@ -68,7 +68,7 @@ impl TerminalsService {
             return Err(TerminalsError::WorkspaceNotFound(input.workspace_id));
         }
 
-        let id = Uuid::new_v4().to_string();
+        let id = input.id.clone().unwrap_or_else(|| Uuid::new_v4().to_string());
         let conn = self.db.write()?;
         conn.execute(
             "INSERT INTO terminals (id, project_id, workspace_id, name, ssh) \

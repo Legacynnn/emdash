@@ -63,7 +63,7 @@ impl ConversationsService {
         if trimmed.is_empty() {
             return Err(ConversationsError::EmptyTitle);
         }
-        let id = Uuid::new_v4().to_string();
+        let id = input.id.clone().unwrap_or_else(|| Uuid::new_v4().to_string());
         let workspace_exists: bool = self
             .db
             .read()?

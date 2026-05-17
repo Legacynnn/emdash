@@ -33,6 +33,21 @@ pub fn app_get_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
 }
 
+/// Echo a renderer-side log line into the host's stderr. The shim uses
+/// this for runtime errors that would otherwise be hidden inside the
+/// webview console (no DevTools available headlessly).
+#[tauri::command]
+#[specta::specta]
+pub fn app_log_renderer(level: String, message: String) {
+    let tag = match level.to_ascii_lowercase().as_str() {
+        "error" => "ERROR",
+        "warn" => "WARN ",
+        "info" => "INFO ",
+        _ => "DEBUG",
+    };
+    eprintln!("[renderer] [{tag}] {message}");
+}
+
 /// Open a URL or file path in the user's default external handler.
 /// macOS: `open`, Linux: `xdg-open`, Windows: `start`.
 #[tauri::command]

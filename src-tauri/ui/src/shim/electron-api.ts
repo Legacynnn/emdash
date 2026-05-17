@@ -46,8 +46,7 @@ export class TauriShimNotImplementedError extends Error {
 async function shimInvoke(channel: string, ...args: unknown[]): Promise<unknown> {
   const route = resolveRoute(channel);
   if (!route) {
-    // Surface the missing route loudly so it shows up in the renderer's
-    // error reporting instead of being swallowed by a silent default.
+    logToHost('error', `missing route: ${channel} ${safeStringify(args)}`);
     // eslint-disable-next-line no-console
     console.warn(`[tauri-shim] missing route: ${channel}`, args);
     throw new TauriShimNotImplementedError(channel, args);
@@ -63,17 +62,38 @@ async function shimInvoke(channel: string, ...args: unknown[]): Promise<unknown>
       const result = await tauriInvoke(route.command, tauriArgs);
       return route.transform ? route.transform(result, args) : result;
     } catch (err) {
-      throw normalizeTauriError(err, channel);
+      const normalized = normalizeTauriError(err, channel);
+      logToHost('error', `invoke ${channel} → ${route.command}: ${normalized.message}`);
+      throw normalized;
     }
   }
 
   if (route.kind === 'custom') {
-    return route.handler(args);
+    try {
+      return await route.handler(args);
+    } catch (err) {
+      const normalized = normalizeTauriError(err, channel);
+      logToHost('error', `custom ${channel}: ${normalized.message}`);
+      throw normalized;
+    }
   }
 
   // Exhaustiveness guard.
   const _exhaustive: never = route;
   throw new Error(`[tauri-shim] unknown route kind: ${JSON.stringify(_exhaustive)}`);
+}
+
+function logToHost(level: 'error' | 'warn' | 'info' | 'debug', message: string): void {
+  // Best-effort — never throw from the log path itself.
+  tauriInvoke('app_log_renderer', { level, message }).catch(() => {});
+}
+
+function safeStringify(value: unknown): string {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
 }
 
 function shimEventSend(channel: string, data: unknown): void {
@@ -124,11 +144,25 @@ export function installElectronApiPolyfill(): void {
     getPathForFile: shimGetPathForFile,
   };
 
+  // Mirror uncaught errors + unhandled rejections to the host stderr
+  // so headless dev runs surface renderer-side breakage even without
+  // DevTools open.
+  window.addEventListener('error', (event) => {
+    const where = event.filename ? ` (${event.filename}:${event.lineno})` : '';
+    logToHost('error', `uncaught: ${event.message}${where}`);
+  });
+  window.addEventListener('unhandledrejection', (event) => {
+    const reason = event.reason;
+    const message = reason instanceof Error ? reason.message : safeStringify(reason);
+    logToHost('error', `unhandled rejection: ${message}`);
+  });
+
   // Subscribe to the single Tauri UiMutationEvent channel and fan out
   // to the renderer's per-channel listeners. Safe to start before the
   // renderer mounts because the bridge buffers nothing — listeners
   // register lazily via shimEventOn.
   installEventBridge().catch((err) => {
+    logToHost('error', `event bridge failed to install: ${String(err)}`);
     // eslint-disable-next-line no-console
     console.error('[tauri-shim] event bridge failed to install', err);
   });

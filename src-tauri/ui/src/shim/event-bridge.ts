@@ -76,6 +76,97 @@ interface UiMutationEvent {
   [key: string]: unknown;
 }
 
+// Rust `agent_hooks::AgentEvent` → renderer `AgentEventEnvelope`.
+// `conversation_id` is populated when the user-configured hook
+// command forwards `$EMDASH_CONVERSATION_ID` from the agent's env
+// into the POST body; when missing, the renderer falls back to
+// fanning events out to whichever conversation is currently
+// `working` (see `listenToAgentEvents`).
+function translateAgentHookEvent(raw: UiMutationEvent): {
+  event: {
+    type: 'notification' | 'stop' | 'error';
+    source: 'hook' | 'classifier';
+    providerId?: string;
+    projectId: string;
+    workspaceId: string;
+    conversationId: string;
+    timestamp: number;
+    payload: { notificationType?: string; message?: string };
+  };
+  appFocused: boolean;
+} | null {
+  const inner = raw.event as
+    | {
+        agent?: unknown;
+        classifier?: unknown;
+        kind?: unknown;
+        notification_kind?: unknown;
+        message?: unknown;
+        timestamp?: unknown;
+        workspace_id?: unknown;
+        project_id?: unknown;
+      }
+    | undefined;
+  if (!inner || typeof inner !== 'object') return null;
+
+  const tagged = inner as Record<string, unknown>;
+  const kindStr = typeof tagged.kind === 'string' ? tagged.kind : '';
+  let type: 'notification' | 'stop' | 'error' | null = null;
+  if (kindStr === 'stop') type = 'stop';
+  else if (kindStr === 'error') type = 'error';
+  else if (kindStr === 'notification') type = 'notification';
+  if (!type) return null;
+
+  const notificationKind =
+    typeof tagged.notification_kind === 'string' ? tagged.notification_kind : '';
+  // Rust NotificationKind → renderer NotificationType (only the
+  // "attention" variants matter for the badge transition).
+  const notificationType =
+    notificationKind === 'permission_prompt'
+      ? 'permission_prompt'
+      : notificationKind === 'idle_prompt'
+        ? 'idle_prompt'
+        : notificationKind === 'auth_success'
+          ? 'auth_success'
+          : notificationKind === 'elicitation_dialog'
+            ? 'elicitation_dialog'
+            : undefined;
+
+  const conversationId =
+    typeof tagged.conversation_id === 'string'
+      ? tagged.conversation_id
+      : typeof raw.conversation_id === 'string'
+        ? raw.conversation_id
+        : '';
+  const workspaceId =
+    typeof tagged.workspace_id === 'string'
+      ? tagged.workspace_id
+      : typeof raw.workspace_id === 'string'
+        ? raw.workspace_id
+        : '';
+  const projectId = typeof tagged.project_id === 'string' ? tagged.project_id : '';
+  const timestamp =
+    typeof tagged.timestamp === 'string' ? Date.parse(tagged.timestamp) || Date.now() : Date.now();
+  const message = typeof tagged.message === 'string' ? tagged.message : undefined;
+  const providerId = typeof tagged.agent === 'string' ? tagged.agent : undefined;
+
+  return {
+    event: {
+      type,
+      source: 'hook',
+      providerId,
+      projectId,
+      workspaceId,
+      conversationId,
+      timestamp,
+      payload: { notificationType, message },
+    },
+    // The shim doesn't track focus today — assume focused so the
+    // renderer's sound playback fires on completion.
+    appFocused: true,
+  };
+}
+
 function translateUiMutation(event: UiMutationEvent): void {
   switch (event.kind) {
     case 'project_created':
@@ -116,20 +207,44 @@ function translateUiMutation(event: UiMutationEvent): void {
         emit(`workspace.changed.${event.project_id}`, event);
       break;
 
-    case 'agent_hook_event':
-      emit('agent.event', event.event ?? event);
-      if (typeof event.workspace_id === 'string')
-        emit(`agent.event.${event.workspace_id}`, event.event ?? event);
+    case 'agent_hook_event': {
+      // Renderer listens on `agent:event` (colon, see
+      // `@shared/events/agentEvents.ts agentEventChannel`) and expects
+      // `{ event: AgentEvent, appFocused: boolean }`. The Rust struct
+      // is `{ agent, classifier, kind: tagged, message, timestamp,
+      // workspace_id, project_id }` — different shape, snake_case,
+      // tagged `kind` enum. Translate or the conversation status
+      // never leaves "working".
+      const envelope = translateAgentHookEvent(event);
+      if (!envelope) break;
+      const wsId = envelope.event.workspaceId;
+      emit('agent:event', envelope);
+      if (wsId) emit(`agent:event.${wsId}`, envelope);
       break;
+    }
     case 'agent_started':
       emit('agent.started', event);
-      if (typeof event.workspace_id === 'string')
-        emit(`agent.started.${event.workspace_id}`, event);
+      if (typeof event.conversation_id === 'string')
+        emit(`agent.started.${event.conversation_id}`, event);
       break;
-    case 'agent_exited':
-      emit('agent.exited', event);
-      if (typeof event.workspace_id === 'string') emit(`agent.exited.${event.workspace_id}`, event);
+    case 'agent_exited': {
+      // Renderer expects `AgentSessionExited` on `agent:session-exited`.
+      // Rust now carries conversation_id (agents are per-conversation),
+      // so populate it explicitly. workspaceId stays empty — the
+      // renderer's listener routes by conversationId when present.
+      const conversationId = typeof event.conversation_id === 'string' ? event.conversation_id : '';
+      const exitCode = typeof event.exit_code === 'number' ? event.exit_code : undefined;
+      const payload = {
+        projectId: '',
+        sessionId: '',
+        conversationId,
+        workspaceId: '',
+        exitCode,
+      };
+      emit('agent:session-exited', payload);
+      if (conversationId) emit(`agent:session-exited.${conversationId}`, payload);
       break;
+    }
 
     case 'github_identity_changed':
       emit('github.identity-changed', event);

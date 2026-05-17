@@ -5,6 +5,7 @@ expression: "serde_json::to_value(&event).unwrap()"
 {
   "agent": "future-x",
   "classifier": "<unknown>",
+  "conversation_id": null,
   "kind": {
     "kind": "unknown"
   },

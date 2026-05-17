@@ -107,22 +107,35 @@ export class ConversationManagerStore implements IDisposable {
   private listenToAgentEvents(): () => void {
     return events.on(agentEventChannel, ({ event, appFocused }) => {
       if (event.workspaceId !== this.workspaceId) return;
-      const conversationStore = this.conversations.get(event.conversationId);
-      if (!conversationStore) return;
+      // The Tauri-side hook server doesn't know about conversations —
+      // it only sees workspace-level events. When `conversationId` is
+      // empty, fan the event out to every conversation that's currently
+      // working (for `stop` / `error`) or to all conversations (for
+      // attention notifications). This keeps the badge transitions
+      // correct without requiring the agent to know which conversation
+      // it's serving.
+      const targets = event.conversationId
+        ? [this.conversations.get(event.conversationId)].filter(
+            (c): c is ConversationStore => c != null
+          )
+        : event.type === 'notification'
+          ? Array.from(this.conversations.values())
+          : Array.from(this.conversations.values()).filter((c) => c.status === 'working');
+      if (targets.length === 0) return;
       if (event.type === 'notification') {
         const nt = event.payload.notificationType;
         if (!isAttentionNotification(nt)) return;
-        conversationStore.setAwaitingInput(nt);
+        for (const t of targets) t.setAwaitingInput(nt);
         soundPlayer.play('needs_attention', appFocused);
         return;
       }
       if (event.type === 'stop') {
-        conversationStore.setStatus('completed');
+        for (const t of targets) t.setStatus('completed');
         soundPlayer.play('task_complete', appFocused);
         return;
       }
       if (event.type === 'error') {
-        conversationStore.setStatus('error');
+        for (const t of targets) t.setStatus('error');
       }
     });
   }
@@ -130,9 +143,15 @@ export class ConversationManagerStore implements IDisposable {
   private listenToSessionExited(): () => void {
     return events.on(agentSessionExitedChannel, (event) => {
       if (event.workspaceId !== this.workspaceId) return;
-      const conversationStore = this.conversations.get(event.conversationId);
-      if (!conversationStore) return;
-      conversationStore.clearWorking();
+      // Same workspace-only-routing concern as listenToAgentEvents:
+      // when conversationId is empty, clear `working` on every
+      // conversation in this workspace that thought it was active.
+      const targets = event.conversationId
+        ? [this.conversations.get(event.conversationId)].filter(
+            (c): c is ConversationStore => c != null
+          )
+        : Array.from(this.conversations.values()).filter((c) => c.status === 'working');
+      for (const t of targets) t.clearWorking();
     });
   }
 
@@ -199,7 +218,7 @@ export class ConversationManagerStore implements IDisposable {
     });
 
     try {
-      await rpc.conversations.deleteConversation(this.projectId, this.workspaceId, conversationId);
+      await rpc.conversations.deleteConversation(conversationId);
       session?.dispose();
     } catch (err) {
       runInAction(() => {
